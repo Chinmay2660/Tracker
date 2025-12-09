@@ -24,28 +24,15 @@ export default function DashboardPage() {
   const [isColumnFormOpen, setIsColumnFormOpen] = useState(false);
   const [isJobFormOpen, setIsJobFormOpen] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ColumnFormData>({
+  
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ColumnFormData>({
     resolver: zodResolver(columnSchema),
   });
 
   useEffect(() => {
-    // Only create default columns once, when columns are loaded and empty
     if (!isLoading && columns.length === 0 && !hasInitialized) {
-      setHasInitialized(true); // Set immediately to prevent multiple runs
-      const defaultColumns = [
-        'Applied',
-        'Recruiter Call',
-        'OA',
-        'Phone Screen',
-        'Onsite',
-        'Offer',
-      ];
-      // Create all columns in a batch to avoid multiple API calls
+      setHasInitialized(true);
+      const defaultColumns = ['Applied', 'Recruiter Call', 'OA', 'Phone Screen', 'Onsite', 'Offer'];
       defaultColumns.forEach((title, index) => {
         createColumn({ title, order: index });
       });
@@ -60,22 +47,39 @@ export default function DashboardPage() {
   };
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">Job Board</h1>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Button onClick={() => setIsJobFormOpen(true)} className="w-full sm:w-auto">
-            <Briefcase className="h-4 w-4 mr-2" />
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Job Board</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Track your applications across stages</p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsJobFormOpen(true)} 
+            className="flex-1 sm:flex-none bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+          >
+            <Briefcase className="w-4 h-4 mr-2" />
             Add Job
           </Button>
-          <Button variant="outline" onClick={() => setIsColumnFormOpen(true)} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
+          <Button 
+            variant="outline" 
+            onClick={() => setIsColumnFormOpen(true)}
+            className="flex-1 sm:flex-none border-slate-300 dark:border-slate-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
             Add Column
           </Button>
         </div>
       </div>
+
+      {/* Charts */}
       <JobStageCharts />
+
+      {/* Kanban Board */}
       <KanbanBoard />
+
+      {/* Add Column Dialog */}
       <Dialog open={isColumnFormOpen} onOpenChange={setIsColumnFormOpen}>
         <DialogContent onClose={() => setIsColumnFormOpen(false)}>
           <DialogHeader>
@@ -87,21 +91,15 @@ export default function DashboardPage() {
               <Input
                 id="title"
                 {...register('title')}
-                className={errors.title ? 'border-destructive' : ''}
+                className={errors.title ? 'border-red-500' : ''}
                 placeholder="e.g., Technical Interview"
               />
               {errors.title && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.title.message}
-                </p>
+                <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>
               )}
             </div>
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsColumnFormOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsColumnFormOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit">Create Column</Button>
@@ -109,6 +107,8 @@ export default function DashboardPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Add Job Dialog */}
       <Dialog open={isJobFormOpen} onOpenChange={setIsJobFormOpen}>
         <DialogContent onClose={() => setIsJobFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
           <DialogHeader>
@@ -120,4 +120,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

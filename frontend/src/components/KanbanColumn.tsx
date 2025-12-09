@@ -34,6 +34,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  
   const {
     setNodeRef,
     transform,
@@ -41,37 +42,25 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
     isDragging,
     attributes,
     listeners,
-  } = useSortable({
-    id: `column-${column._id}`,
-  });
+  } = useSortable({ id: `column-${column._id}` });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ColumnEditData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ColumnEditData>({
     resolver: zodResolver(columnEditSchema),
-    defaultValues: {
-      title: column.title,
-    },
+    defaultValues: { title: column.title },
   });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : transition, // Disable transition while dragging for smoother animation
-    opacity: isDragging ? 0.4 : 1,
-    willChange: isDragging ? 'transform' : 'auto', // Optimize for transforms
+    transition: isDragging ? 'none' : transition,
+    opacity: isDragging ? 0.5 : 1,
   };
 
-  // Close menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowMenu(false);
       }
     };
-
     if (showMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -104,57 +93,69 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-muted/50 rounded-lg p-4 flex flex-col ${isDragging ? 'opacity-50' : ''}`}
+        className="bg-slate-100 dark:bg-slate-900/50 rounded-xl p-3 sm:p-4 flex flex-col min-w-[260px] sm:min-w-[300px] max-w-[300px] sm:max-w-[320px]"
       >
-        <div className="flex items-center justify-between mb-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <button
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+              className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors touch-none"
             >
-              <GripVertical className="h-5 w-5" />
+              <GripVertical className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            <h3 className="font-semibold text-lg truncate">{column.title}</h3>
+            <h3 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white truncate">{column.title}</h3>
+            <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">
+              {jobs.length}
+            </span>
           </div>
-          <div className="flex gap-2 items-center">
-            <span className="text-sm text-muted-foreground">{jobs.length}</span>
-            <div className="relative" ref={menuRef}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setShowMenu(!showMenu)}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-              {showMenu && (
-                <div className="absolute right-0 top-8 z-50 w-48 bg-popover border border-border rounded-md shadow-lg">
-                  <button
-                    onClick={handleEdit}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    Edit Column
-                  </button>
-                  <button
-                    onClick={handleDeleteClick}
-                    className="w-full text-left px-3 py-2 text-sm text-destructive hover:bg-accent hover:text-destructive transition-colors flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Column
-                  </button>
-                </div>
-              )}
-            </div>
+          
+          <div className="relative" ref={menuRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              onClick={() => setShowMenu(!showMenu)}
+            >
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+            
+            {showMenu && (
+              <div className="absolute right-0 top-8 z-50 w-40 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
+                <button
+                  onClick={handleEdit}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit
+                </button>
+                <button
+                  onClick={handleDeleteClick}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex-1 space-y-2 overflow-y-auto min-h-[200px]">
+
+        {/* Jobs list */}
+        <div className="flex-1 space-y-2 sm:space-y-3 overflow-y-auto min-h-[150px] max-h-[calc(100vh-280px)] scrollbar-hide">
           {jobs.map((job) => (
             <JobCard key={job._id} job={job} />
           ))}
+          {jobs.length === 0 && (
+            <div className="text-center py-8 text-sm text-slate-400 dark:text-slate-500">
+              No jobs yet
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent onClose={() => setIsEditOpen(false)}>
           <DialogHeader>
@@ -166,54 +167,44 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
               <Input
                 id="title"
                 {...register('title')}
-                className={errors.title ? 'border-destructive' : ''}
+                className={errors.title ? 'border-red-500' : ''}
                 placeholder="e.g., Technical Interview"
               />
               {errors.title && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.title.message}
-                </p>
+                <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>
               )}
             </div>
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit">Save</Button>
             </div>
           </form>
         </DialogContent>
-          </Dialog>
+      </Dialog>
 
-          {/* Delete Confirmation Dialog */}
-          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
-              <DialogHeader>
-                <DialogTitle>Delete Column</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to delete "{column.title}"? This will also delete all jobs in this column. This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDeleteDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button variant="destructive" onClick={handleDeleteConfirm}>
-                  Delete
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete Column</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{column.title}"? This will also delete all jobs in this column.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
 export default memo(KanbanColumn);
-
