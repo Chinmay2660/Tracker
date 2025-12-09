@@ -39,13 +39,11 @@ if (clientID && clientSecret && clientID !== 'your-google-client-id-here.apps.go
           if (process.env.MONGODB_URI && mongoose.connection.readyState === 0) {
             try {
               await mongoose.connect(process.env.MONGODB_URI, {
-                serverSelectionTimeoutMS: 10000,
+                serverSelectionTimeoutMS: 15000,
                 socketTimeoutMS: 45000,
-                connectTimeoutMS: 10000,
+                connectTimeoutMS: 15000,
                 maxPoolSize: 10,
                 retryWrites: true,
-                bufferCommands: false,
-                bufferMaxEntries: 0,
               });
               console.log('✅ MongoDB connected on-demand');
             } catch (connectError: any) {

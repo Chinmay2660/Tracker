@@ -93,14 +93,12 @@ const connectMongoDB = async () => {
   }
 
   const mongooseOptions = {
-    serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+    serverSelectionTimeoutMS: 15000, // 15 seconds timeout
     socketTimeoutMS: 45000, // 45 seconds socket timeout
-    connectTimeoutMS: 10000, // 10 seconds connection timeout
+    connectTimeoutMS: 15000, // 15 seconds connection timeout
     maxPoolSize: 10, // Maintain up to 10 socket connections
     minPoolSize: 1, // Maintain at least 1 socket connection
     retryWrites: true,
-    bufferCommands: false, // Disable mongoose buffering
-    bufferMaxEntries: 0, // Disable mongoose buffering
   };
   
   try {
