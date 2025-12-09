@@ -80,29 +80,41 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 // Connect to MongoDB (with connection options for serverless)
-if (process.env.MONGODB_URI) {
+const connectMongoDB = async () => {
+  if (!process.env.MONGODB_URI) {
+    console.warn("⚠️  MONGODB_URI not set");
+    return;
+  }
+
+  // If already connected, return
+  if (mongoose.connection.readyState === 1) {
+    console.log("✅ MongoDB already connected");
+    return;
+  }
+
   const mongooseOptions = {
-    serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+    serverSelectionTimeoutMS: 10000, // 10 seconds timeout
     socketTimeoutMS: 45000, // 45 seconds socket timeout
     connectTimeoutMS: 10000, // 10 seconds connection timeout
     maxPoolSize: 10, // Maintain up to 10 socket connections
     minPoolSize: 1, // Maintain at least 1 socket connection
     retryWrites: true,
+    bufferCommands: false, // Disable mongoose buffering
+    bufferMaxEntries: 0, // Disable mongoose buffering
   };
   
-  mongoose
-    .connect(process.env.MONGODB_URI, mongooseOptions)
-    .then(() => {
-      console.log("✅ Connected to MongoDB");
-    })
-    .catch((error: any) => {
-      console.error("⚠️  MongoDB connection error:", error.message);
-      // Don't block serverless function initialization
-      // Connection will be retried on first database operation
-    });
-} else {
-  console.warn("⚠️  MONGODB_URI not set");
-}
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, mongooseOptions);
+    console.log("✅ Connected to MongoDB");
+  } catch (error: any) {
+    console.error("⚠️  MongoDB connection error:", error.message);
+    // Don't block serverless function initialization
+    // Connection will be retried on first database operation
+  }
+};
+
+// Start connection (non-blocking)
+connectMongoDB();
 
 // Export for Vercel serverless (must be at the end)
 module.exports = app;

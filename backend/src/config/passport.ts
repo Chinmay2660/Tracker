@@ -31,13 +31,31 @@ if (clientID && clientSecret && clientID !== 'your-google-client-id-here.apps.go
         // Check if MongoDB is connected (with retry for serverless)
         const mongoose = require('mongoose');
         
-        // Wait for connection if not ready (for serverless cold starts)
+        // Try to connect if not already connected
         if (mongoose.connection.readyState !== 1) {
-          console.log('⏳ MongoDB not ready, waiting for connection... ReadyState:', mongoose.connection.readyState);
+          console.log('⏳ MongoDB not ready, attempting to connect... ReadyState:', mongoose.connection.readyState);
           
-          // Wait up to 5 seconds for connection
+          // Try to connect if MONGODB_URI is available
+          if (process.env.MONGODB_URI && mongoose.connection.readyState === 0) {
+            try {
+              await mongoose.connect(process.env.MONGODB_URI, {
+                serverSelectionTimeoutMS: 10000,
+                socketTimeoutMS: 45000,
+                connectTimeoutMS: 10000,
+                maxPoolSize: 10,
+                retryWrites: true,
+                bufferCommands: false,
+                bufferMaxEntries: 0,
+              });
+              console.log('✅ MongoDB connected on-demand');
+            } catch (connectError: any) {
+              console.error('❌ MongoDB connection failed:', connectError.message);
+            }
+          }
+          
+          // Wait up to 10 seconds for connection to be ready
           let attempts = 0;
-          const maxAttempts = 50; // 50 attempts * 100ms = 5 seconds
+          const maxAttempts = 100; // 100 attempts * 100ms = 10 seconds
           
           while (mongoose.connection.readyState !== 1 && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -46,7 +64,8 @@ if (clientID && clientSecret && clientID !== 'your-google-client-id-here.apps.go
           
           if (mongoose.connection.readyState !== 1) {
             console.error('❌ MongoDB connection timeout. ReadyState:', mongoose.connection.readyState);
-            return done(new Error('Database connection timeout. Please check MONGODB_URI.'), undefined);
+            console.error('   MONGODB_URI is set:', !!process.env.MONGODB_URI);
+            return done(new Error('Database connection timeout. Please check MONGODB_URI in Vercel environment variables.'), undefined);
           }
           
           console.log('✅ MongoDB connected after wait');
