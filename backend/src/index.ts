@@ -58,8 +58,22 @@ app.get("/auth/test", (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Export for Vercel serverless
-export = app;
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/job-tracker")
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+  })
+  .catch((error) => {
+    console.error("⚠️  MongoDB connection error:", error.message);
+    if (process.env.VERCEL !== '1') {
+      console.error("   Server is running but database features may not work.");
+      console.error("   To fix: Start MongoDB or update MONGODB_URI in .env");
+    }
+  });
+
+// Export for Vercel serverless (must be at the end)
+module.exports = app;
 
 // Start server only if not in Vercel environment
 if (process.env.VERCEL !== '1') {
@@ -68,26 +82,4 @@ if (process.env.VERCEL !== '1') {
     console.log(`📡 Health check: http://localhost:${PORT}/health`);
     console.log(`🔐 OAuth endpoint: http://localhost:${PORT}/auth/google`);
   });
-
-  // Connect to MongoDB (non-blocking)
-  mongoose
-    .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/job-tracker")
-    .then(() => {
-      console.log("✅ Connected to MongoDB");
-    })
-    .catch((error) => {
-      console.error("⚠️  MongoDB connection error:", error.message);
-      console.error("   Server is running but database features may not work.");
-      console.error("   To fix: Start MongoDB or update MONGODB_URI in .env");
-    });
-} else {
-  // Connect to MongoDB for Vercel
-  mongoose
-    .connect(process.env.MONGODB_URI || "")
-    .then(() => {
-      console.log("✅ Connected to MongoDB");
-    })
-    .catch((error) => {
-      console.error("⚠️  MongoDB connection error:", error.message);
-    });
 }
