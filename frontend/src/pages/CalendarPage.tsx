@@ -8,23 +8,22 @@ import { InterviewRound } from '../types';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import InterviewForm from '../components/InterviewForm';
-import { useInterviews } from '../hooks/useInterviews';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { format } from 'date-fns';
+import { Plus } from 'lucide-react';
 
 const localizer = momentLocalizer(moment);
 
 export default function CalendarPage() {
   const { jobs = [] } = useJobs();
-  const { updateInterviewAsync } = useInterviews();
   const [selectedEvent, setSelectedEvent] = useState<InterviewRound | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
   const [listDialogDate, setListDialogDate] = useState<Date | null>(null);
 
-  const { data: allInterviews = [], refetch: refetchInterviews } = useQuery<InterviewRound[]>({
+  const { data: allInterviews = [] } = useQuery<InterviewRound[]>({
     queryKey: ['interviews'],
     queryFn: async () => {
       const allInterviewsData: InterviewRound[] = [];
@@ -32,92 +31,62 @@ export default function CalendarPage() {
         try {
           const response = await api.get(`/interviews/jobs/${job._id}`);
           allInterviewsData.push(...response.data.interviews);
-        } catch (error) {
+        } catch {
           // Skip if no interviews
         }
       }
       return allInterviewsData;
     },
     enabled: jobs.length > 0,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    refetchOnMount: false, // Don't refetch on mount if data exists
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const events = allInterviews
     .map((interview) => {
       const job = jobs.find((j: { _id: string }) => j._id === interview.jobId);
       
-      // Parse the date - handle both ISO string and date-only string
       let dateObj: Date;
       let dateOnly: string;
       
       if (interview.date.includes('T')) {
-        // If it's already an ISO string, parse it directly
         dateObj = new Date(interview.date);
-        // Extract just the date part (YYYY-MM-DD)
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         dateOnly = `${year}-${month}-${day}`;
       } else {
-        // If it's just a date string like "2025-12-10", use it directly
         dateOnly = interview.date;
         dateObj = new Date(interview.date);
       }
       
-      // Combine date and time
       let dateTimeStr: string;
       if (interview.time && interview.time.trim() !== '') {
-        // Ensure time is in HH:mm format
         const timeStr = interview.time.length === 5 ? interview.time : `${interview.time}:00`;
         dateTimeStr = `${dateOnly}T${timeStr}`;
       } else {
-        // Default to 9 AM if no time specified
         dateTimeStr = `${dateOnly}T09:00`;
       }
       
       const startDate = new Date(dateTimeStr);
       
-      // Calculate end time
       let endDate: Date;
       if (interview.endTime && interview.endTime.trim() !== '') {
         const endTimeStr = interview.endTime.length === 5 ? interview.endTime : `${interview.endTime}:00`;
         endDate = new Date(`${dateOnly}T${endTimeStr}`);
       } else {
-        // Default to 1 hour after start time
         endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       }
       
-      // Validate both start and end dates
-      if (isNaN(startDate.getTime())) {
-        console.error('Invalid start date for interview:', interview, 'dateTimeStr:', dateTimeStr);
-        return null;
-      }
+      if (isNaN(startDate.getTime())) return null;
+      if (isNaN(endDate.getTime())) endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+      if (endDate <= startDate) endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       
-      if (isNaN(endDate.getTime())) {
-        console.error('Invalid end date for interview:', interview, 'endTime:', interview.endTime);
-        // Fallback to 1 hour after start if end date is invalid
-        endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-      }
-      
-      // Ensure end time is after start time
-      if (endDate <= startDate) {
-        console.warn('End time is before or equal to start time, adjusting:', interview);
-        endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-      }
-      
-      // Style based on status
-      const isCompleted = interview.status === 'completed';
-      const isPending = interview.status === 'pending';
-      const isCancelled = interview.status === 'cancelled';
-      
-      // Format time for display
       const timeStr = interview.time && interview.time.trim() !== ''
         ? format(new Date(`${dateOnly}T${interview.time.length === 5 ? interview.time : `${interview.time}:00`}`), 'h:mm a')
         : '9:00 AM';
       
-      // Format title as "Company Name - Stage Name - Start Time"
       const title = `${job?.companyName || 'Unknown'} - ${interview.stage} - ${timeStr}`;
       
       return {
@@ -127,22 +96,19 @@ export default function CalendarPage() {
         end: endDate,
         resource: interview,
         status: interview.status,
-        isCompleted,
-        isPending,
-        isCancelled,
+        isCompleted: interview.status === 'completed',
+        isPending: interview.status === 'pending',
+        isCancelled: interview.status === 'cancelled',
         job,
       };
     })
-    .filter((event): event is NonNullable<typeof event> => event !== null); // Filter out any null events
+    .filter((event): event is NonNullable<typeof event> => event !== null);
 
-  // Group events by date for detecting multiple interviews per day
   const eventsByDate = useMemo(() => {
     const grouped: Record<string, typeof events> = {};
     events.forEach((event) => {
       const dateKey = format(event.start, 'yyyy-MM-dd');
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
+      if (!grouped[dateKey]) grouped[dateKey] = [];
       grouped[dateKey].push(event);
     });
     return grouped;
@@ -152,7 +118,6 @@ export default function CalendarPage() {
     const dateKey = format(slotInfo.start, 'yyyy-MM-dd');
     const dayEvents = eventsByDate[dateKey] || [];
     
-    // If more than 2 interviews on this day, show list dialog
     if (dayEvents.length > 2) {
       setListDialogDate(slotInfo.start);
       setIsListDialogOpen(true);
@@ -164,62 +129,46 @@ export default function CalendarPage() {
   };
 
   const handleSelectEvent = (event: any) => {
-    // Handle both direct event clicks and custom event component clicks
     const eventStart = event.start || event.event?.start;
     const interview = event.resource || event.event?.resource;
     
-    if (!eventStart || isNaN(new Date(eventStart).getTime())) {
-      console.error('Invalid event start date:', event);
-      return;
-    }
+    if (!eventStart || isNaN(new Date(eventStart).getTime())) return;
     
     const dateKey = format(new Date(eventStart), 'yyyy-MM-dd');
     const dayEvents = eventsByDate[dateKey] || [];
     
-    // If more than 2 interviews on this day, show list dialog
     if (dayEvents.length > 2) {
       setListDialogDate(new Date(eventStart));
       setIsListDialogOpen(true);
-    } else {
-      // Make sure we're getting the interview from the event resource
-      if (interview) {
-        setSelectedEvent(interview);
-        setSelectedDate(null);
-        setIsFormOpen(true);
-      }
+    } else if (interview) {
+      setSelectedEvent(interview);
+      setSelectedDate(null);
+      setIsFormOpen(true);
     }
   };
 
-
   const eventStyleGetter = (event: any) => {
-    let backgroundColor = 'hsl(var(--primary))';
-    let borderColor = 'hsl(var(--primary))';
+    let backgroundColor = 'hsl(162 72% 45%)'; // Teal
     
     if (event.isCancelled) {
-      backgroundColor = 'hsl(0 84% 60%)'; // Red for cancelled
-      borderColor = 'hsl(0 84% 60%)';
+      backgroundColor = 'hsl(0 84% 60%)';
     } else if (event.isCompleted) {
-      backgroundColor = 'hsl(142 76% 36%)'; // Green for completed
-      borderColor = 'hsl(142 76% 36%)';
+      backgroundColor = 'hsl(142 76% 36%)';
     } else if (event.isPending) {
-      backgroundColor = 'hsl(38 92% 50%)'; // Orange/Yellow for pending
-      borderColor = 'hsl(38 92% 50%)';
+      backgroundColor = 'hsl(38 92% 50%)';
     }
     
     return {
       style: {
         backgroundColor,
-        borderColor,
-        borderWidth: '2px',
-        borderRadius: '4px',
+        borderRadius: '6px',
         color: 'white',
+        border: 'none',
         opacity: event.isCompleted || event.isCancelled ? 0.8 : 1,
       },
-      className: 'rbc-event-white-text',
     };
   };
 
-  // Get events for the list dialog date
   const listDialogEvents = useMemo(() => {
     if (!listDialogDate) return [];
     const dateKey = format(listDialogDate, 'yyyy-MM-dd');
@@ -227,56 +176,65 @@ export default function CalendarPage() {
   }, [listDialogDate, eventsByDate]);
 
   return (
-    <div>
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">Interview Calendar</h1>
-        <p className="text-sm sm:text-base text-muted-foreground mt-2">
-          View and manage your interview schedule
-        </p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Interview Calendar</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">View and manage your interview schedule</p>
+        </div>
+        <Button 
+          onClick={() => { setSelectedEvent(null); setSelectedDate(new Date()); setIsFormOpen(true); }}
+          className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Interview
+        </Button>
       </div>
-      <div className="bg-card rounded-lg p-2 sm:p-4 h-[600px] sm:h-[700px] lg:h-[900px] border border-border shadow-sm overflow-auto">
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          onSelectSlot={handleSelectSlot}
-          onSelectEvent={handleSelectEvent}
-          selectable
-          defaultView="month"
-          views={['month', 'week', 'day']}
-          min={new Date(1970, 0, 1, 0, 0, 0)} // Start from midnight (00:00)
-          max={new Date(1970, 0, 1, 23, 59, 59)} // End at 23:59
-          scrollToTime={new Date(1970, 0, 1, 0, 0, 0)} // Scroll to midnight on load
-          style={{ height: '100%' }}
-          className="text-foreground rbc-calendar-custom"
-          eventPropGetter={eventStyleGetter}
-          components={{
-            event: (props: any) => {
-              const interview = props.event.resource as InterviewRound;
-              return (
-                <div
-                  className="rbc-event-content rbc-event-white-text"
-                  style={{ color: 'white' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Pass the event object with resource
-                    handleSelectEvent({ resource: interview, event: props.event });
-                  }}
-                >
-                  <span className="flex-1 truncate" style={{ color: 'white' }}>{props.title}</span>
-                </div>
-              );
-            },
-          }}
-        />
+
+      {/* Calendar */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="h-[500px] sm:h-[600px] lg:h-[700px]">
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            onSelectSlot={handleSelectSlot}
+            onSelectEvent={handleSelectEvent}
+            selectable
+            defaultView="month"
+            views={['month', 'week', 'day']}
+            min={new Date(1970, 0, 1, 0, 0, 0)}
+            max={new Date(1970, 0, 1, 23, 59, 59)}
+            scrollToTime={new Date(1970, 0, 1, 0, 0, 0)}
+            style={{ height: '100%' }}
+            eventPropGetter={eventStyleGetter}
+            components={{
+              event: (props: any) => {
+                const interview = props.event.resource as InterviewRound;
+                return (
+                  <div
+                    className="text-xs px-1 truncate cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectEvent({ resource: interview, event: props.event });
+                    }}
+                  >
+                    {props.title}
+                  </div>
+                );
+              },
+            }}
+          />
+        </div>
       </div>
+
+      {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent onClose={() => setIsFormOpen(false)}>
           <DialogHeader>
-            <DialogTitle>
-              {selectedEvent ? 'Edit Interview' : 'Add Interview'}
-            </DialogTitle>
+            <DialogTitle>{selectedEvent ? 'Edit Interview' : 'Add Interview'}</DialogTitle>
           </DialogHeader>
           <InterviewForm
             interview={selectedEvent || undefined}
@@ -290,9 +248,9 @@ export default function CalendarPage() {
         </DialogContent>
       </Dialog>
 
-      {/* List Dialog for days with more than 2 interviews */}
+      {/* List Dialog */}
       <Dialog open={isListDialogOpen} onOpenChange={setIsListDialogOpen}>
-        <DialogContent onClose={() => setIsListDialogOpen(false)} className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent onClose={() => setIsListDialogOpen(false)} className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Interviews on {listDialogDate ? format(listDialogDate, 'EEEE, MMM d, yyyy') : ''}
@@ -302,26 +260,18 @@ export default function CalendarPage() {
             {listDialogEvents.map((event) => {
               const interview = event.resource as InterviewRound;
               const job = event.job;
-              const isCompleted = interview.status === 'completed';
-              const isCancelled = interview.status === 'cancelled';
-              const isPending = interview.status === 'pending';
               
-              // Get time display
               const timeStr = interview.time && interview.time.trim() !== ''
                 ? format(new Date(`${format(event.start, 'yyyy-MM-dd')}T${interview.time.length === 5 ? interview.time : `${interview.time}:00`}`), 'h:mm a')
                 : '9:00 AM';
-              
-              const endTimeStr = interview.endTime && interview.endTime !== '00:00' && interview.endTime.trim() !== ''
-                ? format(new Date(`${format(event.start, 'yyyy-MM-dd')}T${interview.endTime.length === 5 ? interview.endTime : `${interview.endTime}:00`}`), 'h:mm a')
-                : format(new Date(event.end), 'h:mm a');
               
               return (
                 <Card
                   key={interview._id}
                   className={`cursor-pointer hover:shadow-md transition-shadow ${
-                    isCancelled ? 'border-red-500 bg-red-500/10' :
-                    isCompleted ? 'border-green-500 bg-green-500/10' :
-                    'border-orange-500 bg-orange-500/10'
+                    interview.status === 'cancelled' ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/10' :
+                    interview.status === 'completed' ? 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-900/10' :
+                    'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10'
                   }`}
                   onClick={() => {
                     setSelectedEvent(interview);
@@ -331,28 +281,21 @@ export default function CalendarPage() {
                   }}
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-semibold text-lg">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-slate-900 dark:text-white truncate">
                             {job?.companyName || 'Unknown'} - {interview.stage}
                           </h4>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            isCancelled ? 'bg-red-500 text-white' :
-                            isCompleted ? 'bg-green-500 text-white' :
-                            'bg-orange-500 text-white'
+                          <span className={`flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium text-white ${
+                            interview.status === 'cancelled' ? 'bg-red-500' :
+                            interview.status === 'completed' ? 'bg-green-500' : 'bg-amber-500'
                           }`}>
                             {interview.status}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {timeStr} - {endTimeStr}
-                        </p>
-                        {job && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Role: {job.role}
-                          </p>
-                        )}
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{timeStr}</p>
+                        {job && <p className="text-sm text-slate-500 dark:text-slate-400">Role: {job.role}</p>}
                       </div>
                     </div>
                   </CardContent>
@@ -361,7 +304,7 @@ export default function CalendarPage() {
             })}
           </div>
           {listDialogDate && (
-            <div className="mt-4 pt-4 border-t">
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
               <Button
                 onClick={() => {
                   setSelectedEvent(null);
@@ -371,6 +314,7 @@ export default function CalendarPage() {
                 }}
                 className="w-full"
               >
+                <Plus className="w-4 h-4 mr-2" />
                 Add New Interview
               </Button>
             </div>
@@ -380,4 +324,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-

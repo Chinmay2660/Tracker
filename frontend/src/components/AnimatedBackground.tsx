@@ -22,20 +22,21 @@ function AnimatedBackground() {
       color: string;
     }> = [];
 
+    // New teal/lime color palette
     const colors = [
-      'rgba(139, 92, 246, 0.5)',
-      'rgba(168, 85, 247, 0.5)',
-      'rgba(192, 38, 211, 0.5)',
-      'rgba(217, 70, 239, 0.5)',
+      'rgba(45, 180, 160, 0.5)',   // Teal
+      'rgba(60, 200, 170, 0.5)',   // Light teal
+      'rgba(163, 230, 53, 0.4)',   // Lime
+      'rgba(80, 220, 180, 0.4)',   // Mint
     ];
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 40; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        radius: Math.random() * 2 + 1,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        radius: Math.random() * 2 + 0.5,
         color: colors[Math.floor(Math.random() * colors.length)],
       });
     }
@@ -56,17 +57,17 @@ function AnimatedBackground() {
         ctx.fillStyle = particle.color;
         ctx.fill();
 
-        // Draw connections
+        // Draw connections with teal color
         particles.forEach((other) => {
           const dx = particle.x - other.x;
           const dy = particle.y - other.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 150) {
+          if (distance < 120) {
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
             ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(139, 92, 246, ${0.2 * (1 - distance / 150)})`;
+            ctx.strokeStyle = `rgba(45, 180, 160, ${0.15 * (1 - distance / 120)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -90,10 +91,9 @@ function AnimatedBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none opacity-30 dark:opacity-20"
+      className="fixed inset-0 pointer-events-none opacity-40 dark:opacity-25"
     />
   );
 }
 
 export default memo(AnimatedBackground);
-
