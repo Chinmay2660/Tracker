@@ -9,7 +9,6 @@ import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import InterviewForm from '../components/InterviewForm';
 import { useInterviews } from '../hooks/useInterviews';
-import { CheckCircle2, Circle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { format } from 'date-fns';
@@ -69,12 +68,12 @@ export default function CalendarPage() {
       
       // Combine date and time
       let dateTimeStr: string;
-      if (interview.time && interview.time !== '00:00' && interview.time.trim() !== '') {
+      if (interview.time && interview.time.trim() !== '') {
         // Ensure time is in HH:mm format
         const timeStr = interview.time.length === 5 ? interview.time : `${interview.time}:00`;
         dateTimeStr = `${dateOnly}T${timeStr}`;
       } else {
-        // Default to 9 AM if no time specified or time is 00:00
+        // Default to 9 AM if no time specified
         dateTimeStr = `${dateOnly}T09:00`;
       }
       
@@ -82,7 +81,7 @@ export default function CalendarPage() {
       
       // Calculate end time
       let endDate: Date;
-      if (interview.endTime && interview.endTime !== '00:00' && interview.endTime.trim() !== '') {
+      if (interview.endTime && interview.endTime.trim() !== '') {
         const endTimeStr = interview.endTime.length === 5 ? interview.endTime : `${interview.endTime}:00`;
         endDate = new Date(`${dateOnly}T${endTimeStr}`);
       } else {
@@ -90,10 +89,22 @@ export default function CalendarPage() {
         endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       }
       
-      // Validate the date
+      // Validate both start and end dates
       if (isNaN(startDate.getTime())) {
-        console.error('Invalid date for interview:', interview, 'dateTimeStr:', dateTimeStr);
+        console.error('Invalid start date for interview:', interview, 'dateTimeStr:', dateTimeStr);
         return null;
+      }
+      
+      if (isNaN(endDate.getTime())) {
+        console.error('Invalid end date for interview:', interview, 'endTime:', interview.endTime);
+        // Fallback to 1 hour after start if end date is invalid
+        endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+      }
+      
+      // Ensure end time is after start time
+      if (endDate <= startDate) {
+        console.warn('End time is before or equal to start time, adjusting:', interview);
+        endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       }
       
       // Style based on status
@@ -102,7 +113,7 @@ export default function CalendarPage() {
       const isCancelled = interview.status === 'cancelled';
       
       // Format time for display
-      const timeStr = interview.time && interview.time !== '00:00' && interview.time.trim() !== ''
+      const timeStr = interview.time && interview.time.trim() !== ''
         ? format(new Date(`${dateOnly}T${interview.time.length === 5 ? interview.time : `${interview.time}:00`}`), 'h:mm a')
         : '9:00 AM';
       
@@ -179,17 +190,6 @@ export default function CalendarPage() {
     }
   };
 
-  const handleMarkComplete = async (interview: InterviewRound, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await updateInterviewAsync({
-        id: interview._id,
-        status: interview.status === 'completed' ? 'pending' : 'completed',
-      });
-    } catch (error) {
-      console.error('Error updating interview status:', error);
-    }
-  };
 
   const eventStyleGetter = (event: any) => {
     let backgroundColor = 'hsl(var(--primary))';
@@ -228,13 +228,13 @@ export default function CalendarPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Interview Calendar</h1>
-        <p className="text-muted-foreground mt-2">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Interview Calendar</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-2">
           View and manage your interview schedule
         </p>
       </div>
-      <div className="bg-card rounded-lg p-4 h-[900px] border border-border shadow-sm">
+      <div className="bg-card rounded-lg p-2 sm:p-4 h-[600px] sm:h-[700px] lg:h-[900px] border border-border shadow-sm overflow-auto">
         <Calendar
           localizer={localizer}
           events={events}
@@ -245,6 +245,9 @@ export default function CalendarPage() {
           selectable
           defaultView="month"
           views={['month', 'week', 'day']}
+          min={new Date(1970, 0, 1, 0, 0, 0)} // Start from midnight (00:00)
+          max={new Date(1970, 0, 1, 23, 59, 59)} // End at 23:59
+          scrollToTime={new Date(1970, 0, 1, 0, 0, 0)} // Scroll to midnight on load
           style={{ height: '100%' }}
           className="text-foreground rbc-calendar-custom"
           eventPropGetter={eventStyleGetter}
@@ -261,21 +264,7 @@ export default function CalendarPage() {
                     handleSelectEvent({ resource: interview, event: props.event });
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2" style={{ color: 'white' }}>
-                    <span className="flex-1 truncate" style={{ color: 'white' }}>{props.title}</span>
-                    <button
-                      onClick={(e) => handleMarkComplete(interview, e)}
-                      className="flex-shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
-                      style={{ color: 'white' }}
-                      title={interview.status === 'completed' ? 'Mark as Pending' : 'Mark as Complete'}
-                    >
-                      {interview.status === 'completed' ? (
-                        <CheckCircle2 className="h-4 w-4" style={{ color: 'white' }} />
-                      ) : (
-                        <Circle className="h-4 w-4" style={{ color: 'white' }} />
-                      )}
-                    </button>
-                  </div>
+                  <span className="flex-1 truncate" style={{ color: 'white' }}>{props.title}</span>
                 </div>
               );
             },
@@ -318,7 +307,7 @@ export default function CalendarPage() {
               const isPending = interview.status === 'pending';
               
               // Get time display
-              const timeStr = interview.time && interview.time !== '00:00' && interview.time.trim() !== ''
+              const timeStr = interview.time && interview.time.trim() !== ''
                 ? format(new Date(`${format(event.start, 'yyyy-MM-dd')}T${interview.time.length === 5 ? interview.time : `${interview.time}:00`}`), 'h:mm a')
                 : '9:00 AM';
               
@@ -365,20 +354,6 @@ export default function CalendarPage() {
                           </p>
                         )}
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkComplete(interview, e);
-                        }}
-                        className="flex-shrink-0 p-2 rounded hover:bg-accent transition-colors ml-2"
-                        title={interview.status === 'completed' ? 'Mark as Pending' : 'Mark as Complete'}
-                      >
-                        {interview.status === 'completed' ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-orange-500" />
-                        )}
-                      </button>
                     </div>
                   </CardContent>
                 </Card>

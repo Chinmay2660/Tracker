@@ -61,14 +61,14 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Job Board</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsJobFormOpen(true)}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Job Board</h1>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button onClick={() => setIsJobFormOpen(true)} className="w-full sm:w-auto">
             <Briefcase className="h-4 w-4 mr-2" />
             Add Job
           </Button>
-          <Button variant="outline" onClick={() => setIsColumnFormOpen(true)}>
+          <Button variant="outline" onClick={() => setIsColumnFormOpen(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Column
           </Button>
@@ -110,7 +110,7 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
       <Dialog open={isJobFormOpen} onOpenChange={setIsJobFormOpen}>
-        <DialogContent onClose={() => setIsJobFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent onClose={() => setIsJobFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
           <DialogHeader>
             <DialogTitle>Add New Job</DialogTitle>
           </DialogHeader>

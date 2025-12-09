@@ -431,6 +431,8 @@
 .rbc-calendar {
   color: hsl(var(--foreground));
   background: hsl(var(--card));
+  overflow: visible;
+  height: 100%;
 }
 
 .rbc-header {
@@ -469,6 +471,8 @@
   cursor: pointer;
   z-index: 2;
   position: relative;
+  height: auto !important;
+  min-height: 20px;
 }
 
 .rbc-event-content {
@@ -556,7 +560,7 @@
 .rbc-month-view {
   border: 1px solid hsl(var(--border));
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .rbc-month-row {

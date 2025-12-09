@@ -181,7 +181,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   return (
     <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="companyName">Company Name *</Label>
           <Input
@@ -208,7 +208,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="jobUrl">Job URL</Label>
           <Input id="jobUrl" {...register('jobUrl')} type="url" />
@@ -247,7 +247,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       {/* Asked Compensation */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Asked Compensation</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="ctcMin">CTC Min (₹)</Label>
             <Input id="ctcMin" {...register('ctcMin', { valueAsNumber: true })} type="number" min="0" step="1000" />
@@ -279,7 +279,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       {selectedColumn?.title === 'Offer' && (
         <>
           <h3 className="text-lg font-semibold mt-6">Offered Compensation</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="offeredCtc">Offered CTC (₹)</Label>
               <Input id="offeredCtc" {...register('offeredCtc', { valueAsNumber: true })} type="number" min="0" step="1000" />
@@ -325,7 +325,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="resumeVersion">Resume Version</Label>
           <Select id="resumeVersion" {...register('resumeVersion')}>
