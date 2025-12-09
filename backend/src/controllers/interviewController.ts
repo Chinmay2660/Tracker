@@ -10,15 +10,16 @@ const createInterviewSchema = z.object({
   date: z.string(),
   time: z.string().optional(),
   notesMarkdown: z.string().optional(),
-  status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
+  status: z.enum(['pending', 'completed', 'cancelled']).optional(),
 });
 
 const updateInterviewSchema = z.object({
   stage: z.string().min(1).optional(),
   date: z.string().optional(),
   time: z.string().optional(),
+  endTime: z.string().optional(),
   notesMarkdown: z.string().optional(),
-  status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
+  status: z.enum(['pending', 'completed', 'cancelled']).optional(),
 });
 
 export const createInterview = async (req: AuthRequest, res: Response) => {
@@ -36,7 +37,7 @@ export const createInterview = async (req: AuthRequest, res: Response) => {
       date: new Date(data.date),
       time: data.time,
       notesMarkdown: data.notesMarkdown,
-      status: data.status || 'scheduled',
+      status: data.status || 'pending',
     });
 
     res.status(201).json({ success: true, interview });
@@ -79,9 +80,20 @@ export const updateInterview = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Job not found' });
     }
 
-    const updateData: any = { ...data };
-    if (data.date) {
+    const updateData: any = {};
+    
+    // Only update fields that are provided
+    if (data.stage !== undefined) {
+      updateData.stage = data.stage;
+    }
+    if (data.date !== undefined) {
       updateData.date = new Date(data.date);
+    }
+    if (data.time !== undefined) {
+      updateData.time = data.time || undefined;
+    }
+    if (data.status !== undefined) {
+      updateData.status = data.status;
     }
 
     const updatedInterview = await InterviewRound.findByIdAndUpdate(id, updateData, {

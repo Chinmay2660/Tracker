@@ -24,8 +24,10 @@ export const useInterviews = () => {
     onSuccess: (_, variables) => {
       if (variables.jobId) {
         queryClient.invalidateQueries({ queryKey: ['interviews', variables.jobId] });
+        queryClient.refetchQueries({ queryKey: ['interviews', variables.jobId] });
       }
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
+      queryClient.refetchQueries({ queryKey: ['interviews'] });
     },
   });
 
@@ -36,7 +38,9 @@ export const useInterviews = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['interviews', data.jobId] });
+      queryClient.refetchQueries({ queryKey: ['interviews', data.jobId] });
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
+      queryClient.refetchQueries({ queryKey: ['interviews'] });
     },
   });
 
@@ -46,14 +50,19 @@ export const useInterviews = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['interviews', variables.jobId] });
+      queryClient.refetchQueries({ queryKey: ['interviews', variables.jobId] });
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
+      queryClient.refetchQueries({ queryKey: ['interviews'] });
     },
   });
 
   return {
     createInterview: createMutation.mutate,
+    createInterviewAsync: createMutation.mutateAsync,
     updateInterview: updateMutation.mutate,
+    updateInterviewAsync: updateMutation.mutateAsync,
     deleteInterview: deleteMutation.mutate,
+    deleteInterviewAsync: deleteMutation.mutateAsync,
   };
 };
 

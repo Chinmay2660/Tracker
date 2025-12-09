@@ -4,7 +4,8 @@ export interface IResumeVersion extends Document {
   userId: mongoose.Types.ObjectId;
   name: string;
   fileUrl: string;
-  uploadedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const ResumeVersionSchema = new Schema<IResumeVersion>(

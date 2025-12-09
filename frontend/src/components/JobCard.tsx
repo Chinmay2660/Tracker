@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { MapPin, ExternalLink, Calendar, DollarSign } from 'lucide-react';
+import { MapPin, ExternalLink, Calendar } from 'lucide-react';
 import { Job } from '../types';
 import { Card } from './ui/card';
 import { format } from 'date-fns';
@@ -54,16 +54,18 @@ const getTagColor = (tagLabel: string): string => {
 };
 
 const formatCompensation = (job: Job): string | null => {
-  if (!job.compensationType) return null;
-  
-  if (job.compensationType === 'fixed' && job.compensationMin) {
-    return `$${(job.compensationMin / 1000).toFixed(0)}k`;
+  // Display asked CTC range
+  if (job.ctcMin && job.ctcMax) {
+    return `₹${(job.ctcMin / 100000).toFixed(1)} L - ₹${(job.ctcMax / 100000).toFixed(1)} L (CTC)`;
   }
-  
-  if (job.compensationType === 'range' && job.compensationMin && job.compensationMax) {
-    return `$${(job.compensationMin / 1000).toFixed(0)}k - $${(job.compensationMax / 1000).toFixed(0)}k`;
+  // Display fixed compensation
+  if (job.compensationFixed) {
+    return `₹${(job.compensationFixed / 100000).toFixed(1)} L (Fixed)`;
   }
-  
+  // Display offered CTC range if available
+  if (job.offeredCtcMin && job.offeredCtcMax) {
+    return `₹${(job.offeredCtcMin / 100000).toFixed(1)} L - ₹${(job.offeredCtcMax / 100000).toFixed(1)} L (Offered CTC)`;
+  }
   return null;
 };
 
@@ -90,6 +92,8 @@ function JobCard({ job, isDragging }: JobCardProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const compensationText = formatCompensation(job);
+
   return (
     <>
       <Card
@@ -109,10 +113,9 @@ function JobCard({ job, isDragging }: JobCardProps) {
             <MapPin className="h-3 w-3" />
             {job.location}
           </div>
-          {formatCompensation(job) && (
+          {compensationText && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <DollarSign className="h-3 w-3" />
-              {formatCompensation(job)}
+              {compensationText}
             </div>
           )}
           {job.jobUrl && (
@@ -128,7 +131,13 @@ function JobCard({ job, isDragging }: JobCardProps) {
             </a>
           )}
           {job.appliedDate && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div 
+              className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFormOpen(true);
+              }}
+            >
               <Calendar className="h-3 w-3" />
               Applied: {format(new Date(job.appliedDate), 'MMM d, yyyy')}
             </div>

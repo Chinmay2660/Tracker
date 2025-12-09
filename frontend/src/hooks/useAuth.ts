@@ -1,11 +1,14 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { User } from '../types';
 
 export const useAuth = () => {
   const { setUser, token } = useAuthStore();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ['auth', 'me'],
@@ -14,6 +17,9 @@ export const useAuth = () => {
       return response.data.user;
     },
     enabled: !!token,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on mount if data exists
   });
 
   useEffect(() => {
@@ -30,10 +36,20 @@ export const useAuth = () => {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await api.post('/auth/logout');
+      try {
+        await api.post('/auth/logout');
+      } catch (error) {
+        // Even if logout API fails, clear local state
+        console.error('Logout API error:', error);
+      }
     },
     onSuccess: () => {
+      // Clear auth store
       useAuthStore.getState().logout();
+      // Clear all query cache
+      queryClient.clear();
+      // Redirect to home page
+      navigate('/');
     },
   });
 

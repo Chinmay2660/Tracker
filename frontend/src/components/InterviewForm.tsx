@@ -3,22 +3,22 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useInterviews } from '../hooks/useInterviews';
 import { useJobs } from '../hooks/useJobs';
+import { useColumns } from '../hooks/useColumns';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
 import { Select } from './ui/select';
 import { InterviewRound } from '../types';
 import { format } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
+import { Trash2 } from 'lucide-react';
 
 const interviewSchema = z.object({
   jobId: z.string().min(1, 'Job is required'),
   stage: z.string().min(1, 'Stage is required'),
-  date: z.string().min(1, 'Date is required'),
-  time: z.string().optional(),
-  notesMarkdown: z.string().optional(),
-  status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
+  date: z.string().optional(),
+  time: z.string().min(1, 'From time is required'),
+  endTime: z.string().min(1, 'To time is required'),
+  status: z.enum(['pending', 'completed', 'cancelled']).optional(),
 });
 
 type InterviewFormData = z.infer<typeof interviewSchema>;
@@ -34,8 +34,9 @@ export default function InterviewForm({
   defaultDate,
   onSuccess,
 }: InterviewFormProps) {
-  const { createInterview, updateInterview } = useInterviews();
+  const { createInterviewAsync, updateInterviewAsync, deleteInterviewAsync } = useInterviews();
   const { jobs = [] } = useJobs();
+  const { columns = [] } = useColumns();
   const {
     register,
     handleSubmit,
@@ -47,45 +48,60 @@ export default function InterviewForm({
       ? {
           jobId: interview.jobId,
           stage: interview.stage,
-          date: interview.time
-            ? `${interview.date}T${interview.time}`
-            : `${interview.date}T09:00`,
-          time: interview.time || '',
-          notesMarkdown: interview.notesMarkdown || '',
+          date: interview.date.includes('T') 
+            ? interview.date.split('T')[0] 
+            : interview.date,
+          time: interview.time || '09:00',
           status: interview.status,
         }
       : defaultDate
       ? {
-          date: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
+          date: format(defaultDate, 'yyyy-MM-dd'),
+          time: format(defaultDate, 'HH:mm'),
+          status: 'pending',
         }
-      : {},
+      : {
+          time: '09:00',
+          status: 'pending',
+        },
   });
 
-  const notesValue = watch('notesMarkdown');
+  const stage = watch('stage');
+  const isRecruiterCall = stage?.toLowerCase().includes('recruiter') || stage?.toLowerCase().includes('call');
+
+  // Sort columns by order for the dropdown
+  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
 
   const onSubmit = async (data: InterviewFormData) => {
-    // Handle datetime-local format: "2024-01-01T10:00"
-    let dateStr = data.date;
-    let timeStr = data.time;
-    
-    if (data.date.includes('T')) {
-      const [datePart, timePart] = data.date.split('T');
-      dateStr = datePart;
-      timeStr = timePart || data.time || '';
+    // For new interviews, use defaultDate if date is not provided
+    let dateStr: string;
+    if (interview) {
+      // Editing: use the provided date or existing interview date
+      dateStr = data.date || interview.date.split('T')[0] || interview.date;
+    } else {
+      // Creating: use defaultDate or current date
+      dateStr = data.date || (defaultDate ? format(defaultDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
     }
 
-    const interviewData = {
-      ...data,
+    const interviewData: any = {
+      jobId: data.jobId,
+      stage: data.stage,
       date: dateStr,
-      time: timeStr,
+      time: data.time || '09:00',
+      endTime: data.endTime || '10:00',
+      status: data.status || 'pending',
     };
 
-    if (interview) {
-      updateInterview({ id: interview._id, ...interviewData });
-    } else {
-      createInterview(interviewData);
+    try {
+      if (interview) {
+        await updateInterviewAsync({ id: interview._id, ...interviewData });
+      } else {
+        await createInterviewAsync(interviewData);
+      }
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error saving interview:', error);
     }
-    onSuccess?.();
   };
 
   return (
@@ -112,12 +128,18 @@ export default function InterviewForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="stage">Stage *</Label>
-          <Input
+          <Select
             id="stage"
             {...register('stage')}
             className={errors.stage ? 'border-destructive' : ''}
-            placeholder="e.g., Phone Screen, Technical Round"
-          />
+          >
+            <option value="">Select a stage</option>
+            {sortedColumns.map((column) => (
+              <option key={column._id} value={column.title}>
+                {column.title}
+              </option>
+            ))}
+          </Select>
           {errors.stage && (
             <p className="text-sm text-destructive mt-1">{errors.stage.message}</p>
           )}
@@ -125,7 +147,7 @@ export default function InterviewForm({
         <div>
           <Label htmlFor="status">Status</Label>
           <Select id="status" {...register('status')}>
-            <option value="scheduled">Scheduled</option>
+            <option value="pending">Pending</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </Select>
@@ -133,42 +155,86 @@ export default function InterviewForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
+        {interview ? (
+          <>
+            <div>
+              <Label htmlFor="date">Date *</Label>
+              <Input
+                id="date"
+                {...register('date')}
+                type="date"
+                className={errors.date ? 'border-destructive' : ''}
+              />
+              {errors.date && (
+                <p className="text-sm text-destructive mt-1">{errors.date.message}</p>
+              )}
+            </div>
+            <div></div>
+          </>
+        ) : (
+          defaultDate && (
+            <div className="col-span-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                Date: {format(defaultDate, 'EEEE, MMM d, yyyy')}
+              </p>
+            </div>
+          )
+        )}
         <div>
-          <Label htmlFor="date">Date & Time *</Label>
+          <Label htmlFor="time">From Time *</Label>
           <Input
-            id="date"
-            {...register('date')}
-            type="datetime-local"
-            className={errors.date ? 'border-destructive' : ''}
+            id="time"
+            {...register('time')}
+            type="time"
+            className={errors.time ? 'border-destructive' : ''}
           />
-          {errors.date && (
-            <p className="text-sm text-destructive mt-1">{errors.date.message}</p>
+          {errors.time && (
+            <p className="text-sm text-destructive mt-1">{errors.time.message}</p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="endTime">To Time *</Label>
+          <Input
+            id="endTime"
+            {...register('endTime')}
+            type="time"
+            className={errors.endTime ? 'border-destructive' : ''}
+          />
+          {errors.endTime && (
+            <p className="text-sm text-destructive mt-1">{errors.endTime.message}</p>
           )}
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="notesMarkdown">Notes (Markdown)</Label>
-        <Textarea
-          id="notesMarkdown"
-          {...register('notesMarkdown')}
-          rows={4}
-          className="font-mono text-sm"
-        />
-        {notesValue && (
-          <div className="mt-2 p-4 border rounded-md bg-muted/50">
-            <p className="text-sm font-semibold mb-2">Preview:</p>
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{notesValue}</ReactMarkdown>
-            </div>
-          </div>
+      <div className="flex justify-between items-center">
+        {interview && (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={async () => {
+              if (confirm('Are you sure you want to delete this interview?')) {
+                try {
+                  await deleteInterviewAsync({
+                    id: interview._id,
+                    jobId: interview.jobId,
+                  });
+                  onSuccess?.();
+                } catch (error) {
+                  console.error('Error deleting interview:', error);
+                }
+              }
+            }}
+            className="gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Interview
+          </Button>
         )}
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={isSubmitting}>
-          {interview ? 'Update' : 'Create'} Interview
-        </Button>
+        <div className="flex justify-end gap-2 ml-auto">
+          <Button type="submit" disabled={isSubmitting}>
+            {interview ? 'Update' : 'Create'} Interview
+          </Button>
+        </div>
       </div>
     </form>
   );

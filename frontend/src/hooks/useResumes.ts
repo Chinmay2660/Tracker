@@ -11,6 +11,8 @@ export const useResumes = () => {
       const response = await api.get('/resumes');
       return response.data.resumes;
     },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const uploadMutation = useMutation({
