@@ -42,6 +42,15 @@ app.use("/jobs", jobRoutes);
 app.use("/interviews", interviewRoutes);
 app.use("/resumes", resumeRoutes);
 
+// Root route
+app.get("/", (req, res) => {
+  res.json({ 
+    message: "Job Tracker API",
+    status: "running",
+    version: "1.0.0"
+  });
+});
+
 // Health check
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
@@ -54,6 +63,16 @@ app.get("/auth/test", (req, res) => {
     clientId: process.env.GOOGLE_CLIENT_ID ? `${process.env.GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'Not set',
     callbackUrl: process.env.GOOGLE_CALLBACK_URL,
     frontendUrl: process.env.FRONTEND_URL
+  });
+});
+
+// 404 handler (must be before error handler)
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route not found',
+    path: req.path,
+    method: req.method
   });
 });
 
