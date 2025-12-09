@@ -79,16 +79,26 @@ app.use((req, res, next) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Connect to MongoDB (non-blocking)
+// Connect to MongoDB (with connection options for serverless)
 if (process.env.MONGODB_URI) {
+  const mongooseOptions = {
+    serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+    socketTimeoutMS: 45000, // 45 seconds socket timeout
+    connectTimeoutMS: 10000, // 10 seconds connection timeout
+    maxPoolSize: 10, // Maintain up to 10 socket connections
+    minPoolSize: 1, // Maintain at least 1 socket connection
+    retryWrites: true,
+  };
+  
   mongoose
-    .connect(process.env.MONGODB_URI)
+    .connect(process.env.MONGODB_URI, mongooseOptions)
     .then(() => {
       console.log("✅ Connected to MongoDB");
     })
     .catch((error: any) => {
       console.error("⚠️  MongoDB connection error:", error.message);
       // Don't block serverless function initialization
+      // Connection will be retried on first database operation
     });
 } else {
   console.warn("⚠️  MONGODB_URI not set");
