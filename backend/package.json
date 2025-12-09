@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
+    "build:vercel": "tsc && mkdir -p api && cp dist/index.js api/index.js",
     "start": "node dist/index.js"
   },
   "keywords": [],
