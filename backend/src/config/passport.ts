@@ -28,11 +28,28 @@ if (clientID && clientSecret && clientID !== 'your-google-client-id-here.apps.go
           name: profile.displayName
         });
 
-        // Check if MongoDB is connected
+        // Check if MongoDB is connected (with retry for serverless)
         const mongoose = require('mongoose');
+        
+        // Wait for connection if not ready (for serverless cold starts)
         if (mongoose.connection.readyState !== 1) {
-          console.error('❌ MongoDB not connected. ReadyState:', mongoose.connection.readyState);
-          return done(new Error('Database not connected. Please start MongoDB.'), undefined);
+          console.log('⏳ MongoDB not ready, waiting for connection... ReadyState:', mongoose.connection.readyState);
+          
+          // Wait up to 5 seconds for connection
+          let attempts = 0;
+          const maxAttempts = 50; // 50 attempts * 100ms = 5 seconds
+          
+          while (mongoose.connection.readyState !== 1 && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+          }
+          
+          if (mongoose.connection.readyState !== 1) {
+            console.error('❌ MongoDB connection timeout. ReadyState:', mongoose.connection.readyState);
+            return done(new Error('Database connection timeout. Please check MONGODB_URI.'), undefined);
+          }
+          
+          console.log('✅ MongoDB connected after wait');
         }
 
         let user = await User.findOne({ googleId: profile.id });
