@@ -1,0 +1,429 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263 70% 50.4%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 263 70% 50.4%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 1s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+.fade-in-on-scroll {
+  opacity: 0;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Scroll Reveal Animations - Faster */
+.scroll-reveal-up,
+.scroll-reveal-down,
+.scroll-reveal-left,
+.scroll-reveal-right,
+.scroll-reveal-fade,
+.scroll-reveal-scale {
+  opacity: 0;
+  transition: opacity var(--duration, 0.3s) cubic-bezier(0.4, 0, 0.2, 1),
+              transform var(--duration, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal-up {
+  transform: translateY(30px);
+}
+
+.scroll-reveal-down {
+  transform: translateY(-30px);
+}
+
+.scroll-reveal-left {
+  transform: translateX(30px);
+}
+
+.scroll-reveal-right {
+  transform: translateX(-30px);
+}
+
+.scroll-reveal-fade {
+  transform: none;
+}
+
+.scroll-reveal-scale {
+  transform: scale(0.95);
+}
+
+.scroll-reveal-up.scroll-revealed,
+.scroll-reveal-down.scroll-revealed,
+.scroll-reveal-left.scroll-revealed,
+.scroll-reveal-right.scroll-revealed,
+.scroll-reveal-fade.scroll-revealed,
+.scroll-reveal-scale.scroll-revealed {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+}
+
+/* Stagger animation for children - Faster */
+.stagger-children > * {
+  opacity: 0;
+  transform: translateY(15px);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.stagger-children.scroll-revealed > *:nth-child(1) {
+  transition-delay: 0s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger-children.scroll-revealed > *:nth-child(2) {
+  transition-delay: 0.03s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger-children.scroll-revealed > *:nth-child(3) {
+  transition-delay: 0.06s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger-children.scroll-revealed > *:nth-child(4) {
+  transition-delay: 0.09s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger-children.scroll-revealed > *:nth-child(5) {
+  transition-delay: 0.12s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger-children.scroll-revealed > *:nth-child(6) {
+  transition-delay: 0.15s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Text Effects with Gradient Borders - Always Animated Border Only */
+.text-gradient-border {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background: transparent;
+  color: hsl(var(--primary));
+}
+
+.text-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  padding: 2px;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(263 70% 50.4%), hsl(280 100% 70%), hsl(300 100% 70%));
+  background-size: 300% 300%;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  z-index: 0;
+  animation: border-gradient 3s ease infinite;
+}
+
+.text-gradient-border > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes border-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Animated Gradient Text */
+.animated-gradient-text {
+  background: linear-gradient(
+    90deg,
+    hsl(262 83% 58%),
+    hsl(280 100% 70%),
+    hsl(300 100% 70%),
+    hsl(262 83% 58%)
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glowing Text Effect */
+.text-glow {
+  text-shadow: 0 0 10px hsl(var(--primary) / 0.5),
+               0 0 20px hsl(var(--primary) / 0.3),
+               0 0 30px hsl(var(--primary) / 0.2);
+  transition: text-shadow 0.3s ease;
+}
+
+.text-glow:hover {
+  text-shadow: 0 0 20px hsl(var(--primary) / 0.8),
+               0 0 30px hsl(var(--primary) / 0.6),
+               0 0 40px hsl(var(--primary) / 0.4);
+}
+
+/* Underline Gradient Effect */
+.text-underline-gradient {
+  position: relative;
+  display: inline-block;
+}
+
+.text-underline-gradient::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(280 100% 70%));
+  transition: width 0.3s ease;
+}
+
+.text-underline-gradient:hover::after {
+  width: 100%;
+}
+
+/* Shimmer Text Effect */
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--foreground)) 0%,
+    hsl(var(--foreground)) 40%,
+    hsl(var(--primary)) 50%,
+    hsl(var(--foreground)) 60%,
+    hsl(var(--foreground)) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Text with Border on Hover */
+.text-border-hover {
+  position: relative;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.text-border-hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  padding: 2px;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(280 100% 70%), hsl(300 100% 70%));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.text-border-hover:hover::before {
+  opacity: 1;
+}
+
+.text-border-hover:hover {
+  transform: translateY(-2px);
+}
+
+/* Gradient Text with Shadow */
+.text-gradient-shadow {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(280 100% 70%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px hsl(var(--primary) / 0.3));
+  transition: filter 0.3s ease;
+}
+
+.text-gradient-shadow:hover {
+  filter: drop-shadow(0 4px 8px hsl(var(--primary) / 0.5));
+}
+
+/* Neon Text Effect */
+.text-neon {
+  color: hsl(var(--primary));
+  text-shadow: 
+    0 0 5px hsl(var(--primary) / 0.5),
+    0 0 10px hsl(var(--primary) / 0.5),
+    0 0 15px hsl(var(--primary) / 0.5),
+    0 0 20px hsl(var(--primary) / 0.3);
+  transition: all 0.3s ease;
+}
+
+.text-neon:hover {
+  text-shadow: 
+    0 0 10px hsl(var(--primary)),
+    0 0 20px hsl(var(--primary)),
+    0 0 30px hsl(var(--primary)),
+    0 0 40px hsl(var(--primary) / 0.8);
+}
+
+/* Letter Spacing Animation */
+.text-expand {
+  letter-spacing: 0;
+  transition: letter-spacing 0.3s ease;
+}
+
+.text-expand:hover {
+  letter-spacing: 2px;
+}
+
