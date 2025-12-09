@@ -35,8 +35,7 @@ export interface Job {
   compensationVariables?: number;
   compensationRSU?: number;
   // Offered Compensation
-  offeredCtcMin?: number;
-  offeredCtcMax?: number;
+  offeredCtc?: number;
   offeredCompensationFixed?: number;
   offeredCompensationVariables?: number;
   offeredCompensationRSU?: number;

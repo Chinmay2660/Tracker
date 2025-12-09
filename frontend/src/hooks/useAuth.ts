@@ -44,12 +44,12 @@ export const useAuth = () => {
       }
     },
     onSuccess: () => {
-      // Clear auth store
+      // Clear auth store first
       useAuthStore.getState().logout();
       // Clear all query cache
       queryClient.clear();
-      // Redirect to home page
-      navigate('/');
+      // Redirect to home page (landing page) - use replace to prevent back button issues
+      navigate('/', { replace: true });
     },
   });
 

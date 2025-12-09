@@ -62,9 +62,9 @@ const formatCompensation = (job: Job): string | null => {
   if (job.compensationFixed) {
     return `₹${(job.compensationFixed / 100000).toFixed(1)} L (Fixed)`;
   }
-  // Display offered CTC range if available
-  if (job.offeredCtcMin && job.offeredCtcMax) {
-    return `₹${(job.offeredCtcMin / 100000).toFixed(1)} L - ₹${(job.offeredCtcMax / 100000).toFixed(1)} L (Offered CTC)`;
+  // Display offered CTC if available
+  if (job.offeredCtc) {
+    return `₹${(job.offeredCtc / 100000).toFixed(1)} L (Offered CTC)`;
   }
   return null;
 };

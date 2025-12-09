@@ -7,7 +7,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { useState, memo, useMemo, useCallback } from 'react';
 import { useColumns } from '../hooks/useColumns';
 import { useJobs } from '../hooks/useJobs';
@@ -15,6 +15,7 @@ import { useResumes } from '../hooks/useResumes';
 import KanbanColumn from './KanbanColumn';
 import JobCard from './JobCard';
 import { Job, Column } from '../types';
+import { Skeleton } from './ui/skeleton';
 
 function KanbanBoard() {
   const { columns = [], isLoading: columnsLoading, updateColumn } = useColumns();
@@ -113,16 +114,36 @@ function KanbanBoard() {
   }, [sortedColumns, jobs]);
 
   if (columnsLoading || jobsLoading) {
-    return <div className="text-center py-8">Loading board...</div>;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-8" />
+            </div>
+            <div className="space-y-2">
+              {[1, 2, 3].map((j) => (
+                <div key={j} className="p-4 bg-background rounded-lg border border-border">
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <SortableContext
         items={sortedColumns.map((c: Column) => `column-${c._id}`)}
-        strategy={rectSortingStrategy}
+        strategy={verticalListSortingStrategy}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {sortedColumns.map((column) => {
             const columnJobs = columnJobsMap.get(column._id) || [];
 
@@ -145,7 +166,7 @@ function KanbanBoard() {
             <JobCard job={activeJob} isDragging />
           </div>
         ) : activeColumn ? (
-          <div className="opacity-90 flex-shrink-0 w-80 bg-muted/50 rounded-lg p-4">
+          <div className="opacity-90 bg-muted/50 rounded-lg p-4">
             <h3 className="font-semibold text-lg">{activeColumn.title}</h3>
           </div>
         ) : null}

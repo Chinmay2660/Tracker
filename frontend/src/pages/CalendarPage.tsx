@@ -225,7 +225,7 @@ export default function CalendarPage() {
           View and manage your interview schedule
         </p>
       </div>
-      <div className="bg-card rounded-lg p-4 h-[600px] border border-border">
+      <div className="bg-card rounded-lg p-4 h-[900px] border border-border shadow-sm">
         <Calendar
           localizer={localizer}
           events={events}
@@ -237,7 +237,7 @@ export default function CalendarPage() {
           defaultView="month"
           views={['month', 'week', 'day']}
           style={{ height: '100%' }}
-          className="text-foreground"
+          className="text-foreground rbc-calendar-custom"
           eventPropGetter={eventStyleGetter}
           components={{
             event: (props: any) => {

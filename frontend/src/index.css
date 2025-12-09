@@ -443,6 +443,8 @@
 .rbc-day-bg {
   border-color: hsl(var(--border));
   background: hsl(var(--card));
+  min-height: 100px;
+  position: relative;
 }
 
 .rbc-off-range-bg {
@@ -461,8 +463,12 @@
   background-color: hsl(var(--primary));
   border-color: hsl(var(--primary));
   color: white !important;
-  padding: 2px 5px;
+  padding: 4px 8px;
   border-radius: 4px;
+  margin: 2px 0;
+  cursor: pointer;
+  z-index: 2;
+  position: relative;
 }
 
 .rbc-event-content {
@@ -485,6 +491,11 @@
 .rbc-toolbar {
   margin-bottom: 1rem;
   color: hsl(var(--foreground));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .rbc-toolbar button {
@@ -494,32 +505,77 @@
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   transition: all 0.2s;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 60px;
 }
 
-.rbc-toolbar button:hover {
+.rbc-toolbar button:hover:not(:disabled) {
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
+  border-color: hsl(var(--accent));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
 }
 
-.rbc-toolbar button:active,
+.rbc-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rbc-toolbar button:active:not(:disabled),
 .rbc-toolbar button.rbc-active {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 }
 
 .rbc-toolbar-label {
   font-weight: 600;
+  font-size: 1.125rem;
   color: hsl(var(--foreground));
+  padding: 0.5rem 1rem;
 }
 
 .rbc-month-view {
   border: 1px solid hsl(var(--border));
   border-radius: 0.5rem;
+  overflow: hidden;
 }
 
 .rbc-month-row {
   border-color: hsl(var(--border));
+  min-height: 100px;
+}
+
+.rbc-day-bg {
+  min-height: 100px;
+  border-color: hsl(var(--border));
+  position: relative;
+}
+
+.rbc-date-cell {
+  padding: 0.5rem;
+  text-align: right;
+}
+
+.rbc-date-cell > a {
+  color: hsl(var(--foreground));
+  font-weight: 500;
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  text-decoration: none;
+}
+
+.rbc-off-range-bg .rbc-date-cell > a {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+.rbc-today .rbc-date-cell > a {
+  color: hsl(var(--primary));
+  font-weight: 700;
 }
 
 .rbc-day-slot .rbc-time-slot {
@@ -571,6 +627,7 @@
 /* Dark mode specific overrides */
 .dark .rbc-day-bg {
   background: hsl(var(--card));
+  min-height: 100px;
 }
 
 .dark .rbc-off-range-bg {
@@ -603,18 +660,29 @@
 }
 
 .dark .rbc-toolbar button {
-  background: hsl(var(--muted));
+  background: hsl(var(--card));
   border-color: hsl(var(--border));
   color: hsl(var(--foreground));
 }
 
-.dark .rbc-toolbar button:hover {
+.dark .rbc-toolbar button:hover:not(:disabled) {
   background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  border-color: hsl(var(--accent));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
 }
 
-.dark .rbc-toolbar button:active,
+.dark .rbc-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dark .rbc-toolbar button:active:not(:disabled),
 .dark .rbc-toolbar button.rbc-active {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3);
 }
 

@@ -61,7 +61,11 @@ export const useJobs = () => {
       await api.delete(`/jobs/${id}`);
     },
     onSuccess: () => {
+      // Invalidate and refetch jobs and interviews
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.refetchQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['interviews'] });
+      queryClient.refetchQueries({ queryKey: ['interviews'] });
     },
   });
 

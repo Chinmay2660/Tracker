@@ -18,8 +18,7 @@ const createJobSchema = z.object({
   compensationVariables: z.number().optional(),
   compensationRSU: z.number().optional(),
   // Offered Compensation
-  offeredCtcMin: z.number().optional(),
-  offeredCtcMax: z.number().optional(),
+  offeredCtc: z.number().optional(),
   offeredCompensationFixed: z.number().optional(),
   offeredCompensationVariables: z.number().optional(),
   offeredCompensationRSU: z.number().optional(),
@@ -43,8 +42,7 @@ const updateJobSchema = z.object({
   compensationVariables: z.number().optional(),
   compensationRSU: z.number().optional(),
   // Offered Compensation
-  offeredCtcMin: z.number().optional(),
-  offeredCtcMax: z.number().optional(),
+  offeredCtc: z.number().optional(),
   offeredCompensationFixed: z.number().optional(),
   offeredCompensationVariables: z.number().optional(),
   offeredCompensationRSU: z.number().optional(),
@@ -224,13 +222,20 @@ export const updateJob = async (req: AuthRequest, res: Response) => {
 export const deleteJob = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const job = await Job.findOneAndDelete({ _id: id, userId: req.user._id });
+    const job = await Job.findOne({ _id: id, userId: req.user._id });
 
     if (!job) {
       return res.status(404).json({ success: false, error: 'Job not found' });
     }
 
-    res.json({ success: true, message: 'Job deleted' });
+    // Delete all related interviews
+    const InterviewRound = (await import('../models/InterviewRound')).default;
+    await InterviewRound.deleteMany({ jobId: id });
+
+    // Delete the job
+    await Job.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Job and all related interviews deleted' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

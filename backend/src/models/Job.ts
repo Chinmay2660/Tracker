@@ -22,8 +22,7 @@ export interface IJob extends Document {
   compensationVariables?: number;
   compensationRSU?: number;
   // Offered Compensation (when stage is Offer)
-  offeredCtcMin?: number;
-  offeredCtcMax?: number;
+  offeredCtc?: number;
   offeredCompensationFixed?: number;
   offeredCompensationVariables?: number;
   offeredCompensationRSU?: number;
@@ -62,8 +61,7 @@ const JobSchema = new Schema<IJob>(
     compensationVariables: { type: Number },
     compensationRSU: { type: Number },
     // Offered Compensation (when stage is Offer)
-    offeredCtcMin: { type: Number },
-    offeredCtcMax: { type: Number },
+    offeredCtc: { type: Number },
     offeredCompensationFixed: { type: Number },
     offeredCompensationVariables: { type: Number },
     offeredCompensationRSU: { type: Number },
