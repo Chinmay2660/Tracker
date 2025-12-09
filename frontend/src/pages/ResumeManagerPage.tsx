@@ -5,6 +5,17 @@ import { Upload, Trash2, FileText } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return 'Unknown date';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return format(date, 'MMM d, yyyy');
+  } catch {
+    return 'Invalid date';
+  }
+};
+
 export default function ResumeManagerPage() {
   const { resumes, uploadResume, deleteResume, isLoading } = useResumes();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,7 +96,7 @@ export default function ResumeManagerPage() {
               <CardHeader>
                 <CardTitle className="text-lg">{resume.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Uploaded: {format(new Date(resume.uploadedAt), 'MMM d, yyyy')}
+                  Uploaded: {formatDate(resume.createdAt)}
                 </p>
               </CardHeader>
               <CardContent className="flex gap-2">

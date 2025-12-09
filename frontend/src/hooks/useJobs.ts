@@ -12,8 +12,18 @@ export const useJobs = () => {
     queryKey: ['jobs'],
     queryFn: async () => {
       const response = await api.get('/jobs');
-      return response.data.jobs;
+      // Normalize jobs: extract columnId from populated object if needed
+      const normalizedJobs = response.data.jobs.map((job: any) => ({
+        ...job,
+        columnId: typeof job.columnId === 'object' && job.columnId?._id 
+          ? job.columnId._id 
+          : job.columnId,
+      }));
+      return normalizedJobs;
     },
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds (allows React Query to deduplicate)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on mount if data exists (React Query will deduplicate)
   });
 
   useEffect(() => {
@@ -28,7 +38,9 @@ export const useJobs = () => {
       return response.data.job;
     },
     onSuccess: () => {
+      // Invalidate and refetch jobs immediately
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.refetchQueries({ queryKey: ['jobs'] });
     },
   });
 
@@ -38,7 +50,9 @@ export const useJobs = () => {
       return response.data.job;
     },
     onSuccess: () => {
+      // Invalidate and refetch jobs immediately
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.refetchQueries({ queryKey: ['jobs'] });
     },
   });
 

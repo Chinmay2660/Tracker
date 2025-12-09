@@ -1,6 +1,7 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { useJobs } from '../hooks/useJobs';
 import { useResumes } from '../hooks/useResumes';
 import { useColumns } from '../hooks/useColumns';
@@ -9,7 +10,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select } from './ui/select';
-import TagAutocomplete from './TagAutocomplete';
+import TagSelect from './TagSelect';
 import { Job } from '../types';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
@@ -20,25 +21,36 @@ const jobSchema = z.object({
   jobUrl: z.string().url().optional().or(z.literal('')),
   location: z.string().min(1, 'Location is required'),
   tags: z.array(z.string()).default([]),
-  compensationType: z.enum(['fixed', 'range']).optional(),
-  compensationMin: z.number().optional(),
-  compensationMax: z.number().optional(),
+  // Asked Compensation
+  ctcMin: z.number().optional(),
+  ctcMax: z.number().optional(),
+  compensationFixed: z.number().optional(),
+  compensationVariables: z.number().optional(),
+  compensationRSU: z.number().optional(),
+  // Offered Compensation
+  offeredCtcMin: z.number().optional(),
+  offeredCtcMax: z.number().optional(),
+  offeredCompensationFixed: z.number().optional(),
+  offeredCompensationVariables: z.number().optional(),
+  offeredCompensationRSU: z.number().optional(),
   resumeVersion: z.string().optional(),
   notesMarkdown: z.string().optional(),
   appliedDate: z.string().optional(),
+  lastWorkingDay: z.string().optional(),
   columnId: z.string().min(1, 'Column is required'),
 }).refine((data) => {
-  if (data.compensationType === 'fixed') {
-    return data.compensationMin !== undefined && data.compensationMin > 0;
+  // If CTC range is provided, min should be less than max
+  if (data.ctcMin && data.ctcMax) {
+    return data.ctcMin > 0 && data.ctcMax > data.ctcMin;
   }
-  if (data.compensationType === 'range') {
-    return data.compensationMin !== undefined && data.compensationMax !== undefined &&
-           data.compensationMin > 0 && data.compensationMax > data.compensationMin;
+  // If offered CTC range is provided, min should be less than max
+  if (data.offeredCtcMin && data.offeredCtcMax) {
+    return data.offeredCtcMin > 0 && data.offeredCtcMax > data.offeredCtcMin;
   }
   return true;
 }, {
-  message: 'Invalid compensation values',
-  path: ['compensationMin'],
+  message: 'Invalid CTC range values',
+  path: ['ctcMin'],
 });
 
 type JobFormData = z.infer<typeof jobSchema>;
@@ -51,8 +63,10 @@ interface JobFormProps {
 
 export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProps) {
   const { createJob, updateJob } = useJobs();
+  // Only load resumes when form is open (lazy loading)
   const { resumes = [] } = useResumes();
   const { columns = [] } = useColumns();
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -68,13 +82,23 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           jobUrl: job.jobUrl || '',
           location: job.location || '',
           tags: job.tags || [],
-          compensationType: job.compensationType,
-          compensationMin: job.compensationMin,
-          compensationMax: job.compensationMax,
+          ctcMin: job.ctcMin,
+          ctcMax: job.ctcMax,
+          compensationFixed: job.compensationFixed,
+          compensationVariables: job.compensationVariables,
+          compensationRSU: job.compensationRSU,
+          offeredCtcMin: job.offeredCtcMin,
+          offeredCtcMax: job.offeredCtcMax,
+          offeredCompensationFixed: job.offeredCompensationFixed,
+          offeredCompensationVariables: job.offeredCompensationVariables,
+          offeredCompensationRSU: job.offeredCompensationRSU,
           resumeVersion: job.resumeVersion || '',
           notesMarkdown: job.notesMarkdown || '',
           appliedDate: job.appliedDate
             ? format(new Date(job.appliedDate), 'yyyy-MM-dd')
+            : '',
+          lastWorkingDay: job.lastWorkingDay
+            ? format(new Date(job.lastWorkingDay), 'yyyy-MM-dd')
             : '',
           columnId: job.columnId,
         }
@@ -85,24 +109,52 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   });
 
   const notesValue = watch('notesMarkdown');
-  const compensationType = watch('compensationType');
+  const columnId = watch('columnId');
+  const selectedColumn = columns.find((col) => col._id === columnId);
+  const isRecruiterCall = selectedColumn?.title.toLowerCase().includes('recruiter') || selectedColumn?.title.toLowerCase().includes('call');
 
   const onSubmit = async (data: JobFormData) => {
     const jobData = {
       ...data,
       jobUrl: data.jobUrl || undefined,
-      compensationType: data.compensationType || undefined,
-      compensationMin: data.compensationMin ? Number(data.compensationMin) : undefined,
-      compensationMax: data.compensationMax ? Number(data.compensationMax) : undefined,
+      ctcMin: data.ctcMin ? Number(data.ctcMin) : undefined,
+      ctcMax: data.ctcMax ? Number(data.ctcMax) : undefined,
+      compensationFixed: data.compensationFixed ? Number(data.compensationFixed) : undefined,
+      compensationVariables: data.compensationVariables ? Number(data.compensationVariables) : undefined,
+      compensationRSU: data.compensationRSU ? Number(data.compensationRSU) : undefined,
+      offeredCtcMin: data.offeredCtcMin ? Number(data.offeredCtcMin) : undefined,
+      offeredCtcMax: data.offeredCtcMax ? Number(data.offeredCtcMax) : undefined,
+      offeredCompensationFixed: data.offeredCompensationFixed ? Number(data.offeredCompensationFixed) : undefined,
+      offeredCompensationVariables: data.offeredCompensationVariables ? Number(data.offeredCompensationVariables) : undefined,
+      offeredCompensationRSU: data.offeredCompensationRSU ? Number(data.offeredCompensationRSU) : undefined,
       appliedDate: data.appliedDate ? new Date(data.appliedDate).toISOString() : undefined,
+      lastWorkingDay: data.lastWorkingDay ? new Date(data.lastWorkingDay).toISOString() : undefined,
     };
 
-    if (job) {
-      updateJob({ id: job._id, ...jobData });
-    } else {
-      createJob(jobData);
+    try {
+      if (job) {
+        updateJob({ id: job._id, ...jobData }, {
+          onSuccess: () => {
+            // Ensure jobs are refetched
+            queryClient.refetchQueries({ queryKey: ['jobs'] });
+            onSuccess?.();
+          },
+        });
+      } else {
+        createJob(jobData, {
+          onSuccess: () => {
+            // Ensure jobs are refetched immediately
+            queryClient.refetchQueries({ queryKey: ['jobs'] });
+            onSuccess?.();
+          },
+          onError: (error) => {
+            console.error('Failed to create job:', error);
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting job:', error);
     }
-    onSuccess?.();
   };
 
   return (
@@ -161,71 +213,76 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           name="tags"
           control={control}
           render={({ field }) => (
-            <TagAutocomplete
+            <TagSelect
               value={field.value || []}
               onChange={field.onChange}
-              placeholder="Type and press Enter to add tags"
+              placeholder="Click to select tags"
             />
           )}
         />
       </div>
 
+      {/* Asked Compensation */}
       <div>
-        <Label htmlFor="compensationType">Compensation</Label>
-        <div className="space-y-3">
-          <Select
-            id="compensationType"
-            {...register('compensationType')}
-            className="w-full"
-          >
-            <option value="">No compensation info</option>
-            <option value="fixed">Fixed Amount</option>
-            <option value="range">Range</option>
-          </Select>
-          {compensationType && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="compensationMin">
-                  {compensationType === 'fixed' ? 'Amount ($)' : 'Min ($)'}
-                </Label>
-                <Input
-                  id="compensationMin"
-                  {...register('compensationMin', { valueAsNumber: true })}
-                  type="number"
-                  min="0"
-                  step="1000"
-                  placeholder="e.g., 100000"
-                  className={errors.compensationMin ? 'border-destructive' : ''}
-                />
-                {errors.compensationMin && (
-                  <p className="text-sm text-destructive mt-1">
-                    {errors.compensationMin.message}
-                  </p>
-                )}
-              </div>
-              {compensationType === 'range' && (
-                <div>
-                  <Label htmlFor="compensationMax">Max ($)</Label>
-                  <Input
-                    id="compensationMax"
-                    {...register('compensationMax', { valueAsNumber: true })}
-                    type="number"
-                    min="0"
-                    step="1000"
-                    placeholder="e.g., 150000"
-                    className={errors.compensationMax ? 'border-destructive' : ''}
-                  />
-                  {errors.compensationMax && (
-                    <p className="text-sm text-destructive mt-1">
-                      {errors.compensationMax.message}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+        <h3 className="text-lg font-semibold mb-4">Asked Compensation</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="ctcMin">CTC Min (₹)</Label>
+            <Input id="ctcMin" {...register('ctcMin', { valueAsNumber: true })} type="number" min="0" step="1000" />
+          </div>
+          <div>
+            <Label htmlFor="ctcMax">CTC Max (₹)</Label>
+            <Input id="ctcMax" {...register('ctcMax', { valueAsNumber: true })} type="number" min="0" step="1000" />
+          </div>
+        </div>
+
+        {/* Compensation Breakup */}
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <Label htmlFor="compensationFixed">Fixed (₹)</Label>
+            <Input id="compensationFixed" {...register('compensationFixed', { valueAsNumber: true })} type="number" min="0" step="1000" />
+          </div>
+          <div>
+            <Label htmlFor="compensationVariables">Variables/Bonus (₹)</Label>
+            <Input id="compensationVariables" {...register('compensationVariables', { valueAsNumber: true })} type="number" min="0" step="1000" />
+          </div>
+          <div>
+            <Label htmlFor="compensationRSU">RSU/Stocks (₹)</Label>
+            <Input id="compensationRSU" {...register('compensationRSU', { valueAsNumber: true })} type="number" min="0" step="1000" />
+          </div>
         </div>
       </div>
+
+      {/* Offered Compensation (Conditional) */}
+      {selectedColumn?.title === 'Offer' && (
+        <>
+          <h3 className="text-lg font-semibold mt-6">Offered Compensation</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="offeredCtcMin">Offered CTC Min (₹)</Label>
+              <Input id="offeredCtcMin" {...register('offeredCtcMin', { valueAsNumber: true })} type="number" min="0" step="1000" />
+            </div>
+            <div>
+              <Label htmlFor="offeredCtcMax">Offered CTC Max (₹)</Label>
+              <Input id="offeredCtcMax" {...register('offeredCtcMax', { valueAsNumber: true })} type="number" min="0" step="1000" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <Label htmlFor="offeredCompensationFixed">Offered Fixed (₹)</Label>
+              <Input id="offeredCompensationFixed" {...register('offeredCompensationFixed', { valueAsNumber: true })} type="number" min="0" step="1000" />
+            </div>
+            <div>
+              <Label htmlFor="offeredCompensationVariables">Offered Variables (₹)</Label>
+              <Input id="offeredCompensationVariables" {...register('offeredCompensationVariables', { valueAsNumber: true })} type="number" min="0" step="1000" />
+            </div>
+            <div>
+              <Label htmlFor="offeredCompensationRSU">Offered RSU/Stocks (₹)</Label>
+              <Input id="offeredCompensationRSU" {...register('offeredCompensationRSU', { valueAsNumber: true })} type="number" min="0" step="1000" />
+            </div>
+          </div>
+        </>
+      )}
 
       {!defaultColumnId && (
         <div>
@@ -266,7 +323,76 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           <Label htmlFor="appliedDate">Applied Date</Label>
           <Input id="appliedDate" {...register('appliedDate')} type="date" />
         </div>
+        {isRecruiterCall && (
+          <div>
+            <Label htmlFor="lastWorkingDay">Last Working Day</Label>
+            <Input
+              id="lastWorkingDay"
+              {...register('lastWorkingDay')}
+              type="date"
+            />
+          </div>
+        )}
       </div>
+
+      {job && job.stageHistory && job.stageHistory.length > 0 && (
+        <div>
+          <Label>Stage History</Label>
+          <div className="mt-2 p-4 border rounded-md bg-muted/50 space-y-2">
+            {job.appliedDate && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Applied Date:</span>
+                <span className="text-muted-foreground">
+                  {format(new Date(job.appliedDate), 'MMM d, yyyy')}
+                </span>
+              </div>
+            )}
+            {(() => {
+              // Get current column order
+              const currentColumn = columns.find((col) => col._id === job.columnId);
+              const currentOrder = currentColumn?.order ?? Infinity;
+
+              // Filter and sort: only show stages up to and including current stage, sorted by column order
+              const filteredHistory = job.stageHistory
+                .filter((stage) => {
+                  const stageColumn = columns.find((col) => col._id === stage.columnId);
+                  const stageOrder = stageColumn?.order ?? Infinity;
+                  return stageOrder <= currentOrder;
+                })
+                .sort((a, b) => {
+                  const colA = columns.find((col) => col._id === a.columnId);
+                  const colB = columns.find((col) => col._id === b.columnId);
+                  const orderA = colA?.order ?? Infinity;
+                  const orderB = colB?.order ?? Infinity;
+                  return orderA - orderB; // Sort by column order (sequence)
+                });
+
+              return filteredHistory.map((stage, idx) => {
+                const column = columns.find((col) => col._id === stage.columnId);
+                const isCurrentStage = job.columnId === stage.columnId;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between text-sm p-2 rounded ${
+                      isCurrentStage ? 'bg-primary/10 border border-primary/20' : ''
+                    }`}
+                  >
+                    <span className="font-medium">
+                      {stage.columnTitle || column?.title || 'Unknown Stage'}
+                      {isCurrentStage && (
+                        <span className="ml-2 text-xs text-primary">(Current)</span>
+                      )}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {format(new Date(stage.enteredDate), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      )}
 
       <div>
         <Label htmlFor="notesMarkdown">Notes (Markdown)</Label>

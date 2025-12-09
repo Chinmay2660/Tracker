@@ -5,8 +5,9 @@ export interface IInterviewRound extends Document {
   stage: string;
   date: Date;
   time?: string;
+  endTime?: string;
   notesMarkdown?: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed' | 'cancelled';
   createdAt: Date;
 }
 
@@ -16,11 +17,12 @@ const InterviewRoundSchema = new Schema<IInterviewRound>(
     stage: { type: String, required: true },
     date: { type: Date, required: true },
     time: { type: String },
+    endTime: { type: String },
     notesMarkdown: { type: String },
     status: {
       type: String,
-      enum: ['scheduled', 'completed', 'cancelled'],
-      default: 'scheduled',
+      enum: ['pending', 'completed', 'cancelled'],
+      default: 'pending',
     },
   },
   { timestamps: true }

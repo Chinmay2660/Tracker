@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IStageHistory {
+  columnId: mongoose.Types.ObjectId;
+  columnTitle?: string;
+  enteredDate: Date;
+}
+
 export interface IJob extends Document {
   userId: mongoose.Types.ObjectId;
   columnId: mongoose.Types.ObjectId;
@@ -8,15 +14,36 @@ export interface IJob extends Document {
   jobUrl?: string;
   location: string;
   tags: string[];
-  compensationType?: 'fixed' | 'range';
-  compensationMin?: number;
-  compensationMax?: number;
+  // Asked Compensation (CTC Range)
+  ctcMin?: number;
+  ctcMax?: number;
+  // Compensation Breakup
+  compensationFixed?: number;
+  compensationVariables?: number;
+  compensationRSU?: number;
+  // Offered Compensation (when stage is Offer)
+  offeredCtcMin?: number;
+  offeredCtcMax?: number;
+  offeredCompensationFixed?: number;
+  offeredCompensationVariables?: number;
+  offeredCompensationRSU?: number;
   resumeVersion?: string;
   notesMarkdown?: string;
   appliedDate?: Date;
+  lastWorkingDay?: Date;
+  stageHistory: IStageHistory[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const StageHistorySchema = new Schema<IStageHistory>(
+  {
+    columnId: { type: Schema.Types.ObjectId, ref: 'Column', required: true },
+    columnTitle: { type: String },
+    enteredDate: { type: Date, required: true, default: Date.now },
+  },
+  { _id: false }
+);
 
 const JobSchema = new Schema<IJob>(
   {
@@ -27,12 +54,24 @@ const JobSchema = new Schema<IJob>(
     jobUrl: { type: String },
     location: { type: String, required: true },
     tags: { type: [String], default: [] },
-    compensationType: { type: String, enum: ['fixed', 'range'] },
-    compensationMin: { type: Number },
-    compensationMax: { type: Number },
+    // Asked Compensation (CTC Range)
+    ctcMin: { type: Number },
+    ctcMax: { type: Number },
+    // Compensation Breakup
+    compensationFixed: { type: Number },
+    compensationVariables: { type: Number },
+    compensationRSU: { type: Number },
+    // Offered Compensation (when stage is Offer)
+    offeredCtcMin: { type: Number },
+    offeredCtcMax: { type: Number },
+    offeredCompensationFixed: { type: Number },
+    offeredCompensationVariables: { type: Number },
+    offeredCompensationRSU: { type: Number },
     resumeVersion: { type: String },
     notesMarkdown: { type: String },
     appliedDate: { type: Date },
+    lastWorkingDay: { type: Date },
+    stageHistory: { type: [StageHistorySchema], default: [] },
   },
   { timestamps: true }
 );

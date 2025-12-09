@@ -56,7 +56,7 @@ export const uploadResume = async (req: AuthRequest, res: Response) => {
 export const getResumes = async (req: AuthRequest, res: Response) => {
   try {
     const resumes = await ResumeVersion.find({ userId: req.user._id }).sort({
-      uploadedAt: -1,
+      createdAt: -1,
     });
     res.json({ success: true, resumes });
   } catch (error: any) {

@@ -13,6 +13,12 @@ export interface Column {
   createdAt: string;
 }
 
+export interface StageHistory {
+  columnId: string;
+  columnTitle?: string;
+  enteredDate: string;
+}
+
 export interface Job {
   _id: string;
   userId: string;
@@ -22,12 +28,23 @@ export interface Job {
   jobUrl?: string;
   location: string;
   tags: string[];
-  compensationType?: 'fixed' | 'range';
-  compensationMin?: number;
-  compensationMax?: number;
+  // Asked Compensation
+  ctcMin?: number;
+  ctcMax?: number;
+  compensationFixed?: number;
+  compensationVariables?: number;
+  compensationRSU?: number;
+  // Offered Compensation
+  offeredCtcMin?: number;
+  offeredCtcMax?: number;
+  offeredCompensationFixed?: number;
+  offeredCompensationVariables?: number;
+  offeredCompensationRSU?: number;
   resumeVersion?: string;
   notesMarkdown?: string;
   appliedDate?: string;
+  lastWorkingDay?: string;
+  stageHistory?: StageHistory[];
   createdAt: string;
   updatedAt: string;
 }
@@ -38,8 +55,9 @@ export interface InterviewRound {
   stage: string;
   date: string;
   time?: string;
+  endTime?: string;
   notesMarkdown?: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed' | 'cancelled';
   createdAt: string;
 }
 
@@ -48,6 +66,7 @@ export interface ResumeVersion {
   userId: string;
   name: string;
   fileUrl: string;
-  uploadedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
