@@ -30,8 +30,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
-// Serve static files for uploads
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// Serve static files for uploads (only in non-serverless environments)
+if (process.env.VERCEL !== '1') {
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+}
 
 // Routes
 app.use("/auth", authRoutes);
@@ -58,19 +60,20 @@ app.get("/auth/test", (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/job-tracker")
-  .then(() => {
-    console.log("✅ Connected to MongoDB");
-  })
-  .catch((error) => {
-    console.error("⚠️  MongoDB connection error:", error.message);
-    if (process.env.VERCEL !== '1') {
-      console.error("   Server is running but database features may not work.");
-      console.error("   To fix: Start MongoDB or update MONGODB_URI in .env");
-    }
-  });
+// Connect to MongoDB (non-blocking)
+if (process.env.MONGODB_URI) {
+  mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => {
+      console.log("✅ Connected to MongoDB");
+    })
+    .catch((error: any) => {
+      console.error("⚠️  MongoDB connection error:", error.message);
+      // Don't block serverless function initialization
+    });
+} else {
+  console.warn("⚠️  MONGODB_URI not set");
+}
 
 // Export for Vercel serverless (must be at the end)
 module.exports = app;
