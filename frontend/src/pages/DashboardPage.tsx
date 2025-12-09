@@ -36,6 +36,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Only create default columns once, when columns are loaded and empty
     if (!isLoading && columns.length === 0 && !hasInitialized) {
+      setHasInitialized(true); // Set immediately to prevent multiple runs
       const defaultColumns = [
         'Applied',
         'Recruiter Call',
@@ -44,10 +45,10 @@ export default function DashboardPage() {
         'Onsite',
         'Offer',
       ];
+      // Create all columns in a batch to avoid multiple API calls
       defaultColumns.forEach((title, index) => {
         createColumn({ title, order: index });
       });
-      setHasInitialized(true);
     }
   }, [columns.length, createColumn, isLoading, hasInitialized]);
 

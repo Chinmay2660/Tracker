@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import api from '../lib/api';
 import { ResumeVersion } from '../types';
 
@@ -25,8 +26,16 @@ export const useResumes = () => {
       });
       return response.data.resume;
     },
-    onSuccess: () => {
+    onSuccess: (resume) => {
       queryClient.invalidateQueries({ queryKey: ['resumes'] });
+      toast.success('Resume uploaded successfully!', {
+        description: resume.name,
+      });
+    },
+    onError: () => {
+      toast.error('Failed to upload resume', {
+        description: 'Please try again.',
+      });
     },
   });
 
@@ -36,6 +45,12 @@ export const useResumes = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resumes'] });
+      toast.success('Resume deleted successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to delete resume', {
+        description: 'Please try again.',
+      });
     },
   });
 

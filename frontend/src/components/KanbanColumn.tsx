@@ -59,8 +59,9 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transition: isDragging ? 'none' : transition, // Disable transition while dragging for smoother animation
+    opacity: isDragging ? 0.4 : 1,
+    willChange: isDragging ? 'transform' : 'auto', // Optimize for transforms
   };
 
   // Close menu when clicking outside

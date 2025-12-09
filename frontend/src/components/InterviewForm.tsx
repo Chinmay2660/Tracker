@@ -55,6 +55,7 @@ export default function InterviewForm({
             ? interview.date.split('T')[0] 
             : interview.date,
           time: interview.time || '09:00',
+          endTime: interview.endTime || '10:00',
           status: interview.status,
         }
       : defaultDate
@@ -86,19 +87,27 @@ export default function InterviewForm({
       dateStr = data.date || (defaultDate ? format(defaultDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
     }
 
-    const interviewData: any = {
-      jobId: data.jobId,
-      stage: data.stage,
-      date: dateStr,
-      time: data.time || '09:00',
-      endTime: data.endTime || '10:00',
-      status: data.status || 'pending',
-    };
-
     try {
       if (interview) {
-        await updateInterviewAsync({ id: interview._id, ...interviewData });
+        // For updates, only send fields that can be updated (exclude jobId)
+        const updateData: any = {
+          stage: data.stage,
+          date: dateStr,
+          time: data.time || '09:00',
+          endTime: data.endTime || '10:00',
+          status: data.status || 'pending',
+        };
+        await updateInterviewAsync({ id: interview._id, ...updateData });
       } else {
+        // For creates, include jobId
+        const interviewData: any = {
+          jobId: data.jobId,
+          stage: data.stage,
+          date: dateStr,
+          time: data.time || '09:00',
+          endTime: data.endTime || '10:00',
+          status: data.status || 'pending',
+        };
         await createInterviewAsync(interviewData);
       }
       onSuccess?.();

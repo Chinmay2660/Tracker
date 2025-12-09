@@ -36,6 +36,7 @@ export const createInterview = async (req: AuthRequest, res: Response) => {
       stage: data.stage,
       date: new Date(data.date),
       time: data.time,
+      endTime: data.endTime,
       notesMarkdown: data.notesMarkdown,
       status: data.status || 'pending',
     });
@@ -92,13 +93,18 @@ export const updateInterview = async (req: AuthRequest, res: Response) => {
     if (data.time !== undefined) {
       updateData.time = data.time || undefined;
     }
+    if (data.endTime !== undefined) {
+      updateData.endTime = data.endTime || undefined;
+    }
     if (data.status !== undefined) {
       updateData.status = data.status;
     }
 
-    const updatedInterview = await InterviewRound.findByIdAndUpdate(id, updateData, {
-      new: true,
-    });
+    const updatedInterview = await InterviewRound.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
 
     res.json({ success: true, interview: updatedInterview });
   } catch (error: any) {

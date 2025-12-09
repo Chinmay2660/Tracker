@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import api from '../lib/api';
 import { Column } from '../types';
 import { useBoardStore } from '../store/useBoardStore';
@@ -14,9 +15,11 @@ export const useColumns = () => {
       const response = await api.get('/columns');
       return response.data.columns;
     },
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds (allows React Query to deduplicate)
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (allows React Query to deduplicate)
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (formerly cacheTime)
     refetchOnWindowFocus: false, // Don't refetch on window focus
     refetchOnMount: false, // Don't refetch on mount if data exists (React Query will deduplicate)
+    refetchOnReconnect: false, // Don't refetch on reconnect
   });
 
   useEffect(() => {
@@ -30,8 +33,17 @@ export const useColumns = () => {
       const response = await api.post('/columns', data);
       return response.data.column;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['columns'] });
+    onSuccess: (newColumn) => {
+      // Optimistically update cache instead of refetching
+      queryClient.setQueryData<Column[]>(['columns'], (old = []) => [...old, newColumn]);
+      toast.success('Column added successfully!', {
+        description: newColumn.title,
+      });
+    },
+    onError: () => {
+      toast.error('Failed to add column', {
+        description: 'Please try again.',
+      });
     },
   });
 
@@ -40,10 +52,19 @@ export const useColumns = () => {
       const response = await api.put(`/columns/${id}`, data);
       return response.data.column;
     },
-    onSuccess: () => {
-      // Invalidate and refetch columns immediately
-      queryClient.invalidateQueries({ queryKey: ['columns'] });
-      queryClient.refetchQueries({ queryKey: ['columns'] });
+    onSuccess: (updatedColumn) => {
+      // Optimistically update cache instead of refetching
+      queryClient.setQueryData<Column[]>(['columns'], (old = []) =>
+        old.map((col) => (col._id === updatedColumn._id ? updatedColumn : col))
+      );
+      toast.success('Column updated successfully!', {
+        description: updatedColumn.title,
+      });
+    },
+    onError: () => {
+      toast.error('Failed to update column', {
+        description: 'Please try again.',
+      });
     },
   });
 
@@ -51,12 +72,19 @@ export const useColumns = () => {
     mutationFn: async (id: string) => {
       await api.delete(`/columns/${id}`);
     },
-    onSuccess: () => {
-      // Invalidate and refetch both columns and jobs immediately
-      queryClient.invalidateQueries({ queryKey: ['columns'] });
-      queryClient.refetchQueries({ queryKey: ['columns'] });
+    onSuccess: (_, deletedId) => {
+      // Optimistically update cache instead of refetching
+      queryClient.setQueryData<Column[]>(['columns'], (old = []) =>
+        old.filter((col) => col._id !== deletedId)
+      );
+      // Invalidate jobs since deleting a column affects jobs
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.refetchQueries({ queryKey: ['jobs'] });
+      toast.success('Column deleted successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to delete column', {
+        description: 'Please try again.',
+      });
     },
   });
 

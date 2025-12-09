@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import api from '../lib/api';
 import { InterviewRound } from '../types';
 
@@ -21,13 +22,27 @@ export const useInterviews = () => {
       const response = await api.post('/interviews', data);
       return response.data.interview;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (newInterview, variables) => {
+      // Optimistically update cache instead of refetching
       if (variables.jobId) {
-        queryClient.invalidateQueries({ queryKey: ['interviews', variables.jobId] });
-        queryClient.refetchQueries({ queryKey: ['interviews', variables.jobId] });
+        queryClient.setQueryData<InterviewRound[]>(
+          ['interviews', variables.jobId],
+          (old = []) => [...old, newInterview]
+        );
       }
-      queryClient.invalidateQueries({ queryKey: ['interviews'] });
-      queryClient.refetchQueries({ queryKey: ['interviews'] });
+      // Update the general interviews query (used by CalendarPage)
+      queryClient.setQueryData<InterviewRound[]>(
+        ['interviews'],
+        (old = []) => [...old, newInterview]
+      );
+      toast.success('Interview scheduled successfully!', {
+        description: variables.stage,
+      });
+    },
+    onError: () => {
+      toast.error('Failed to schedule interview', {
+        description: 'Please try again.',
+      });
     },
   });
 
@@ -36,11 +51,20 @@ export const useInterviews = () => {
       const response = await api.put(`/interviews/${id}`, data);
       return response.data.interview;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', data.jobId] });
-      queryClient.refetchQueries({ queryKey: ['interviews', data.jobId] });
+    onSuccess: (updatedInterview) => {
+      // Invalidate queries to trigger refetch (only one refetch will happen due to React Query deduplication)
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
-      queryClient.refetchQueries({ queryKey: ['interviews'] });
+      if (updatedInterview.jobId) {
+        queryClient.invalidateQueries({ queryKey: ['interviews', updatedInterview.jobId] });
+      }
+      toast.success('Interview updated successfully!', {
+        description: updatedInterview.stage,
+      });
+    },
+    onError: () => {
+      toast.error('Failed to update interview', {
+        description: 'Please try again.',
+      });
     },
   });
 
@@ -49,10 +73,24 @@ export const useInterviews = () => {
       await api.delete(`/interviews/${id}`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', variables.jobId] });
-      queryClient.refetchQueries({ queryKey: ['interviews', variables.jobId] });
-      queryClient.invalidateQueries({ queryKey: ['interviews'] });
-      queryClient.refetchQueries({ queryKey: ['interviews'] });
+      // Optimistically update cache instead of refetching
+      if (variables.jobId) {
+        queryClient.setQueryData<InterviewRound[]>(
+          ['interviews', variables.jobId],
+          (old = []) => old.filter((interview) => interview._id !== variables.id)
+        );
+      }
+      // Update the general interviews query (used by CalendarPage)
+      queryClient.setQueryData<InterviewRound[]>(
+        ['interviews'],
+        (old = []) => old.filter((interview) => interview._id !== variables.id)
+      );
+      toast.success('Interview deleted successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to delete interview', {
+        description: 'Please try again.',
+      });
     },
   });
 

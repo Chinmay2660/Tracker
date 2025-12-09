@@ -4,6 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { Toaster } from './components/ui/toaster'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <App />
+        <Toaster />
       </QueryClientProvider>
     </ThemeProvider>
   </React.StrictMode>,
