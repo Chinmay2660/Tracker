@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +9,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { InterviewRound } from '../types';
 import { format } from 'date-fns';
 import { Trash2 } from 'lucide-react';
@@ -37,6 +39,7 @@ export default function InterviewForm({
   const { createInterviewAsync, updateInterviewAsync, deleteInterviewAsync } = useInterviews();
   const { jobs = [] } = useJobs();
   const { columns = [] } = useColumns();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const {
     register,
     handleSubmit,
@@ -208,27 +211,52 @@ export default function InterviewForm({
 
       <div className="flex justify-between items-center">
         {interview && (
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={async () => {
-              if (confirm('Are you sure you want to delete this interview?')) {
-                try {
-                  await deleteInterviewAsync({
-                    id: interview._id,
-                    jobId: interview.jobId,
-                  });
-                  onSuccess?.();
-                } catch (error) {
-                  console.error('Error deleting interview:', error);
-                }
-              }
-            }}
-            className="gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete Interview
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Interview
+            </Button>
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
+                <DialogHeader>
+                  <DialogTitle>Delete Interview</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete this interview? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDeleteDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      try {
+                        await deleteInterviewAsync({
+                          id: interview._id,
+                          jobId: interview.jobId,
+                        });
+                        setIsDeleteDialogOpen(false);
+                        onSuccess?.();
+                      } catch (error) {
+                        console.error('Error deleting interview:', error);
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
         <div className="flex justify-end gap-2 ml-auto">
           <Button type="submit" disabled={isSubmitting}>

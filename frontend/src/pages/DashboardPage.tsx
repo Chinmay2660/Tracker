@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useColumns } from '../hooks/useColumns';
 import KanbanBoard from '../components/KanbanBoard';
+import JobStageCharts from '../components/JobStageCharts';
 import { Button } from '../components/ui/button';
 import { Plus, Briefcase } from 'lucide-react';
 import { useState } from 'react';
@@ -72,6 +73,7 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+      <JobStageCharts />
       <KanbanBoard />
       <Dialog open={isColumnFormOpen} onOpenChange={setIsColumnFormOpen}>
         <DialogContent onClose={() => setIsColumnFormOpen(false)}>

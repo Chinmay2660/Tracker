@@ -56,30 +56,32 @@ export default function LoginPage() {
       <AnimatedBackground />
       <FloatingElements />
       
+      {/* Back to home - Top Left */}
+      <div className="absolute top-4 left-4 z-50">
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-white/90 hover:text-white transition-all group"
+        >
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-sm font-medium">Back to home</span>
+        </Link>
+      </div>
+
       {/* Theme Toggle in top right */}
       <div className="absolute top-4 right-4 z-50">
         <ThemeToggle />
       </div>
 
       <div className="grid lg:grid-cols-2 min-h-screen max-h-screen overflow-hidden">
-        {/* Left Side - Visual Content */}
-        <div className="hidden lg:flex flex-col justify-center p-6 xl:p-8 relative z-10">
-          <ScrollReveal direction="fade" delay={0} duration={0.3}>
-            <Link 
-              to="/" 
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-all group w-fit"
-            >
-              <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" />
-              <span className="text-xs font-medium">Back to home</span>
-            </Link>
-          </ScrollReveal>
+        {/* Left Side - Visual Content with Purple Gradient */}
+        <div className="hidden lg:flex flex-col justify-center p-6 xl:p-8 relative z-10 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600">
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <ScrollReveal direction="up" delay={100} duration={0.3}>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-6">
                 <div className="relative">
-                  <Briefcase className="h-8 w-8 text-white animate-pulse" />
-                  <Sparkles className="h-4 w-4 text-yellow-400 absolute -top-0.5 -right-0.5 animate-bounce" />
+                  <Briefcase className="h-8 w-8 text-white" />
+                  <Sparkles className="h-4 w-4 text-yellow-400 absolute -top-0.5 -right-0.5" />
                 </div>
                 <span className="text-2xl font-bold text-white">
                   JobTracker
@@ -88,32 +90,28 @@ export default function LoginPage() {
             </ScrollReveal>
 
             <ScrollReveal direction="up" delay={200} duration={0.3}>
-              <h1 className="text-3xl xl:text-4xl font-bold text-white mb-2 leading-tight">
-                Organize Your
-                <br />
-                <span className="bg-gradient-to-r from-violet-300 via-purple-300 to-fuchsia-300 bg-clip-text text-transparent">
-                  Job Search
-                </span>
+              <h1 className="text-4xl xl:text-5xl font-bold text-white mb-3 leading-tight">
+                Organize Your Job Search
               </h1>
-              <p className="text-sm text-white/80 mb-4 max-w-lg">
+              <p className="text-base text-white/90 mb-6">
                 Join thousands of job seekers who stay organized
               </p>
             </ScrollReveal>
 
             <ScrollReveal direction="up" delay={300} duration={0.3}>
-              <div className="grid grid-cols-1 gap-2 mb-4">
+              <div className="space-y-3 mb-6">
                 {features.slice(0, 2).map((feature, idx) => {
                   const Icon = feature.icon;
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white/10 dark:bg-white/5 backdrop-blur-sm border border-white/20 dark:border-white/10"
+                      className="flex items-center gap-3 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors"
                     >
-                      <div className={`h-8 w-8 rounded-lg bg-gradient-to-r ${feature.color} flex items-center justify-center flex-shrink-0 shadow-md`}>
-                        <Icon className="h-4 w-4 text-white" />
+                      <div className={`h-10 w-10 rounded-lg bg-gradient-to-r ${feature.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                        <Icon className="h-5 w-5 text-white" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white text-xs">{feature.title}</h3>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white text-sm">{feature.title}</h3>
                       </div>
                     </div>
                   );
@@ -121,69 +119,58 @@ export default function LoginPage() {
               </div>
             </ScrollReveal>
 
-            {/* Stats - Compact */}
+            {/* Stats */}
             <ScrollReveal direction="up" delay={400} duration={0.3}>
-              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/20">
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/20">
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">10K+</div>
-                  <div className="text-[10px] text-white/70">Users</div>
+                  <div className="text-2xl font-bold text-white">10K+</div>
+                  <div className="text-xs text-white/80 mt-1">Users</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">50K+</div>
-                  <div className="text-[10px] text-white/70">Jobs</div>
+                  <div className="text-2xl font-bold text-white">50K+</div>
+                  <div className="text-xs text-white/80 mt-1">Jobs</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">95%</div>
-                  <div className="text-[10px] text-white/70">Success</div>
+                  <div className="text-2xl font-bold text-white">95%</div>
+                  <div className="text-xs text-white/80 mt-1">Success</div>
                 </div>
               </div>
             </ScrollReveal>
           </div>
         </div>
 
-        {/* Right Side - Login Form */}
-        <div className="flex items-center justify-center p-4 lg:p-4 xl:p-6 relative z-10">
+        {/* Right Side - Login Form with Dark Background */}
+        <div className="flex items-center justify-center p-4 lg:p-6 xl:p-8 relative z-10 bg-slate-900 dark:bg-slate-950">
           <div className="w-full max-w-md">
-            {/* Back to landing - Mobile */}
-            <ScrollReveal direction="fade" delay={0} duration={0.2}>
-              <Link 
-                to="/" 
-                className="lg:hidden inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 mb-4 transition-all group"
-              >
-                <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" />
-                <span className="text-xs font-medium">Back to home</span>
-              </Link>
-            </ScrollReveal>
 
             <ScrollReveal direction="scale" delay={100} duration={0.3}>
-              <GradientBorder className="p-1">
-                <div className="relative rounded-xl overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-purple-500/5 to-fuchsia-500/5" />
-                  
-                  <div className="relative p-5 md:p-6">
-                    {/* Header */}
-                    <div className="text-center space-y-3 mb-5">
-                      <ScrollReveal direction="fade" delay={200} duration={0.2}>
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                          <div className="relative">
-                            <Briefcase className="h-7 w-7 text-primary dark:text-violet-400 animate-pulse" />
-                            <Sparkles className="h-3.5 w-3.5 text-yellow-500 dark:text-yellow-400 absolute -top-0.5 -right-0.5 animate-bounce" />
-                          </div>
-                          <span className="text-lg font-bold animated-gradient-text text-glow">
-                            JobTracker
-                          </span>
+              <div className="relative rounded-2xl overflow-hidden bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-purple-500/10 to-fuchsia-500/10" />
+                
+                <div className="relative p-6 md:p-8">
+                  {/* Header */}
+                  <div className="text-center space-y-4 mb-6">
+                    <ScrollReveal direction="fade" delay={200} duration={0.2}>
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        <div className="relative">
+                          <Briefcase className="h-7 w-7 text-violet-400" />
+                          <Sparkles className="h-3.5 w-3.5 text-yellow-400 absolute -top-0.5 -right-0.5" />
                         </div>
-                      </ScrollReveal>
+                        <span className="text-xl font-bold text-white">
+                          JobTracker
+                        </span>
+                      </div>
+                    </ScrollReveal>
 
-                      <ScrollReveal direction="up" delay={300} duration={0.2}>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">
-                          Welcome back
-                        </h1>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          Sign in to continue
-                        </p>
-                      </ScrollReveal>
-                    </div>
+                    <ScrollReveal direction="up" delay={300} duration={0.2}>
+                      <h1 className="text-2xl font-bold text-white mb-2">
+                        Welcome back
+                      </h1>
+                      <p className="text-sm text-slate-400">
+                        Sign in to continue
+                      </p>
+                    </ScrollReveal>
+                  </div>
 
                     {/* Google Sign In Button */}
                     <ScrollReveal direction="up" delay={400} duration={0.2}>
@@ -227,43 +214,39 @@ export default function LoginPage() {
                       </Button>
                     </ScrollReveal>
 
-                    {/* Security Features - Single Row */}
+                    {/* Security Features */}
                     <ScrollReveal direction="up" delay={500} duration={0.2}>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-900/10 dark:to-emerald-900/10 border border-green-200/50 dark:border-green-800/50">
-                          <div className="h-6 w-6 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-md">
-                            <Zap className="h-3 w-3 text-white" />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                          <div className="h-7 w-7 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                            <Zap className="h-4 w-4 text-white" />
                           </div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100 text-[10px]">One-click</p>
+                          <p className="font-semibold text-white text-xs">One-click</p>
                         </div>
 
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 border border-blue-200/50 dark:border-blue-800/50">
-                          <div className="h-6 w-6 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-md">
-                            <Shield className="h-3 w-3 text-white" />
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                          <div className="h-7 w-7 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                            <Shield className="h-4 w-4 text-white" />
                           </div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100 text-[10px]">Private</p>
+                          <p className="font-semibold text-white text-xs">Private</p>
                         </div>
                       </div>
                     </ScrollReveal>
                   </div>
                 </div>
-              </GradientBorder>
             </ScrollReveal>
 
-            {/* Footer - Compact */}
+            {/* Footer */}
             <ScrollReveal direction="fade" delay={600} duration={0.2}>
-              <p className="text-center text-[10px] text-slate-500 dark:text-slate-400 mt-4">
+              <p className="text-center text-xs text-slate-400 mt-6">
                 By signing in, you agree to our{' '}
-                <a href="#" className="text-primary dark:text-violet-400 hover:underline">Terms</a>
+                <a href="#" className="text-violet-400 hover:underline">Terms</a>
                 {' '}and{' '}
-                <a href="#" className="text-primary dark:text-violet-400 hover:underline">Privacy</a>
+                <a href="#" className="text-violet-400 hover:underline">Privacy</a>
               </p>
             </ScrollReveal>
           </div>
         </div>
-
-        {/* Left Side Gradient Overlay */}
-        <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1/2 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 opacity-90 dark:opacity-95 z-0" />
       </div>
     </div>
   );

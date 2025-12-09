@@ -1,6 +1,8 @@
 import { useResumes } from '../hooks/useResumes';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Skeleton } from '../components/ui/skeleton';
 import { Upload, Trash2, FileText } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { format } from 'date-fns';
@@ -20,6 +22,8 @@ export default function ResumeManagerPage() {
   const { resumes, uploadResume, deleteResume, isLoading } = useResumes();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resumeToDelete, setResumeToDelete] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -43,14 +47,47 @@ export default function ResumeManagerPage() {
     window.open(url, '_blank');
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this resume?')) {
-      deleteResume(id);
+  const handleDeleteClick = (id: string) => {
+    setResumeToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (resumeToDelete) {
+      deleteResume(resumeToDelete);
+      setDeleteDialogOpen(false);
+      setResumeToDelete(null);
     }
   };
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading resumes...</div>;
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-64" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32 mb-2" />
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 flex-1" />
+                  <Skeleton className="h-10 w-10" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -110,7 +147,7 @@ export default function ResumeManagerPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => handleDelete(resume._id)}
+                  onClick={() => handleDeleteClick(resume._id)}
                   size="icon"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -120,6 +157,31 @@ export default function ResumeManagerPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent onClose={() => setDeleteDialogOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete Resume</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this resume? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setResumeToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import JobCard from './JobCard';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { memo, useState, useRef, useEffect } from 'react';
 import { useColumns } from '../hooks/useColumns';
 import { useForm } from 'react-hook-form';
@@ -32,6 +32,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
   const { deleteColumn, updateColumn } = useColumns();
   const [showMenu, setShowMenu] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const {
     setNodeRef,
@@ -76,11 +77,14 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
     }
   }, [showMenu]);
 
-  const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete "${column.title}"? This will also delete all jobs in this column.`)) {
-      deleteColumn(column._id);
-      setShowMenu(false);
-    }
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+    setShowMenu(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    deleteColumn(column._id);
+    setIsDeleteDialogOpen(false);
   };
 
   const handleEdit = () => {
@@ -99,7 +103,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex-shrink-0 w-80 bg-muted/50 rounded-lg p-4 flex flex-col ${isDragging ? 'opacity-50' : ''}`}
+        className={`bg-muted/50 rounded-lg p-4 flex flex-col ${isDragging ? 'opacity-50' : ''}`}
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -133,7 +137,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
                     Edit Column
                   </button>
                   <button
-                    onClick={handleDelete}
+                    onClick={handleDeleteClick}
                     className="w-full text-left px-3 py-2 text-sm text-destructive hover:bg-accent hover:text-destructive transition-colors flex items-center gap-2"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -182,7 +186,30 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
             </div>
           </form>
         </DialogContent>
-      </Dialog>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
+              <DialogHeader>
+                <DialogTitle>Delete Column</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete "{column.title}"? This will also delete all jobs in this column. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteConfirm}>
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
     </>
   );
 }

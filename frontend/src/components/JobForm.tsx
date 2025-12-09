@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,10 +11,23 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import TagSelect from './TagSelect';
 import { Job } from '../types';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
+import { Trash2 } from 'lucide-react';
+
+// Helper to convert NaN to undefined for optional number fields
+const optionalNumber = z.preprocess(
+  (val) => {
+    if (val === undefined || val === null || val === '' || (typeof val === 'number' && isNaN(val))) {
+      return undefined;
+    }
+    return val;
+  },
+  z.number().optional()
+);
 
 const jobSchema = z.object({
   companyName: z.string().min(1, 'Company name is required'),
@@ -22,17 +36,16 @@ const jobSchema = z.object({
   location: z.string().min(1, 'Location is required'),
   tags: z.array(z.string()).default([]),
   // Asked Compensation
-  ctcMin: z.number().optional(),
-  ctcMax: z.number().optional(),
-  compensationFixed: z.number().optional(),
-  compensationVariables: z.number().optional(),
-  compensationRSU: z.number().optional(),
+  ctcMin: optionalNumber,
+  ctcMax: optionalNumber,
+  compensationFixed: optionalNumber,
+  compensationVariables: optionalNumber,
+  compensationRSU: optionalNumber,
   // Offered Compensation
-  offeredCtcMin: z.number().optional(),
-  offeredCtcMax: z.number().optional(),
-  offeredCompensationFixed: z.number().optional(),
-  offeredCompensationVariables: z.number().optional(),
-  offeredCompensationRSU: z.number().optional(),
+  offeredCtc: optionalNumber,
+  offeredCompensationFixed: optionalNumber,
+  offeredCompensationVariables: optionalNumber,
+  offeredCompensationRSU: optionalNumber,
   resumeVersion: z.string().optional(),
   notesMarkdown: z.string().optional(),
   appliedDate: z.string().optional(),
@@ -40,12 +53,11 @@ const jobSchema = z.object({
   columnId: z.string().min(1, 'Column is required'),
 }).refine((data) => {
   // If CTC range is provided, min should be less than max
-  if (data.ctcMin && data.ctcMax) {
-    return data.ctcMin > 0 && data.ctcMax > data.ctcMin;
-  }
-  // If offered CTC range is provided, min should be less than max
-  if (data.offeredCtcMin && data.offeredCtcMax) {
-    return data.offeredCtcMin > 0 && data.offeredCtcMax > data.offeredCtcMin;
+  // Only validate if both values are provided and are valid numbers (not NaN)
+  if (data.ctcMin !== undefined && data.ctcMax !== undefined && 
+      !isNaN(data.ctcMin) && !isNaN(data.ctcMax) &&
+      data.ctcMin > 0 && data.ctcMax > 0) {
+    return data.ctcMax > data.ctcMin;
   }
   return true;
 }, {
@@ -62,7 +74,8 @@ interface JobFormProps {
 }
 
 export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProps) {
-  const { createJob, updateJob } = useJobs();
+  const { createJob, updateJob, deleteJob } = useJobs();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   // Only load resumes when form is open (lazy loading)
   const { resumes = [] } = useResumes();
   const { columns = [] } = useColumns();
@@ -87,8 +100,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           compensationFixed: job.compensationFixed,
           compensationVariables: job.compensationVariables,
           compensationRSU: job.compensationRSU,
-          offeredCtcMin: job.offeredCtcMin,
-          offeredCtcMax: job.offeredCtcMax,
+          offeredCtc: job.offeredCtc,
           offeredCompensationFixed: job.offeredCompensationFixed,
           offeredCompensationVariables: job.offeredCompensationVariables,
           offeredCompensationRSU: job.offeredCompensationRSU,
@@ -113,20 +125,31 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   const selectedColumn = columns.find((col) => col._id === columnId);
   const isRecruiterCall = selectedColumn?.title.toLowerCase().includes('recruiter') || selectedColumn?.title.toLowerCase().includes('call');
 
+  // Helper function to safely convert number values (handles NaN, null, undefined, empty strings)
+  const safeNumber = (value: number | undefined | null): number | undefined => {
+    if (value === undefined || value === null || (typeof value === 'number' && isNaN(value))) {
+      return undefined;
+    }
+    if (typeof value === 'string' && value === '') {
+      return undefined;
+    }
+    const num = Number(value);
+    return isNaN(num) ? undefined : num;
+  };
+
   const onSubmit = async (data: JobFormData) => {
     const jobData = {
       ...data,
       jobUrl: data.jobUrl || undefined,
-      ctcMin: data.ctcMin ? Number(data.ctcMin) : undefined,
-      ctcMax: data.ctcMax ? Number(data.ctcMax) : undefined,
-      compensationFixed: data.compensationFixed ? Number(data.compensationFixed) : undefined,
-      compensationVariables: data.compensationVariables ? Number(data.compensationVariables) : undefined,
-      compensationRSU: data.compensationRSU ? Number(data.compensationRSU) : undefined,
-      offeredCtcMin: data.offeredCtcMin ? Number(data.offeredCtcMin) : undefined,
-      offeredCtcMax: data.offeredCtcMax ? Number(data.offeredCtcMax) : undefined,
-      offeredCompensationFixed: data.offeredCompensationFixed ? Number(data.offeredCompensationFixed) : undefined,
-      offeredCompensationVariables: data.offeredCompensationVariables ? Number(data.offeredCompensationVariables) : undefined,
-      offeredCompensationRSU: data.offeredCompensationRSU ? Number(data.offeredCompensationRSU) : undefined,
+      ctcMin: safeNumber(data.ctcMin),
+      ctcMax: safeNumber(data.ctcMax),
+      compensationFixed: safeNumber(data.compensationFixed),
+      compensationVariables: safeNumber(data.compensationVariables),
+      compensationRSU: safeNumber(data.compensationRSU),
+      offeredCtc: safeNumber(data.offeredCtc),
+      offeredCompensationFixed: safeNumber(data.offeredCompensationFixed),
+      offeredCompensationVariables: safeNumber(data.offeredCompensationVariables),
+      offeredCompensationRSU: safeNumber(data.offeredCompensationRSU),
       appliedDate: data.appliedDate ? new Date(data.appliedDate).toISOString() : undefined,
       lastWorkingDay: data.lastWorkingDay ? new Date(data.lastWorkingDay).toISOString() : undefined,
     };
@@ -158,6 +181,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -259,12 +283,8 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           <h3 className="text-lg font-semibold mt-6">Offered Compensation</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="offeredCtcMin">Offered CTC Min (₹)</Label>
-              <Input id="offeredCtcMin" {...register('offeredCtcMin', { valueAsNumber: true })} type="number" min="0" step="1000" />
-            </div>
-            <div>
-              <Label htmlFor="offeredCtcMax">Offered CTC Max (₹)</Label>
-              <Input id="offeredCtcMax" {...register('offeredCtcMax', { valueAsNumber: true })} type="number" min="0" step="1000" />
+              <Label htmlFor="offeredCtc">Offered CTC (₹)</Label>
+              <Input id="offeredCtc" {...register('offeredCtc', { valueAsNumber: true })} type="number" min="0" step="1000" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
@@ -412,12 +432,61 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         )}
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={isSubmitting}>
-          {job ? 'Update' : 'Create'} Job
-        </Button>
+      <div className="flex justify-between items-center">
+        {job && (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Job
+          </Button>
+        )}
+        <div className="flex justify-end gap-2 ml-auto">
+          <Button type="submit" disabled={isSubmitting}>
+            {job ? 'Update' : 'Create'} Job
+          </Button>
+        </div>
       </div>
     </form>
+
+    {/* Delete Confirmation Dialog */}
+    {job && (
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete Job</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{job.companyName} - {job.role}"? This will also delete all related interviews. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                deleteJob(job._id, {
+                  onSuccess: () => {
+                    setIsDeleteDialogOpen(false);
+                    onSuccess?.();
+                  },
+                });
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+  </>
   );
 }
 
