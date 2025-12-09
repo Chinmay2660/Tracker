@@ -140,7 +140,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right Side - Login Form with Dark Background */}
-        <div className="flex items-center justify-center p-4 lg:p-6 xl:p-8 relative z-10 bg-slate-900 dark:bg-slate-950">
+        <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8 relative z-10 bg-slate-900 dark:bg-slate-950">
           <div className="w-full max-w-md">
 
             <ScrollReveal direction="scale" delay={100} duration={0.3}>
