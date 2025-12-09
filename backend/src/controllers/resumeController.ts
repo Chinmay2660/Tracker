@@ -5,10 +5,17 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const uploadDir = process.env.UPLOAD_DIR || './uploads/resumes';
+// For Vercel serverless, use /tmp directory (only writable location)
+const uploadDir = process.env.VERCEL === '1' 
+  ? '/tmp/uploads/resumes'
+  : (process.env.UPLOAD_DIR || './uploads/resumes');
 
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  } catch (error) {
+    console.error('Failed to create upload directory:', error);
+  }
 }
 
 const storage = multer.diskStorage({
