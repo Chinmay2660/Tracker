@@ -4,7 +4,7 @@ import { MapPin, ExternalLink, Calendar } from 'lucide-react';
 import { Job } from '../types';
 import { Card } from './ui/card';
 import { format } from 'date-fns';
-import { useState, memo } from 'react';
+import { useState, memo, useMemo } from 'react';
 import JobForm from './JobForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { cn } from '@/lib/utils';
@@ -86,13 +86,15 @@ function JobCard({ job, isDragging }: JobCardProps) {
     id: job._id,
   });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transition: isDragging ? 'none' : transition, // Disable transition while dragging for smoother animation
+    opacity: isDragging ? 0.4 : 1,
+    willChange: isDragging ? 'transform' : 'auto', // Optimize for transforms
+    pointerEvents: isDragging ? 'none' : 'auto', // Disable pointer events while dragging
   };
 
-  const compensationText = formatCompensation(job);
+  const compensationText = useMemo(() => formatCompensation(job), [job]);
 
   return (
     <>

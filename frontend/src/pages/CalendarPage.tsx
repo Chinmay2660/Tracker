@@ -40,8 +40,9 @@ export default function CalendarPage() {
       return allInterviewsData;
     },
     enabled: jobs.length > 0,
-    staleTime: 0, // Always refetch when invalidated
-    refetchOnMount: true,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchOnMount: false, // Don't refetch on mount if data exists
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const events = allInterviews
@@ -152,16 +153,24 @@ export default function CalendarPage() {
   };
 
   const handleSelectEvent = (event: any) => {
-    const dateKey = format(event.start, 'yyyy-MM-dd');
+    // Handle both direct event clicks and custom event component clicks
+    const eventStart = event.start || event.event?.start;
+    const interview = event.resource || event.event?.resource;
+    
+    if (!eventStart || isNaN(new Date(eventStart).getTime())) {
+      console.error('Invalid event start date:', event);
+      return;
+    }
+    
+    const dateKey = format(new Date(eventStart), 'yyyy-MM-dd');
     const dayEvents = eventsByDate[dateKey] || [];
     
     // If more than 2 interviews on this day, show list dialog
     if (dayEvents.length > 2) {
-      setListDialogDate(event.start);
+      setListDialogDate(new Date(eventStart));
       setIsListDialogOpen(true);
     } else {
       // Make sure we're getting the interview from the event resource
-      const interview = event.resource || event.event?.resource;
       if (interview) {
         setSelectedEvent(interview);
         setSelectedDate(null);

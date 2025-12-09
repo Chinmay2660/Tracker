@@ -160,13 +160,33 @@ function KanbanBoard() {
           })}
         </div>
       </SortableContext>
-      <DragOverlay>
+      <DragOverlay
+        style={{
+          cursor: 'grabbing',
+        }}
+        dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1)',
+        }}
+      >
         {activeJob ? (
-          <div className="opacity-90">
+          <div 
+            className="opacity-90 rotate-2 shadow-2xl"
+            style={{
+              transform: 'rotate(2deg) scale(1.02)',
+              willChange: 'transform',
+            }}
+          >
             <JobCard job={activeJob} isDragging />
           </div>
         ) : activeColumn ? (
-          <div className="opacity-90 bg-muted/50 rounded-lg p-4">
+          <div 
+            className="opacity-90 bg-muted/50 rounded-lg p-4 shadow-2xl"
+            style={{
+              transform: 'scale(1.02)',
+              willChange: 'transform',
+            }}
+          >
             <h3 className="font-semibold text-lg">{activeColumn.title}</h3>
           </div>
         ) : null}

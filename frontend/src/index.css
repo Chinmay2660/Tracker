@@ -510,25 +510,40 @@
   min-width: 60px;
 }
 
-.rbc-toolbar button:hover:not(:disabled) {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-  border-color: hsl(var(--accent));
+/* Navigation buttons (Today, Back, Next) - no active state, just hover */
+.rbc-toolbar button:not(.rbc-btn-group button):hover:not(:disabled) {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
+}
+
+/* View buttons (Month, Week, Day) - active state with purple background */
+.rbc-toolbar .rbc-btn-group button.rbc-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+/* View buttons (Month, Week, Day) - hover state with white background */
+.rbc-toolbar .rbc-btn-group button:hover:not(:disabled):not(.rbc-active) {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+  transform: translateY(-1px);
+}
+
+/* View buttons (Month, Week, Day) - active hover stays purple */
+.rbc-toolbar .rbc-btn-group button.rbc-active:hover:not(:disabled) {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+  opacity: 0.9;
 }
 
 .rbc-toolbar button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.rbc-toolbar button:active:not(:disabled),
-.rbc-toolbar button.rbc-active {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 }
 
 .rbc-toolbar-label {
@@ -665,24 +680,39 @@
   color: hsl(var(--foreground));
 }
 
-.dark .rbc-toolbar button:hover:not(:disabled) {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-  border-color: hsl(var(--accent));
+/* Navigation buttons (Today, Back, Next) - no active state, just hover */
+.dark .rbc-toolbar button:not(.rbc-btn-group button):hover:not(:disabled) {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
+}
+
+/* View buttons (Month, Week, Day) - active state with purple background */
+.dark .rbc-toolbar .rbc-btn-group button.rbc-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+/* View buttons (Month, Week, Day) - hover state with white/light background */
+.dark .rbc-toolbar .rbc-btn-group button:hover:not(:disabled):not(.rbc-active) {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+  transform: translateY(-1px);
+}
+
+/* View buttons (Month, Week, Day) - active hover stays purple */
+.dark .rbc-toolbar .rbc-btn-group button.rbc-active:hover:not(:disabled) {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+  opacity: 0.9;
 }
 
 .dark .rbc-toolbar button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.dark .rbc-toolbar button:active:not(:disabled),
-.dark .rbc-toolbar button.rbc-active {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3);
 }
 

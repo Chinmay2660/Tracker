@@ -158,16 +158,14 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       if (job) {
         updateJob({ id: job._id, ...jobData }, {
           onSuccess: () => {
-            // Ensure jobs are refetched
-            queryClient.refetchQueries({ queryKey: ['jobs'] });
+            // Cache is already updated optimistically, just call onSuccess
             onSuccess?.();
           },
         });
       } else {
         createJob(jobData, {
           onSuccess: () => {
-            // Ensure jobs are refetched immediately
-            queryClient.refetchQueries({ queryKey: ['jobs'] });
+            // Cache is already updated optimistically, just call onSuccess
             onSuccess?.();
           },
           onError: (error) => {

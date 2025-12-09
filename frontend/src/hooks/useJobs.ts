@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import api from '../lib/api';
 import { Job } from '../types';
 import { useBoardStore } from '../store/useBoardStore';
@@ -21,9 +22,11 @@ export const useJobs = () => {
       }));
       return normalizedJobs;
     },
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds (allows React Query to deduplicate)
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (allows React Query to deduplicate)
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (formerly cacheTime)
     refetchOnWindowFocus: false, // Don't refetch on window focus
     refetchOnMount: false, // Don't refetch on mount if data exists (React Query will deduplicate)
+    refetchOnReconnect: false, // Don't refetch on reconnect
   });
 
   useEffect(() => {
@@ -35,24 +38,54 @@ export const useJobs = () => {
   const createMutation = useMutation({
     mutationFn: async (data: Partial<Job>) => {
       const response = await api.post('/jobs', data);
-      return response.data.job;
+      // Normalize the response
+      const job = response.data.job;
+      return {
+        ...job,
+        columnId: typeof job.columnId === 'object' && job.columnId?._id 
+          ? job.columnId._id 
+          : job.columnId,
+      };
     },
-    onSuccess: () => {
-      // Invalidate and refetch jobs immediately
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.refetchQueries({ queryKey: ['jobs'] });
+    onSuccess: (newJob) => {
+      // Optimistically update cache instead of refetching
+      queryClient.setQueryData<Job[]>(['jobs'], (old = []) => [...old, newJob]);
+      toast.success('Job added successfully!', {
+        description: `${newJob.companyName} - ${newJob.role}`,
+      });
+    },
+    onError: () => {
+      toast.error('Failed to add job', {
+        description: 'Please try again.',
+      });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & Partial<Job>) => {
       const response = await api.put(`/jobs/${id}`, data);
-      return response.data.job;
+      // Normalize the response
+      const job = response.data.job;
+      return {
+        ...job,
+        columnId: typeof job.columnId === 'object' && job.columnId?._id 
+          ? job.columnId._id 
+          : job.columnId,
+      };
     },
-    onSuccess: () => {
-      // Invalidate and refetch jobs immediately
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.refetchQueries({ queryKey: ['jobs'] });
+    onSuccess: (updatedJob) => {
+      // Optimistically update cache instead of refetching
+      queryClient.setQueryData<Job[]>(['jobs'], (old = []) =>
+        old.map((job) => (job._id === updatedJob._id ? updatedJob : job))
+      );
+      toast.success('Job updated successfully!', {
+        description: `${updatedJob.companyName} - ${updatedJob.role}`,
+      });
+    },
+    onError: () => {
+      toast.error('Failed to update job', {
+        description: 'Please try again.',
+      });
     },
   });
 
@@ -60,12 +93,19 @@ export const useJobs = () => {
     mutationFn: async (id: string) => {
       await api.delete(`/jobs/${id}`);
     },
-    onSuccess: () => {
-      // Invalidate and refetch jobs and interviews
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.refetchQueries({ queryKey: ['jobs'] });
+    onSuccess: (_, deletedId) => {
+      // Optimistically update cache instead of refetching
+      queryClient.setQueryData<Job[]>(['jobs'], (old = []) =>
+        old.filter((job) => job._id !== deletedId)
+      );
+      // Invalidate interviews since deleting a job affects interviews
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
-      queryClient.refetchQueries({ queryKey: ['interviews'] });
+      toast.success('Job deleted successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to delete job', {
+        description: 'Please try again.',
+      });
     },
   });
 
