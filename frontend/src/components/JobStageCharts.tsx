@@ -25,6 +25,22 @@ export default function JobStageCharts() {
   const { columns = [] } = useColumns();
   const { jobs = [] } = useJobs();
 
+  // Create a color map based on column order for consistency
+  const colorMap = useMemo(() => {
+    if (!Array.isArray(columns)) return new Map();
+    const map = new Map();
+    columns
+      .filter((col) => col?.order !== undefined)
+      .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+      .forEach((column, index) => {
+        if (column?._id && column?.title) {
+          map.set(column._id, COLORS[index % COLORS.length]);
+          map.set(column.title, COLORS[index % COLORS.length]);
+        }
+      });
+    return map;
+  }, [columns]);
+
   const chartData = useMemo(() => {
     if (!Array.isArray(columns) || !Array.isArray(jobs)) return [];
     return columns
@@ -36,10 +52,12 @@ export default function JobStageCharts() {
         return {
           name: column?.title ?? 'Unknown',
           count: jobCount,
+          columnId: column._id,
+          color: colorMap.get(column._id) || COLORS[0],
         };
       })
       .filter((item) => item !== null);
-  }, [columns, jobs]);
+  }, [columns, jobs, colorMap]);
 
   const pieData = useMemo(() => {
     return chartData.filter((item) => item.count > 0);
@@ -72,7 +90,14 @@ export default function JobStageCharts() {
                 stroke="hsl(var(--muted))"
               />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                {chartData.map((entry, index) => {
+                  if (!entry) return null;
+                  return (
+                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  );
+                })}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -104,7 +129,7 @@ export default function JobStageCharts() {
                   paddingAngle={2}
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
@@ -133,9 +158,9 @@ export default function JobStageCharts() {
               <div className="text-2xl font-bold text-primary">{totalJobs}</div>
               <div className="text-sm text-muted-foreground mt-1">Total Jobs</div>
             </div>
-            {chartData.map((item, index) => (
+            {chartData.map((item) => (
               <div key={item.name} className="text-center p-4 bg-muted/50 rounded-lg">
-                <div className="text-2xl font-bold" style={{ color: COLORS[index % COLORS.length] }}>
+                <div className="text-2xl font-bold" style={{ color: item.color || COLORS[0] }}>
                   {item.count}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">{item.name}</div>

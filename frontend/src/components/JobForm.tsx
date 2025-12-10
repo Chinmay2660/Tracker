@@ -83,6 +83,11 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   const { resumes = [] } = useResumes();
   const { columns = [] } = useColumns();
   const queryClient = useQueryClient();
+  
+  // Find "Applied" column for default
+  const appliedColumn = columns.find((col) => col.title.toLowerCase() === 'applied');
+  const defaultAppliedColumnId = defaultColumnId || appliedColumn?._id || '';
+  
   const {
     register,
     handleSubmit,
@@ -119,7 +124,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         }
       : {
           tags: [],
-          columnId: defaultColumnId || '',
+          columnId: defaultAppliedColumnId,
         },
   });
 
