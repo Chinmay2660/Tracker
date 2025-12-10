@@ -30,6 +30,7 @@ export interface IJob extends Document {
   notesMarkdown?: string;
   appliedDate?: Date;
   lastWorkingDay?: Date;
+  order?: number;
   stageHistory: IStageHistory[];
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +70,7 @@ const JobSchema = new Schema<IJob>(
     notesMarkdown: { type: String },
     appliedDate: { type: Date },
     lastWorkingDay: { type: Date },
+    order: { type: Number, default: 0 },
     stageHistory: { type: [StageHistorySchema], default: [] },
   },
   { timestamps: true }

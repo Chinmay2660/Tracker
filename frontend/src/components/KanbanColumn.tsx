@@ -159,11 +159,11 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent onClose={() => setIsEditOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Edit Column</DialogTitle>
+            <DialogTitle>Edit Stage</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-4">
             <div>
-              <Label htmlFor="title">Column Title</Label>
+              <Label htmlFor="title">Stage Title</Label>
               <Input
                 id="title"
                 {...register('title')}
@@ -188,9 +188,9 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Delete Column</DialogTitle>
+            <DialogTitle>Delete Stage</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{column.title}"? This will also delete all jobs in this column.
+              Are you sure you want to delete "{column.title}"? This will also delete all jobs in this stage.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">

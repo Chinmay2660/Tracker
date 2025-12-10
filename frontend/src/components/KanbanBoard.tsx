@@ -19,7 +19,7 @@ import { Skeleton } from './ui/skeleton';
 
 function KanbanBoard() {
   const { columns = [], isLoading: columnsLoading, updateColumn } = useColumns();
-  const { jobs = [], moveJob, isLoading: jobsLoading } = useJobs();
+  const { jobs = [], moveJob, reorderJobs, isLoading: jobsLoading } = useJobs();
   // Load resumes when board loads (alongside columns and jobs)
   useResumes();
   const [activeJob, setActiveJob] = useState<Job | null>(null);
@@ -36,6 +36,29 @@ function KanbanBoard() {
   const sortedColumns = useMemo(() => {
     return [...columns].sort((a: Column, b: Column) => a.order - b.order);
   }, [columns]);
+
+  const columnJobsMap = useMemo(() => {
+    const map = new Map<string, Job[]>();
+    if (!Array.isArray(sortedColumns) || !Array.isArray(jobs)) return map;
+    sortedColumns.forEach((column) => {
+      if (!column?._id) return;
+      const columnJobs = jobs
+        .filter((job: Job) => job?.columnId === column._id)
+        .sort((a: Job, b: Job) => {
+          // Sort by order first, then by updatedAt as fallback
+          const orderA = a?.order ?? 0;
+          const orderB = b?.order ?? 0;
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+          const dateA = a?.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA;
+        });
+      map.set(column._id, columnJobs);
+    });
+    return map;
+  }, [sortedColumns, jobs]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -91,6 +114,27 @@ function KanbanBoard() {
       return;
     }
 
+    // Handle job reordering within the same column
+    if (!activeId.startsWith('column-') && !overId.startsWith('column-')) {
+      const activeJobObj = jobs.find((j: Job) => j._id === activeId);
+      const overJobObj = jobs.find((j: Job) => j._id === overId);
+      
+      if (activeJobObj && overJobObj && activeJobObj.columnId === overJobObj.columnId) {
+        // Same column - reorder jobs
+        const columnId = activeJobObj.columnId;
+        const columnJobs = columnJobsMap.get(columnId) || [];
+        const oldIndex = columnJobs.findIndex((j: Job) => j._id === activeId);
+        const newIndex = columnJobs.findIndex((j: Job) => j._id === overId);
+        
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          const reorderedJobsList = arrayMove(columnJobs, oldIndex, newIndex);
+          const jobIds = reorderedJobsList.map((j: Job) => j._id);
+          reorderJobs(jobIds);
+        }
+      }
+      return;
+    }
+
     // Handle job moving between columns
     if (!activeId.startsWith('column-') && overId.startsWith('column-')) {
       const jobId = activeId;
@@ -100,24 +144,7 @@ function KanbanBoard() {
         moveJob({ id: jobId, columnId: targetColumnId });
       }
     }
-  }, [jobs, moveJob, sortedColumns, updateColumn]);
-
-  const columnJobsMap = useMemo(() => {
-    const map = new Map<string, Job[]>();
-    if (!Array.isArray(sortedColumns) || !Array.isArray(jobs)) return map;
-    sortedColumns.forEach((column) => {
-      if (!column?._id) return;
-      const columnJobs = jobs
-        .filter((job: Job) => job?.columnId === column._id)
-        .sort((a: Job, b: Job) => {
-          const dateA = a?.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-          const dateB = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-          return dateB - dateA;
-        });
-      map.set(column._id, columnJobs);
-    });
-    return map;
-  }, [sortedColumns, jobs]);
+  }, [jobs, moveJob, reorderJobs, sortedColumns, updateColumn, columnJobsMap]);
 
   if (columnsLoading || jobsLoading) {
     return (
@@ -171,26 +198,28 @@ function KanbanBoard() {
           cursor: 'grabbing',
         }}
         dropAnimation={{
-          duration: 200,
+          duration: 150,
           easing: 'cubic-bezier(0.18, 0.67, 0.6, 1)',
         }}
       >
         {activeJob ? (
           <div 
-            className="opacity-90 rotate-2 shadow-2xl"
+            className="opacity-95 shadow-2xl"
             style={{
-              transform: 'rotate(2deg) scale(1.02)',
+              transform: 'scale(1.05)',
               willChange: 'transform',
+              pointerEvents: 'none',
             }}
           >
             <JobCard job={activeJob} isDragging />
           </div>
         ) : activeColumn ? (
           <div 
-            className="opacity-90 bg-muted/50 rounded-lg p-4 shadow-2xl"
+            className="opacity-95 bg-muted/50 rounded-lg p-4 shadow-2xl"
             style={{
-              transform: 'scale(1.02)',
+              transform: 'scale(1.05)',
               willChange: 'transform',
+              pointerEvents: 'none',
             }}
           >
             <h3 className="font-semibold text-lg">{activeColumn.title}</h3>

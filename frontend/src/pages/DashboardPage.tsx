@@ -68,7 +68,7 @@ export default function DashboardPage() {
             className="flex-1 sm:flex-none border-slate-300 dark:border-slate-700"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Column
+            Add Stage
           </Button>
         </div>
       </div>
@@ -79,15 +79,15 @@ export default function DashboardPage() {
       {/* Kanban Board */}
       <KanbanBoard />
 
-      {/* Add Column Dialog */}
+      {/* Add Stage Dialog */}
       <Dialog open={isColumnFormOpen} onOpenChange={setIsColumnFormOpen}>
         <DialogContent onClose={() => setIsColumnFormOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Add New Column</DialogTitle>
+            <DialogTitle>Add New Stage</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <Label htmlFor="title">Column Title</Label>
+              <Label htmlFor="title">Stage Title</Label>
               <Input
                 id="title"
                 {...register('title')}
@@ -102,7 +102,7 @@ export default function DashboardPage() {
               <Button type="button" variant="outline" onClick={() => setIsColumnFormOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Create Column</Button>
+              <Button type="submit">Create Stage</Button>
             </div>
           </form>
         </DialogContent>
@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
       {/* Add Job Dialog */}
       <Dialog open={isJobFormOpen} onOpenChange={setIsJobFormOpen}>
-        <DialogContent onClose={() => setIsJobFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
+        <DialogContent onClose={() => setIsJobFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Job</DialogTitle>
           </DialogHeader>

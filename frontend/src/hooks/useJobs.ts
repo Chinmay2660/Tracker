@@ -132,10 +132,97 @@ export const useJobs = () => {
 
   const moveMutation = useMutation({
     mutationFn: async ({ id, columnId }: { id: string; columnId: string }) => {
+      if (!id || !columnId) {
+        throw new Error('Job ID and Column ID are required');
+      }
       const response = await api.patch(`/jobs/${id}/move`, { columnId });
-      return response.data.job;
+      const job = response?.data?.job;
+      if (!job) {
+        throw new Error('Invalid response from server');
+      }
+      // Normalize the response
+      return {
+        ...job,
+        columnId: typeof job?.columnId === 'object' && job?.columnId?._id 
+          ? job.columnId._id 
+          : job?.columnId,
+      };
     },
-    onSuccess: () => {
+    onMutate: async ({ id, columnId }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['jobs'] });
+
+      // Snapshot the previous value
+      const previousJobs = queryClient.getQueryData<Job[]>(['jobs']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Job[]>(['jobs'], (old = []) =>
+        old.map((job) =>
+          job._id === id ? { ...job, columnId } : job
+        )
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousJobs };
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousJobs) {
+        queryClient.setQueryData<Job[]>(['jobs'], context.previousJobs);
+      }
+      toast.error('Failed to move job', {
+        description: 'Please try again.',
+      });
+    },
+    onSuccess: (updatedJob) => {
+      // Update with the actual response to ensure consistency
+      queryClient.setQueryData<Job[]>(['jobs'], (old = []) =>
+        old.map((job) => (job._id === updatedJob._id ? updatedJob : job))
+      );
+    },
+    onSettled: () => {
+      // Optionally refetch to ensure we're in sync with the server
+      // But do it in the background without blocking
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: async (jobIds: string[]) => {
+      if (!Array.isArray(jobIds) || jobIds.length === 0) {
+        throw new Error('Job IDs array is required');
+      }
+      await api.patch('/jobs/reorder', { jobIds });
+    },
+    onMutate: async (jobIds) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['jobs'] });
+
+      // Snapshot the previous value
+      const previousJobs = queryClient.getQueryData<Job[]>(['jobs']);
+
+      // Optimistically update order
+      queryClient.setQueryData<Job[]>(['jobs'], (old = []) => {
+        const jobMap = new Map(old.map(job => [job._id, job]));
+        return jobIds.map((id, index) => {
+          const job = jobMap.get(id);
+          return job ? { ...job, order: index } : job;
+        }).filter(Boolean) as Job[];
+      });
+
+      return { previousJobs };
+    },
+    onError: (err, variables, context) => {
+      // Roll back on error
+      if (context?.previousJobs) {
+        queryClient.setQueryData<Job[]>(['jobs'], context.previousJobs);
+      }
+      toast.error('Failed to reorder jobs', {
+        description: 'Please try again.',
+      });
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
   });
@@ -147,6 +234,7 @@ export const useJobs = () => {
     updateJob: updateMutation.mutate,
     deleteJob: deleteMutation.mutate,
     moveJob: moveMutation.mutate,
+    reorderJobs: reorderMutation.mutate,
   };
 };
 

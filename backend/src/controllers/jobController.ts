@@ -55,7 +55,9 @@ const updateJobSchema = z.object({
 export const getJobs = async (req: AuthRequest, res: Response) => {
   try {
     // Don't populate columnId - return just the ID string for consistency
-    const jobs = await Job.find({ userId: req.user._id }).select('-__v');
+    const jobs = await Job.find({ userId: req.user._id })
+      .select('-__v')
+      .sort({ order: 1, updatedAt: -1 });
     res.json({ success: true, jobs });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -75,6 +77,12 @@ export const createJob = async (req: AuthRequest, res: Response) => {
     // If column is "Applied" and appliedDate is provided, use appliedDate for stageHistory
     const isAppliedStage = column.title.toLowerCase() === 'applied';
     const initialStageDate = isAppliedStage && appliedDate ? appliedDate : new Date();
+
+    // Get max order in the column and set new order
+    const maxOrderJob = await Job.findOne({ columnId: data.columnId, userId: req.user._id })
+      .sort({ order: -1 })
+      .limit(1);
+    const newOrder = maxOrderJob && maxOrderJob.order !== undefined ? (maxOrderJob.order + 1) : 0;
 
     const job = await Job.create({
       userId: req.user._id,
@@ -96,6 +104,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       resumeVersion: data.resumeVersion,
       notesMarkdown: data.notesMarkdown,
       appliedDate: appliedDate,
+      order: newOrder,
       stageHistory: [{
         columnId: data.columnId,
         columnTitle: column.title,
@@ -279,13 +288,57 @@ export const moveJob = async (req: AuthRequest, res: Response) => {
       };
     }
 
+    // Get max order in the target column and set new order
+    const maxOrderJob = await Job.findOne({ columnId, userId: req.user._id })
+      .sort({ order: -1 })
+      .limit(1);
+    const newOrder = maxOrderJob && maxOrderJob.order !== undefined ? (maxOrderJob.order + 1) : 0;
+
     const updatedJob = await Job.findOneAndUpdate(
       { _id: id, userId: req.user._id },
-      { columnId, stageHistory },
+      { columnId, stageHistory, order: newOrder },
       { new: true }
     );
 
     res.json({ success: true, job: updatedJob });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const reorderJobs = async (req: AuthRequest, res: Response) => {
+  try {
+    const { jobIds } = req.body;
+
+    if (!Array.isArray(jobIds) || jobIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'jobIds array is required' });
+    }
+
+    // Verify all jobs belong to the user and get their columnId
+    const jobs = await Job.find({ _id: { $in: jobIds }, userId: req.user._id });
+    
+    if (jobs.length !== jobIds.length) {
+      return res.status(404).json({ success: false, error: 'Some jobs not found' });
+    }
+
+    // Verify all jobs are in the same column
+    const columnIds = [...new Set(jobs.map(job => job.columnId.toString()))];
+    if (columnIds.length > 1) {
+      return res.status(400).json({ success: false, error: 'All jobs must be in the same column' });
+    }
+
+    // Update order for all jobs
+    const updatePromises = jobIds.map((jobId: string, index: number) =>
+      Job.findOneAndUpdate(
+        { _id: jobId, userId: req.user._id },
+        { order: index },
+        { new: true }
+      )
+    );
+
+    await Promise.all(updatePromises);
+
+    res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
