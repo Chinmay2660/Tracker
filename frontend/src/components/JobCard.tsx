@@ -69,7 +69,8 @@ function JobCard({ job, isDragging }: JobCardProps) {
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
+    pointerEvents: isDragging ? 'none' : 'auto',
   };
 
   const compensation = useMemo(() => formatCompensation(job), [job]);

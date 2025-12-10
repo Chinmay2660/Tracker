@@ -43,6 +43,7 @@ export interface Job {
   notesMarkdown?: string;
   appliedDate?: string;
   lastWorkingDay?: string;
+  order?: number;
   stageHistory?: StageHistory[];
   createdAt: string;
   updatedAt: string;

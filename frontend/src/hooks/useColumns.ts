@@ -39,7 +39,7 @@ export const useColumns = () => {
   const createMutation = useMutation({
     mutationFn: async (data: { title: string; order?: number }) => {
       if (!data?.title?.trim()) {
-        throw new Error('Column title is required');
+        throw new Error('Stage title is required');
       }
       const response = await api.post('/columns', data);
       const column = response?.data?.column;
@@ -51,12 +51,12 @@ export const useColumns = () => {
     onSuccess: (newColumn) => {
       // Optimistically update cache instead of refetching
       queryClient.setQueryData<Column[]>(['columns'], (old = []) => [...old, newColumn]);
-      toast.success('Column added successfully!', {
+      toast.success('Stage added successfully!', {
         description: newColumn.title,
       });
     },
     onError: () => {
-      toast.error('Failed to add column', {
+      toast.error('Failed to add stage', {
         description: 'Please try again.',
       });
     },
@@ -65,7 +65,7 @@ export const useColumns = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: { id: string; title?: string; order?: number }) => {
       if (!id) {
-        throw new Error('Column ID is required');
+        throw new Error('Stage ID is required');
       }
       const response = await api.put(`/columns/${id}`, data);
       const column = response?.data?.column;
@@ -79,12 +79,12 @@ export const useColumns = () => {
       queryClient.setQueryData<Column[]>(['columns'], (old = []) =>
         old.map((col) => (col._id === updatedColumn._id ? updatedColumn : col))
       );
-      toast.success('Column updated successfully!', {
+      toast.success('Stage updated successfully!', {
         description: updatedColumn.title,
       });
     },
     onError: () => {
-      toast.error('Failed to update column', {
+      toast.error('Failed to update stage', {
         description: 'Please try again.',
       });
     },
@@ -93,7 +93,7 @@ export const useColumns = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!id) {
-        throw new Error('Column ID is required');
+        throw new Error('Stage ID is required');
       }
       await api.delete(`/columns/${id}`);
     },
@@ -104,10 +104,10 @@ export const useColumns = () => {
       );
       // Invalidate jobs since deleting a column affects jobs
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      toast.success('Column deleted successfully!');
+      toast.success('Stage deleted successfully!');
     },
     onError: () => {
-      toast.error('Failed to delete column', {
+      toast.error('Failed to delete stage', {
         description: 'Please try again.',
       });
     },

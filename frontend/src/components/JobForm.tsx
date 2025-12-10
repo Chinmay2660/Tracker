@@ -13,11 +13,12 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Stepper } from './ui/stepper';
 import TagSelect from './TagSelect';
 import { Job } from '../types';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Helper to convert NaN to undefined for optional number fields
 const optionalNumber = z.preprocess(
@@ -49,9 +50,9 @@ const jobSchema = z.object({
   offeredCompensationRSU: optionalNumber,
   resumeVersion: z.string().optional(),
   notesMarkdown: z.string().optional(),
-  appliedDate: z.string().optional(),
+  appliedDate: z.string().min(1, 'Applied date is required'),
   lastWorkingDay: z.string().optional(),
-  columnId: z.string().min(1, 'Column is required'),
+  columnId: z.string().min(1, 'Stage is required'),
 }).refine((data) => {
   // If CTC range is provided, min should be less than max
   // Only validate if both values are provided and are valid numbers (not NaN)
@@ -77,6 +78,7 @@ interface JobFormProps {
 export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProps) {
   const { createJob, updateJob, deleteJob } = useJobs();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   // Only load resumes when form is open (lazy loading)
   const { resumes = [] } = useResumes();
   const { columns = [] } = useColumns();
@@ -125,6 +127,53 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   const columnId = watch('columnId');
   const selectedColumn = columns.find((col) => col._id === columnId);
   const isRecruiterCall = selectedColumn?.title.toLowerCase().includes('recruiter') || selectedColumn?.title.toLowerCase().includes('call');
+  const isOfferStage = selectedColumn?.title === 'Offer';
+
+  const steps = [
+    { label: 'Basic Info', description: 'Company & Role' },
+    { label: 'Compensation', description: 'Salary Details' },
+    { label: 'Additional', description: 'Dates & Notes' },
+  ];
+
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 0:
+        // Validate basic info
+        if (!watch('companyName') || !watch('role') || !watch('location') || !watch('columnId')) {
+          return false;
+        }
+        return true;
+      case 1:
+        // Compensation is optional, so always valid
+        return true;
+      case 2:
+        // Applied date is required
+        if (!watch('appliedDate')) {
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (validateStep(currentStep)) {
+      setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+    } else {
+      toast.error('Please fill in all required fields', {
+        description: 'Required fields are marked with *',
+      });
+    }
+  };
+
+  const handlePrevious = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  };
 
   // Helper function to safely convert number values (handles NaN, null, undefined, empty strings)
   const safeNumber = (value: number | undefined | null): number | undefined => {
@@ -193,8 +242,24 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
 
   return (
     <>
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Stepper */}
+      <div className="mb-6">
+        <Stepper
+          steps={steps}
+          currentStep={currentStep}
+          onStepClick={(step) => {
+            if (step <= currentStep || validateStep(step - 1)) {
+              setCurrentStep(step);
+            }
+          }}
+        />
+      </div>
+
+      {/* Step 0: Basic Information */}
+      {currentStep === 0 && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="companyName">Company Name *</Label>
           <Input
@@ -242,103 +307,113 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="tags">Tags</Label>
-        <Controller
-          name="tags"
-          control={control}
-          render={({ field }) => (
-            <TagSelect
-              value={field.value || []}
-              onChange={field.onChange}
-              placeholder="Click to select tags"
+          <div>
+            <Label htmlFor="tags">Tags</Label>
+            <Controller
+              name="tags"
+              control={control}
+              render={({ field }) => (
+                <TagSelect
+                  value={field.value || []}
+                  onChange={field.onChange}
+                  placeholder="Click to select tags"
+                />
+              )}
             />
+          </div>
+
+          {!defaultColumnId && (
+            <div>
+              <Label htmlFor="columnId">Stage *</Label>
+              <Select
+                id="columnId"
+                {...register('columnId')}
+                className={errors.columnId ? 'border-destructive' : ''}
+              >
+                <option value="">Select a stage</option>
+                {columns.map((column) => (
+                  <option key={column._id} value={column._id}>
+                    {column.title}
+                  </option>
+                ))}
+              </Select>
+              {errors.columnId && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.columnId.message}
+                </p>
+              )}
+            </div>
           )}
-        />
-      </div>
-
-      {/* Asked Compensation */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Asked Compensation</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="ctcMin">CTC Min (₹)</Label>
-            <Input id="ctcMin" {...register('ctcMin', { valueAsNumber: true })} type="number" min="0" step="1000" />
-          </div>
-          <div>
-            <Label htmlFor="ctcMax">CTC Max (₹)</Label>
-            <Input id="ctcMax" {...register('ctcMax', { valueAsNumber: true })} type="number" min="0" step="1000" />
-          </div>
         </div>
+      )}
 
-        {/* Compensation Breakup */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div>
-            <Label htmlFor="compensationFixed">Fixed (₹)</Label>
-            <Input id="compensationFixed" {...register('compensationFixed', { valueAsNumber: true })} type="number" min="0" step="1000" />
+      {/* Step 1: Compensation */}
+      {currentStep === 1 && (
+        <div className="space-y-6">
+          {/* Asked Compensation */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Asked Compensation</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="ctcMin">CTC Min (₹)</Label>
+                <Input id="ctcMin" {...register('ctcMin', { valueAsNumber: true })} type="number" min="0" step="1000" />
+              </div>
+              <div>
+                <Label htmlFor="ctcMax">CTC Max (₹)</Label>
+                <Input id="ctcMax" {...register('ctcMax', { valueAsNumber: true })} type="number" min="0" step="1000" />
+              </div>
+            </div>
+
+            {/* Compensation Breakup */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="compensationFixed">Fixed (₹)</Label>
+                <Input id="compensationFixed" {...register('compensationFixed', { valueAsNumber: true })} type="number" min="0" step="1000" />
+              </div>
+              <div>
+                <Label htmlFor="compensationVariables">Variables/Bonus (₹)</Label>
+                <Input id="compensationVariables" {...register('compensationVariables', { valueAsNumber: true })} type="number" min="0" step="1000" />
+              </div>
+              <div>
+                <Label htmlFor="compensationRSU">RSU/Stocks (₹)</Label>
+                <Input id="compensationRSU" {...register('compensationRSU', { valueAsNumber: true })} type="number" min="0" step="1000" />
+              </div>
+            </div>
           </div>
-          <div>
-            <Label htmlFor="compensationVariables">Variables/Bonus (₹)</Label>
-            <Input id="compensationVariables" {...register('compensationVariables', { valueAsNumber: true })} type="number" min="0" step="1000" />
-          </div>
-          <div>
-            <Label htmlFor="compensationRSU">RSU/Stocks (₹)</Label>
-            <Input id="compensationRSU" {...register('compensationRSU', { valueAsNumber: true })} type="number" min="0" step="1000" />
-          </div>
+
+          {/* Offered Compensation (Conditional) */}
+          {isOfferStage && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Offered Compensation</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="offeredCtc">Offered CTC (₹)</Label>
+                  <Input id="offeredCtc" {...register('offeredCtc', { valueAsNumber: true })} type="number" min="0" step="1000" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="offeredCompensationFixed">Offered Fixed (₹)</Label>
+                  <Input id="offeredCompensationFixed" {...register('offeredCompensationFixed', { valueAsNumber: true })} type="number" min="0" step="1000" />
+                </div>
+                <div>
+                  <Label htmlFor="offeredCompensationVariables">Offered Variables/Bonus (₹)</Label>
+                  <Input id="offeredCompensationVariables" {...register('offeredCompensationVariables', { valueAsNumber: true })} type="number" min="0" step="1000" />
+                </div>
+                <div>
+                  <Label htmlFor="offeredCompensationRSU">Offered RSU/Stocks (₹)</Label>
+                  <Input id="offeredCompensationRSU" {...register('offeredCompensationRSU', { valueAsNumber: true })} type="number" min="0" step="1000" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Offered Compensation (Conditional) */}
-      {selectedColumn?.title === 'Offer' && (
-        <>
-          <h3 className="text-lg font-semibold mt-6">Offered Compensation</h3>
+      {/* Step 2: Additional Details */}
+      {currentStep === 2 && (
+        <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="offeredCtc">Offered CTC (₹)</Label>
-              <Input id="offeredCtc" {...register('offeredCtc', { valueAsNumber: true })} type="number" min="0" step="1000" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div>
-              <Label htmlFor="offeredCompensationFixed">Offered Fixed (₹)</Label>
-              <Input id="offeredCompensationFixed" {...register('offeredCompensationFixed', { valueAsNumber: true })} type="number" min="0" step="1000" />
-            </div>
-            <div>
-              <Label htmlFor="offeredCompensationVariables">Offered Variables (₹)</Label>
-              <Input id="offeredCompensationVariables" {...register('offeredCompensationVariables', { valueAsNumber: true })} type="number" min="0" step="1000" />
-            </div>
-            <div>
-              <Label htmlFor="offeredCompensationRSU">Offered RSU/Stocks (₹)</Label>
-              <Input id="offeredCompensationRSU" {...register('offeredCompensationRSU', { valueAsNumber: true })} type="number" min="0" step="1000" />
-            </div>
-          </div>
-        </>
-      )}
-
-      {!defaultColumnId && (
-        <div>
-          <Label htmlFor="columnId">Column *</Label>
-          <Select
-            id="columnId"
-            {...register('columnId')}
-            className={errors.columnId ? 'border-destructive' : ''}
-          >
-            <option value="">Select a column</option>
-            {columns.map((column) => (
-              <option key={column._id} value={column._id}>
-                {column.title}
-              </option>
-            ))}
-          </Select>
-          {errors.columnId && (
-            <p className="text-sm text-destructive mt-1">
-              {errors.columnId.message}
-            </p>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="resumeVersion">Resume Version</Label>
           <Select id="resumeVersion" {...register('resumeVersion')}>
@@ -351,8 +426,18 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           </Select>
         </div>
         <div>
-          <Label htmlFor="appliedDate">Applied Date</Label>
-          <Input id="appliedDate" {...register('appliedDate')} type="date" />
+          <Label htmlFor="appliedDate">Applied Date *</Label>
+          <Input
+            id="appliedDate"
+            {...register('appliedDate')}
+            type="date"
+            className={errors.appliedDate ? 'border-destructive' : ''}
+          />
+          {errors.appliedDate && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.appliedDate.message}
+            </p>
+          )}
         </div>
         {isRecruiterCall && (
           <div>
@@ -363,10 +448,10 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
               type="date"
             />
           </div>
-        )}
-      </div>
+          )}
+          </div>
 
-      {job && job.stageHistory && job.stageHistory.length > 0 && (
+          {job && job.stageHistory && job.stageHistory.length > 0 && (
         <div>
           <Label>Stage History</Label>
           <div className="mt-2 p-4 border rounded-md bg-muted/50 space-y-2">
@@ -422,43 +507,74 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
               });
             })()}
           </div>
+          </div>
+          )}
+
+          <div>
+            <Label htmlFor="notesMarkdown">Notes (Markdown)</Label>
+            <Textarea
+              id="notesMarkdown"
+              {...register('notesMarkdown')}
+              rows={6}
+              className="font-mono text-sm"
+            />
+            {notesValue && (
+              <div className="mt-2 p-4 border rounded-md bg-muted/50">
+                <p className="text-sm font-semibold mb-2">Preview:</p>
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown>{notesValue}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      <div>
-        <Label htmlFor="notesMarkdown">Notes (Markdown)</Label>
-        <Textarea
-          id="notesMarkdown"
-          {...register('notesMarkdown')}
-          rows={6}
-          className="font-mono text-sm"
-        />
-        {notesValue && (
-          <div className="mt-2 p-4 border rounded-md bg-muted/50">
-            <p className="text-sm font-semibold mb-2">Preview:</p>
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{notesValue}</ReactMarkdown>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-between items-center">
-        {job && (
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete Job
-          </Button>
-        )}
-        <div className="flex justify-end gap-2 ml-auto">
-          <Button type="submit" disabled={isSubmitting}>
-            {job ? 'Update' : 'Create'} Job
-          </Button>
+      {/* Navigation Buttons */}
+      <div className="flex justify-between items-center pt-4 border-t">
+        <div className="flex items-center gap-2">
+          {job && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Job
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {currentStep > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrevious}
+              className="gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+          )}
+          {currentStep < steps.length - 1 ? (
+            <Button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleNext(e);
+              }}
+              className="gap-2"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button type="submit" disabled={isSubmitting}>
+              {job ? 'Update' : 'Create'} Job
+            </Button>
+          )}
         </div>
       </div>
     </form>
