@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import SEO from '../components/SEO';
 import { 
   Briefcase, 
   Calendar, 
@@ -24,7 +25,8 @@ import {
       TestimonialCarousel, 
       Testimonial,
       AnimatedCounter,
-      ShimmerButton
+      ShimmerButton,
+      AnimatedGradientBackground
     } from '../components/effects';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion';
 
@@ -86,24 +88,24 @@ function LandingPage() {
   const logos = ['Google', 'Meta', 'Apple', 'Amazon', 'Netflix', 'Microsoft', 'Stripe', 'Airbnb'];
 
   const testimonials: Testimonial[] = [
-    { id: 1, content: "JobTracker transformed my job search. I went from losing track of applications to landing my dream job in 3 months!", author: "Sarah Martinez", role: "Software Engineer", company: "Google", rating: 5 },
+    { id: 1, content: "Job Tracker transformed my job search. I went from losing track of applications to landing my dream job in 3 months!", author: "Sarah Martinez", role: "Software Engineer", company: "Google", rating: 5 },
     { id: 2, content: "As someone who applied to 100+ jobs, this tool was a lifesaver. The Kanban board helped me visualize my entire pipeline.", author: "James Chen", role: "Product Manager", company: "Meta", rating: 5 },
     { id: 3, content: "Finally, a job tracker that doesn't feel like another spreadsheet! The UI is beautiful.", author: "Emily Rodriguez", role: "UX Designer", company: "Apple", rating: 5 },
-    { id: 4, content: "I landed 3 offers and JobTracker helped me keep them all straight. Brilliant!", author: "Michael Thompson", role: "Data Scientist", company: "Netflix", rating: 5 },
+    { id: 4, content: "I landed 3 offers and Job Tracker helped me keep them all straight. Brilliant!", author: "Michael Thompson", role: "Data Scientist", company: "Netflix", rating: 5 },
     { id: 5, content: "The analytics feature helped me understand my funnel. Game changer!", author: "Priya Patel", role: "Engineering Manager", company: "Stripe", rating: 5 },
     { id: 6, content: "Perfect for career transitions. Multiple resumes feature is incredibly helpful.", author: "David Kim", role: "Frontend Developer", company: "Airbnb", rating: 5 },
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B0F17] relative overflow-x-hidden transition-colors duration-0">
-      {/* Simple gradient background - CSS only, no JS */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-emerald-400/10 dark:bg-emerald-400/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Grid Pattern */}
-      <div className="fixed inset-0 bg-grid opacity-[0.02] dark:opacity-[0.03] pointer-events-none" />
+    <>
+      <SEO 
+        title="Job Tracker - Track Your Job Applications & Interviews | Free Forever"
+        description="Organize and track your job applications across different stages with Job Tracker. Manage interviews, resumes, and application progress with a beautiful Kanban board. Free forever, no credit card required."
+        keywords="job tracker, job application tracker, interview scheduler, resume manager, job search, application management, career tracker, job board, kanban board, job hunting"
+      />
+      <div className="min-h-screen bg-white dark:bg-[#0B0F17] relative overflow-x-hidden transition-colors duration-0">
+      {/* Subtle animated gradient background */}
+      <AnimatedGradientBackground />
       
       {/* Navbar */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${scrolled ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50' : ''}`}>
@@ -113,7 +115,7 @@ function LandingPage() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
                 <Briefcase className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-slate-900 dark:text-white">JobTracker</span>
+              <span className="font-bold text-slate-900 dark:text-white">Job Tracker</span>
             </Link>
 
             <div className="hidden sm:flex items-center gap-3">
@@ -305,7 +307,7 @@ function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8 scroll-reveal">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">
-              Why <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-500">JobTracker</span>?
+              Why <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-500">Job Tracker</span>?
             </h2>
           </div>
 
@@ -443,8 +445,8 @@ function LandingPage() {
           <Accordion type="single" defaultValue="item-0" className="space-y-2">
             {[
               {
-                question: 'Is JobTracker really free?',
-                answer: 'Yes! JobTracker is completely free forever. No credit card required, no hidden fees, no premium plans. We believe everyone should have access to great job search tools.',
+                question: 'Is Job Tracker really free?',
+                answer: 'Yes! Job Tracker is completely free forever. No credit card required, no hidden fees, no premium plans. We believe everyone should have access to great job search tools.',
               },
               {
                 question: 'How do I get started?',
@@ -456,7 +458,7 @@ function LandingPage() {
               },
               {
                 question: 'Can I use it on mobile?',
-                answer: 'Yes! JobTracker is fully responsive and works great on desktop, tablet, and mobile devices. Access your job board from anywhere.',
+                answer: 'Yes! Job Tracker is fully responsive and works great on desktop, tablet, and mobile devices. Access your job board from anywhere.',
               },
               {
                 question: 'What features are included?',
@@ -513,12 +515,13 @@ function LandingPage() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
               <Briefcase className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-semibold text-slate-900 dark:text-white text-sm">JobTracker</span>
+            <span className="font-semibold text-slate-900 dark:text-white text-sm">Job Tracker</span>
           </Link>
-          <p className="text-xs text-slate-500 dark:text-slate-400">© 2025 JobTracker. Built with ❤️</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">© 2025 Job Tracker. Built with ❤️</p>
         </div>
       </footer>
     </div>
+    </>
   );
 }
 

@@ -62,7 +62,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">JobTracker</span>
+            <span className="text-xl font-bold text-white">Job Tracker</span>
           </div>
 
           {/* Headline */}
@@ -138,7 +138,7 @@ export default function LoginPage() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center">
                 <Briefcase className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg font-bold text-slate-900 dark:text-white">JobTracker</span>
+              <span className="text-lg font-bold text-slate-900 dark:text-white">Job Tracker</span>
             </div>
 
             {/* Form card with Border Beam */}

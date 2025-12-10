@@ -8,6 +8,7 @@ export { default as ShineCard } from './ShineCard';
 export { default as Marquee } from './Marquee';
 export { default as TestimonialCarousel } from './TestimonialCarousel';
 export { default as InteractiveBackground } from './InteractiveBackground';
+export { default as AnimatedGradientBackground } from './AnimatedGradientBackground';
 export { default as TiltCard } from './TiltCard';
 export { default as AnimatedCounter } from './AnimatedCounter';
 export { default as SpotlightCard } from './SpotlightCard';
