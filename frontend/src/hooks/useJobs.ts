@@ -12,15 +12,24 @@ export const useJobs = () => {
   const { data: jobs = [], isLoading } = useQuery<Job[]>({
     queryKey: ['jobs'],
     queryFn: async () => {
-      const response = await api.get('/jobs');
-      // Normalize jobs: extract columnId from populated object if needed
-      const normalizedJobs = response.data.jobs.map((job: any) => ({
-        ...job,
-        columnId: typeof job.columnId === 'object' && job.columnId?._id 
-          ? job.columnId._id 
-          : job.columnId,
-      }));
-      return normalizedJobs;
+      try {
+        const response = await api.get('/jobs');
+        const jobsData = response?.data?.jobs ?? [];
+        // Normalize jobs: extract columnId from populated object if needed
+        const normalizedJobs = Array.isArray(jobsData) ? jobsData.map((job: any) => ({
+          ...job,
+          columnId: typeof job?.columnId === 'object' && job?.columnId?._id 
+            ? job.columnId._id 
+            : job?.columnId,
+        })) : [];
+        return normalizedJobs;
+      } catch (error: any) {
+        const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch jobs';
+        toast.error('Error loading jobs', {
+          description: errorMessage,
+        });
+        throw error;
+      }
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (allows React Query to deduplicate)
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (formerly cacheTime)
@@ -39,12 +48,15 @@ export const useJobs = () => {
     mutationFn: async (data: Partial<Job>) => {
       const response = await api.post('/jobs', data);
       // Normalize the response
-      const job = response.data.job;
+      const job = response?.data?.job;
+      if (!job) {
+        throw new Error('Invalid response from server');
+      }
       return {
         ...job,
-        columnId: typeof job.columnId === 'object' && job.columnId?._id 
+        columnId: typeof job?.columnId === 'object' && job?.columnId?._id 
           ? job.columnId._id 
-          : job.columnId,
+          : job?.columnId,
       };
     },
     onSuccess: (newJob) => {
@@ -63,14 +75,20 @@ export const useJobs = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & Partial<Job>) => {
+      if (!id) {
+        throw new Error('Job ID is required');
+      }
       const response = await api.put(`/jobs/${id}`, data);
       // Normalize the response
-      const job = response.data.job;
+      const job = response?.data?.job;
+      if (!job) {
+        throw new Error('Invalid response from server');
+      }
       return {
         ...job,
-        columnId: typeof job.columnId === 'object' && job.columnId?._id 
+        columnId: typeof job?.columnId === 'object' && job?.columnId?._id 
           ? job.columnId._id 
-          : job.columnId,
+          : job?.columnId,
       };
     },
     onSuccess: (updatedJob) => {
@@ -91,6 +109,9 @@ export const useJobs = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!id) {
+        throw new Error('Job ID is required');
+      }
       await api.delete(`/jobs/${id}`);
     },
     onSuccess: (_, deletedId) => {

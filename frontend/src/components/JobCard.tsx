@@ -10,21 +10,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { cn } from '@/lib/utils';
 
 const TAG_COLORS: Record<string, { bg: string; text: string }> = {
-  'Remote': { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-300' },
-  'Hybrid': { bg: 'bg-violet-100 dark:bg-violet-900/40', text: 'text-violet-700 dark:text-violet-300' },
-  'On-site': { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300' },
-  'Startup': { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-300' },
-  'Big Tech': { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-300' },
-  'Full-time': { bg: 'bg-teal-100 dark:bg-teal-900/40', text: 'text-teal-700 dark:text-teal-300' },
-  'Part-time': { bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-700 dark:text-amber-300' },
-  'Contract': { bg: 'bg-rose-100 dark:bg-rose-900/40', text: 'text-rose-700 dark:text-rose-300' },
-  'Internship': { bg: 'bg-cyan-100 dark:bg-cyan-900/40', text: 'text-cyan-700 dark:text-cyan-300' },
+  'Remote': { bg: 'bg-blue-500', text: 'text-white' },
+  'Hybrid': { bg: 'bg-purple-500', text: 'text-white' },
+  'On-site': { bg: 'bg-green-500', text: 'text-white' },
+  'Startup': { bg: 'bg-orange-500', text: 'text-white' },
+  'Big Tech': { bg: 'bg-red-500', text: 'text-white' },
+  'Product': { bg: 'bg-pink-500', text: 'text-white' },
+  'Engineering': { bg: 'bg-indigo-500', text: 'text-white' },
+  'Design': { bg: 'bg-cyan-500', text: 'text-white' },
+  'Marketing': { bg: 'bg-yellow-500', text: 'text-white' },
+  'Sales': { bg: 'bg-teal-500', text: 'text-white' },
+  'Full-time': { bg: 'bg-emerald-500', text: 'text-white' },
+  'Part-time': { bg: 'bg-amber-500', text: 'text-white' },
+  'Contract': { bg: 'bg-rose-500', text: 'text-white' },
+  'Internship': { bg: 'bg-violet-500', text: 'text-white' },
 };
 
 const DEFAULT_COLORS = [
-  { bg: 'bg-slate-100 dark:bg-slate-700/50', text: 'text-slate-700 dark:text-slate-300' },
-  { bg: 'bg-indigo-100 dark:bg-indigo-900/40', text: 'text-indigo-700 dark:text-indigo-300' },
-  { bg: 'bg-pink-100 dark:bg-pink-900/40', text: 'text-pink-700 dark:text-pink-300' },
+  { bg: 'bg-slate-500', text: 'text-white' },
+  { bg: 'bg-indigo-500', text: 'text-white' },
+  { bg: 'bg-pink-500', text: 'text-white' },
 ];
 
 const getTagColor = (tag: string) => {

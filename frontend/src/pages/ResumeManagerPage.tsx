@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { useResumes } from '../hooks/useResumes';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -32,8 +33,11 @@ export default function ResumeManagerPage() {
     setUploading(true);
     try {
       uploadResume(file);
-    } catch (error) {
-      console.error('Upload error:', error);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message ?? error?.message ?? 'An unexpected error occurred';
+      toast.error('Failed to upload resume', {
+        description: errorMessage,
+      });
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -170,7 +174,7 @@ export default function ResumeManagerPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteClick(resume._id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

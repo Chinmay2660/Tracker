@@ -104,10 +104,16 @@ function KanbanBoard() {
 
   const columnJobsMap = useMemo(() => {
     const map = new Map<string, Job[]>();
+    if (!Array.isArray(sortedColumns) || !Array.isArray(jobs)) return map;
     sortedColumns.forEach((column) => {
+      if (!column?._id) return;
       const columnJobs = jobs
-        .filter((job: Job) => job.columnId === column._id)
-        .sort((a: Job, b: Job) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        .filter((job: Job) => job?.columnId === column._id)
+        .sort((a: Job, b: Job) => {
+          const dateA = a?.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA;
+        });
       map.set(column._id, columnJobs);
     });
     return map;

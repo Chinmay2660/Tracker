@@ -20,19 +20,30 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<InterviewRound | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
   const [listDialogDate, setListDialogDate] = useState<Date | null>(null);
 
   const { data: allInterviews = [] } = useQuery<InterviewRound[]>({
     queryKey: ['interviews'],
     queryFn: async () => {
+      if (!Array.isArray(jobs) || jobs.length === 0) {
+        return [];
+      }
       const allInterviewsData: InterviewRound[] = [];
       for (const job of jobs) {
+        if (!job?._id) continue;
         try {
           const response = await api.get(`/interviews/jobs/${job._id}`);
-          allInterviewsData.push(...response.data.interviews);
-        } catch {
-          // Skip if no interviews
+          const interviews = response?.data?.interviews ?? [];
+          if (Array.isArray(interviews) && interviews.length > 0) {
+            allInterviewsData.push(...interviews);
+          }
+        } catch (error: any) {
+          // Skip if no interviews or 404, but log other errors
+          if (error?.response?.status !== 404) {
+            // Only log non-404 errors silently
+          }
         }
       }
       return allInterviewsData;
@@ -43,15 +54,18 @@ export default function CalendarPage() {
     refetchOnWindowFocus: false,
   });
 
-  const events = allInterviews
+  const events = (Array.isArray(allInterviews) ? allInterviews : [])
     .map((interview) => {
-      const job = jobs.find((j: { _id: string }) => j._id === interview.jobId);
+      if (!interview?.jobId || !interview?.date) return null;
+      
+      const job = Array.isArray(jobs) ? jobs.find((j: { _id?: string }) => j?._id === interview.jobId) : null;
       
       let dateObj: Date;
       let dateOnly: string;
       
-      if (interview.date.includes('T')) {
+      if (interview.date?.includes('T')) {
         dateObj = new Date(interview.date);
+        if (isNaN(dateObj.getTime())) return null;
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
@@ -59,10 +73,11 @@ export default function CalendarPage() {
       } else {
         dateOnly = interview.date;
         dateObj = new Date(interview.date);
+        if (isNaN(dateObj.getTime())) return null;
       }
       
       let dateTimeStr: string;
-      if (interview.time && interview.time.trim() !== '') {
+      if (interview.time?.trim()) {
         const timeStr = interview.time.length === 5 ? interview.time : `${interview.time}:00`;
         dateTimeStr = `${dateOnly}T${timeStr}`;
       } else {
@@ -72,30 +87,30 @@ export default function CalendarPage() {
       const startDate = new Date(dateTimeStr);
       
       let endDate: Date;
-      if (interview.endTime && interview.endTime.trim() !== '') {
+      if (interview.endTime?.trim()) {
         const endTimeStr = interview.endTime.length === 5 ? interview.endTime : `${interview.endTime}:00`;
         endDate = new Date(`${dateOnly}T${endTimeStr}`);
       } else {
         endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       }
       
-      if (isNaN(startDate.getTime())) return null;
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
       if (isNaN(endDate.getTime())) endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       if (endDate <= startDate) endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       
-      const timeStr = interview.time && interview.time.trim() !== ''
+      const timeStr = interview.time?.trim()
         ? format(new Date(`${dateOnly}T${interview.time.length === 5 ? interview.time : `${interview.time}:00`}`), 'h:mm a')
         : '9:00 AM';
       
-      const title = `${job?.companyName || 'Unknown'} - ${interview.stage} - ${timeStr}`;
+      const title = `${job?.companyName ?? 'Unknown'} - ${interview.stage ?? 'Interview'} - ${timeStr}`;
       
       return {
-        id: interview._id,
+        id: interview._id ?? '',
         title,
         start: startDate,
         end: endDate,
         resource: interview,
-        status: interview.status,
+        status: interview.status ?? 'pending',
         isCompleted: interview.status === 'completed',
         isPending: interview.status === 'pending',
         isCancelled: interview.status === 'cancelled',
@@ -115,6 +130,24 @@ export default function CalendarPage() {
   }, [events]);
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+    // Prevent selection of off-range dates (previous/next month dates)
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const slotMonth = slotInfo.start.getMonth();
+    const slotYear = slotInfo.start.getFullYear();
+    
+    // Check if the selected slot is in the current month being viewed
+    // We need to check against the calendar's current view, not today's date
+    // For now, we'll use a simpler check - if it's clearly in a different month
+    const viewDate = new Date(); // This should ideally come from calendar state
+    const viewMonth = viewDate.getMonth();
+    const viewYear = viewDate.getFullYear();
+    
+    if (slotMonth !== viewMonth || slotYear !== viewYear) {
+      // This is an off-range date, don't allow selection
+      return;
+    }
+    
     const dateKey = format(slotInfo.start, 'yyyy-MM-dd');
     const dayEvents = eventsByDate[dateKey] || [];
     
@@ -124,6 +157,7 @@ export default function CalendarPage() {
     } else {
       setSelectedEvent(null);
       setSelectedDate(slotInfo.start);
+      setSelectedEndDate(slotInfo.end);
       setIsFormOpen(true);
     }
   };
@@ -162,7 +196,7 @@ export default function CalendarPage() {
       style: {
         backgroundColor,
         borderRadius: '6px',
-        color: 'white',
+        color: 'black',
         border: 'none',
         opacity: event.isCompleted || event.isCancelled ? 0.8 : 1,
       },
@@ -215,7 +249,7 @@ export default function CalendarPage() {
                 const interview = props.event.resource as InterviewRound;
                 return (
                   <div
-                    className="text-xs px-1 truncate cursor-pointer"
+                    className="text-xs px-1 truncate cursor-pointer text-white"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleSelectEvent({ resource: interview, event: props.event });
@@ -239,10 +273,12 @@ export default function CalendarPage() {
           <InterviewForm
             interview={selectedEvent || undefined}
             defaultDate={selectedDate}
+            defaultEndDate={selectedEndDate}
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedEvent(null);
               setSelectedDate(null);
+              setSelectedEndDate(null);
             }}
           />
         </DialogContent>
@@ -309,6 +345,7 @@ export default function CalendarPage() {
                 onClick={() => {
                   setSelectedEvent(null);
                   setSelectedDate(listDialogDate);
+                  setSelectedEndDate(listDialogDate ? new Date(listDialogDate.getTime() + 60 * 60 * 1000) : null);
                   setIsListDialogOpen(false);
                   setIsFormOpen(true);
                 }}
