@@ -59,6 +59,7 @@
     -moz-osx-font-smoothing: grayscale;
     background-color: #ffffff;
     transition: background-color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
   }
   html.dark {
     background-color: #0B0F17;
@@ -72,6 +73,18 @@
     font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+  
+  /* Touch device optimizations for iPad and mobile */
+  button, 
+  [role="button"],
+  a,
+  select,
+  input[type="submit"],
+  input[type="button"] {
+    cursor: pointer;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
   }
 }
 

@@ -9,7 +9,16 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <select
         className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          // Base styles
+          "block w-full rounded-lg border border-input bg-background",
+          // Sizing - 48px height for good touch targets
+          "h-12 px-4 py-3",
+          // Typography - 16px prevents iOS zoom on focus
+          "text-base text-foreground",
+          // Focus states
+          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ring-offset-background",
+          // Disabled state
+          "disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         ref={ref}
@@ -23,4 +32,3 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 Select.displayName = "Select"
 
 export { Select }
-

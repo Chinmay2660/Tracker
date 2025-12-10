@@ -131,7 +131,7 @@ export default function InterviewForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
       <div className="space-y-2">
         <Label htmlFor="jobId">Job *</Label>
         <Select
@@ -211,6 +211,7 @@ export default function InterviewForm({
             id="time"
             {...register('time')}
             type="time"
+            autoComplete="off"
             className={errors.time ? 'border-destructive' : ''}
           />
           {errors.time && (
@@ -223,6 +224,7 @@ export default function InterviewForm({
             id="endTime"
             {...register('endTime')}
             type="time"
+            autoComplete="off"
             className={errors.endTime ? 'border-destructive' : ''}
           />
           {errors.endTime && (
@@ -231,18 +233,17 @@ export default function InterviewForm({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+      <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
         {interview && (
           <>
             <Button
               type="button"
               variant="destructive"
               onClick={() => setIsDeleteDialogOpen(true)}
-              className="gap-2 w-full sm:w-auto order-2 sm:order-1"
+              className="gap-2 w-full sm:w-auto"
             >
               <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Delete Interview</span>
-              <span className="sm:hidden">Delete</span>
+              Delete
             </Button>
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
               <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
@@ -252,8 +253,9 @@ export default function InterviewForm({
                     Are you sure you want to delete this interview? This action cannot be undone.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
                   <Button
+                    type="button"
                     variant="outline"
                     onClick={() => setIsDeleteDialogOpen(false)}
                     className="w-full sm:w-auto"
@@ -261,6 +263,7 @@ export default function InterviewForm({
                     Cancel
                   </Button>
                   <Button
+                    type="button"
                     variant="destructive"
                     onClick={async () => {
                       try {
@@ -292,11 +295,13 @@ export default function InterviewForm({
             </Dialog>
           </>
         )}
-        <div className="flex justify-end gap-2 order-1 sm:order-2">
-          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-            {interview ? 'Update' : 'Create'} Interview
-          </Button>
-        </div>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting} 
+          className={interview ? "w-full sm:w-auto sm:ml-auto" : "w-full sm:w-auto ml-auto"}
+        >
+          {interview ? 'Update' : 'Create'} Interview
+        </Button>
       </div>
     </form>
   );
