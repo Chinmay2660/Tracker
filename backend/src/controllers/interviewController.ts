@@ -9,6 +9,7 @@ const createInterviewSchema = z.object({
   stage: z.string().min(1),
   date: z.string(),
   time: z.string().optional(),
+  endTime: z.string().optional(),
   notesMarkdown: z.string().optional(),
   status: z.enum(['pending', 'completed', 'cancelled']).optional(),
 });
