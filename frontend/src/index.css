@@ -1,6 +1,4 @@
-/* Import fonts - must be before @tailwind */
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap');
-
+/* Font loaded via preload in index.html for better performance */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

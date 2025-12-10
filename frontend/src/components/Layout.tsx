@@ -3,9 +3,12 @@ import { useAuth } from '../hooks/useAuth';
 import { Button } from './ui/button';
 import { Calendar, Briefcase, FileText, LogOut, User as UserIcon, Menu, X, ChevronDown } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useMemo } from 'react';
+import { usePrefetchDashboard } from '../hooks/usePrefetchDashboard';
 
-export default function Layout() {
+function Layout() {
+  // Prefetch dashboard data - only runs when Layout (authenticated area) loads
+  usePrefetchDashboard();
   const { user, logout } = useAuth();
   const location = useLocation();
   const [avatarError, setAvatarError] = useState(false);
@@ -31,11 +34,12 @@ export default function Layout() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navItems = [
+  // Memoize nav items to avoid re-renders
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: Briefcase, label: 'Board' },
     { path: '/dashboard/calendar', icon: Calendar, label: 'Calendar' },
     { path: '/dashboard/resumes', icon: FileText, label: 'Resumes' },
-  ];
+  ], []);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -185,3 +189,5 @@ export default function Layout() {
     </div>
   );
 }
+
+export default memo(Layout);

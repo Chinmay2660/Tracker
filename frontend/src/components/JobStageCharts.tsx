@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useColumns } from '../hooks/useColumns';
 import { useJobs } from '../hooks/useJobs';
@@ -21,7 +21,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export default function JobStageCharts() {
+function JobStageCharts() {
   const { columns = [] } = useColumns();
   const { jobs = [] } = useJobs();
 
@@ -173,3 +173,4 @@ export default function JobStageCharts() {
   );
 }
 
+export default memo(JobStageCharts);

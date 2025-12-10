@@ -6,6 +6,36 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
+    <!-- Preconnect to external resources - improves connection time -->
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.fontshare.com" />
+    
+    <!-- Preload critical font with display=swap for fast text rendering -->
+    <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" /></noscript>
+    
+    <!-- Resource hints for faster navigation -->
+    <link rel="prefetch" href="/dashboard" as="document" />
+    
+    <!-- Reduce Cumulative Layout Shift -->
+    <style>
+      /* Prevent layout shift from loading content */
+      #root { contain: layout style; }
+    </style>
+    
+    <!-- Critical inline CSS for instant first paint -->
+    <style>
+      /* Critical CSS for instant rendering */
+      :root{--bg-light:#fff;--bg-dark:#0B0F17;--text-light:#1e293b;--text-dark:#f8fafc}
+      html{background-color:var(--bg-light)}
+      html.dark{background-color:var(--bg-dark)}
+      body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+      #root{min-height:100vh}
+      .skeleton{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+      .dark .skeleton{background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%);background-size:200% 100%}
+      @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    </style>
+    
     <!-- Primary Meta Tags -->
     <title>Job Tracker</title>
     <meta name="title" content="Job Tracker - Track Your Job Applications & Interviews | Free Forever" />

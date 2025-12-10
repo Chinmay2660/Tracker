@@ -4,10 +4,16 @@ import { MapPin, ExternalLink, Calendar } from 'lucide-react';
 import { Job } from '../types';
 import { Card } from './ui/card';
 import { format } from 'date-fns';
-import { useState, memo, useMemo } from 'react';
-import JobForm from './JobForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { useState, memo, useMemo, lazy, Suspense } from 'react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from './ui/skeleton';
+
+// Lazy load heavy dialog components - only loaded when user clicks a card
+const Dialog = lazy(() => import('./ui/dialog').then(m => ({ default: m.Dialog })));
+const DialogContent = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogContent })));
+const DialogHeader = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogHeader })));
+const DialogTitle = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogTitle })));
+const JobForm = lazy(() => import('./JobForm'));
 
 const TAG_COLORS: Record<string, { bg: string; text: string }> = {
   'Remote': { bg: 'bg-blue-500', text: 'text-white' },
@@ -151,14 +157,22 @@ function JobCard({ job, isDragging }: JobCardProps) {
         </div>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent onClose={() => setIsFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Job</DialogTitle>
-          </DialogHeader>
-          <JobForm job={job} onSuccess={() => setIsFormOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      {isFormOpen && (
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Skeleton className="w-96 h-64 rounded-xl" />
+          </div>
+        }>
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogContent onClose={() => setIsFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Job</DialogTitle>
+              </DialogHeader>
+              <JobForm job={job} onSuccess={() => setIsFormOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </Suspense>
+      )}
     </>
   );
 }
