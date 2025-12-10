@@ -166,7 +166,7 @@ function LandingPage() {
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto lg:mx-0">
-                The modern job search companion. Organize applications, track interviews, manage resumes—all in one place.
+                The modern job search companion. Organize applications, track interviews, manage resumes - all in one place.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
