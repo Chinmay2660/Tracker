@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useLogin } from '../hooks/useLogin';
 import { 
   Briefcase, 
   ArrowLeft, 
@@ -16,11 +15,10 @@ import ThemeToggle from '../components/ThemeToggle';
 import { Particles, BorderBeam, ShimmerButton } from '../components/effects';
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  // Use lightweight login hook - does NOT call any APIs
+  const { login, isLoading } = useLogin();
 
   const handleLogin = () => {
-    setIsLoading(true);
     login();
   };
 

@@ -30,23 +30,26 @@ export default function CalendarPage() {
       if (!Array.isArray(jobs) || jobs.length === 0) {
         return [];
       }
-      const allInterviewsData: InterviewRound[] = [];
-      for (const job of jobs) {
-        if (!job?._id) continue;
-        try {
-          const response = await api.get(`/interviews/jobs/${job._id}`);
-          const interviews = response?.data?.interviews ?? [];
-          if (Array.isArray(interviews) && interviews.length > 0) {
-            allInterviewsData.push(...interviews);
-          }
-        } catch (error: any) {
-          // Skip if no interviews or 404, but log other errors
-          if (error?.response?.status !== 404) {
-            // Only log non-404 errors silently
-          }
-        }
-      }
-      return allInterviewsData;
+      
+      // Fetch all interviews in PARALLEL using Promise.allSettled
+      const interviewPromises = jobs
+        .filter(job => job?._id)
+        .map(job => 
+          api.get(`/interviews/jobs/${job._id}`)
+            .then(response => response?.data?.interviews ?? [])
+            .catch(error => {
+              // Skip 404 errors silently, return empty array
+              if (error?.response?.status !== 404) {
+                console.warn(`Failed to fetch interviews for job ${job._id}`);
+              }
+              return [];
+            })
+        );
+      
+      const results = await Promise.all(interviewPromises);
+      
+      // Flatten all interview arrays into one
+      return results.flat().filter(Boolean);
     },
     enabled: jobs.length > 0,
     staleTime: 5 * 60 * 1000,

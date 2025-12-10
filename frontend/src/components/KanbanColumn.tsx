@@ -6,12 +6,19 @@ import JobCard from './JobCard';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useColumns } from '../hooks/useColumns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Skeleton } from './ui/skeleton';
+
+// Lazy load dialogs - only loaded when user opens them
+const Dialog = lazy(() => import('./ui/dialog').then(m => ({ default: m.Dialog })));
+const DialogContent = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogContent })));
+const DialogHeader = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogHeader })));
+const DialogTitle = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogTitle })));
+const DialogDescription = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogDescription })));
 
 interface KanbanColumnProps {
   column: {
@@ -155,54 +162,62 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
         </div>
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent onClose={() => setIsEditOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>Edit Stage</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-4">
-            <div>
-              <Label htmlFor="title">Stage Title</Label>
-              <Input
-                id="title"
-                {...register('title')}
-                className={errors.title ? 'border-red-500' : ''}
-                placeholder="e.g., Technical Interview"
-              />
-              {errors.title && (
-                <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Dialog - Lazy loaded */}
+      {isEditOpen && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><Skeleton className="w-80 h-48 rounded-xl" /></div>}>
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent onClose={() => setIsEditOpen(false)}>
+              <DialogHeader>
+                <DialogTitle>Edit Stage</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Stage Title</Label>
+                  <Input
+                    id="title"
+                    {...register('title')}
+                    className={errors.title ? 'border-red-500' : ''}
+                    placeholder="e.g., Technical Interview"
+                  />
+                  {errors.title && (
+                    <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Save</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </Suspense>
+      )}
 
-      {/* Delete Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>Delete Stage</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{column.title}"? This will also delete all jobs in this stage.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Dialog - Lazy loaded */}
+      {isDeleteDialogOpen && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><Skeleton className="w-80 h-40 rounded-xl" /></div>}>
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent onClose={() => setIsDeleteDialogOpen(false)}>
+              <DialogHeader>
+                <DialogTitle>Delete Stage</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete "{column.title}"? This will also delete all jobs in this stage.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteConfirm}>
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </Suspense>
+      )}
     </>
   );
 }
