@@ -13,19 +13,8 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    // Enable minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console.logs in production
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug'],
-      },
-      mangle: true,
-      format: {
-        comments: false, // Remove all comments
-      },
-    },
+    // Use esbuild for minification (built-in, faster than terser)
+    minify: 'esbuild',
     // Enable source maps only for error tracking (smaller)
     sourcemap: false,
     // Optimize CSS
@@ -114,5 +103,7 @@ export default defineConfig({
   esbuild: {
     legalComments: 'none',
     treeShaking: true,
+    // Drop console.logs in production
+    drop: ['console', 'debugger'],
   },
 })
