@@ -5,6 +5,8 @@ import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { useAuthStore } from './store/useAuthStore';
 import DashboardSkeleton from './components/DashboardSkeleton';
 import { Skeleton } from './components/ui/skeleton';
+// OfflinePage is NOT lazy loaded - it must be available immediately when offline
+import OfflinePage from './pages/OfflinePage';
 
 // Code splitting - Lazy load pages with preload hints
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -13,19 +15,86 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const ResumeManagerPage = lazy(() => import('./pages/ResumeManagerPage'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
-const OfflinePage = lazy(() => import('./pages/OfflinePage'));
 const Layout = lazy(() => import('./components/Layout'));
 
-// Minimal inline loading skeleton - renders instantly without CSS parsing
+// Minimal page skeleton - shows content structure instead of a spinner
 const MinimalSkeleton = memo(() => (
-  <div style={{ 
-    minHeight: '100vh', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    backgroundColor: 'var(--bg-light, #fff)'
-  }}>
-    <div className="skeleton" style={{ width: '3rem', height: '3rem', borderRadius: '50%' }} />
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4">
+    {/* Header skeleton */}
+    <div className="flex justify-between items-center mb-6">
+      <div className="skeleton" style={{ width: '10rem', height: '1.5rem', borderRadius: '0.375rem' }} />
+      <div className="skeleton" style={{ width: '6rem', height: '2.25rem', borderRadius: '0.5rem' }} />
+    </div>
+    {/* Content skeleton */}
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+      <div className="grid grid-cols-7 gap-2 mb-4">
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: '1rem', borderRadius: '0.25rem' }} />
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-2">
+        {[...Array(35)].map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: '4rem', borderRadius: '0.375rem' }} />
+        ))}
+      </div>
+    </div>
+  </div>
+));
+
+// Calendar page skeleton
+const CalendarSkeleton = memo(() => (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4">
+    {/* Header */}
+    <div className="flex justify-between items-center mb-6">
+      <div className="skeleton" style={{ width: '8rem', height: '1.75rem', borderRadius: '0.375rem' }} />
+      <div className="skeleton" style={{ width: '7rem', height: '2.25rem', borderRadius: '0.5rem' }} />
+    </div>
+    {/* Calendar grid */}
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+      {/* Navigation bar */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="skeleton" style={{ width: '2rem', height: '2rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '10rem', height: '1.5rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '2rem', height: '2rem', borderRadius: '0.375rem' }} />
+      </div>
+      {/* Days header */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: '1.5rem', borderRadius: '0.25rem' }} />
+        ))}
+      </div>
+      {/* Calendar cells */}
+      <div className="grid grid-cols-7 gap-1">
+        {[...Array(42)].map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: '5rem', borderRadius: '0.375rem' }} />
+        ))}
+      </div>
+    </div>
+  </div>
+));
+
+// Resume page skeleton
+const ResumeSkeleton = memo(() => (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4">
+    {/* Header */}
+    <div className="flex justify-between items-center mb-6">
+      <div className="skeleton" style={{ width: '8rem', height: '1.75rem', borderRadius: '0.375rem' }} />
+      <div className="skeleton" style={{ width: '8rem', height: '2.25rem', borderRadius: '0.5rem' }} />
+    </div>
+    {/* Resume cards grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+          <div className="skeleton" style={{ width: '70%', height: '1.25rem', borderRadius: '0.25rem', marginBottom: '0.75rem' }} />
+          <div className="skeleton" style={{ width: '50%', height: '1rem', borderRadius: '0.25rem', marginBottom: '0.5rem' }} />
+          <div className="skeleton" style={{ width: '40%', height: '0.875rem', borderRadius: '0.25rem', marginBottom: '1rem' }} />
+          <div className="flex gap-2">
+            <div className="skeleton" style={{ width: '4rem', height: '2rem', borderRadius: '0.375rem' }} />
+            <div className="skeleton" style={{ width: '4rem', height: '2rem', borderRadius: '0.375rem' }} />
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 ));
 
@@ -98,21 +167,9 @@ function App() {
     };
   }, [checkSessionExpiry, refreshSession]);
 
-  // Show offline page if offline
+  // Show offline page if offline - OfflinePage is bundled, no lazy loading needed
   if (!isOnline) {
-    return (
-      <BrowserRouter>
-        <Suspense fallback={
-          <div className="min-h-screen bg-background flex items-center justify-center">
-            <Skeleton className="h-24 w-24 rounded-full" />
-          </div>
-        }>
-          <Routes>
-            <Route path="*" element={<OfflinePage />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    );
+    return <OfflinePage />;
   }
 
   return (
@@ -206,7 +263,7 @@ function App() {
             <Route 
               path="calendar" 
               element={
-                <Suspense fallback={<MinimalSkeleton />}>
+                <Suspense fallback={<CalendarSkeleton />}>
                   <CalendarPage />
                 </Suspense>
               } 
@@ -214,7 +271,7 @@ function App() {
             <Route 
               path="resumes" 
               element={
-                <Suspense fallback={<MinimalSkeleton />}>
+                <Suspense fallback={<ResumeSkeleton />}>
                   <ResumeManagerPage />
                 </Suspense>
               } 
