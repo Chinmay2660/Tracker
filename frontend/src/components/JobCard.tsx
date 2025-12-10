@@ -85,9 +85,9 @@ function JobCard({ job, isDragging }: JobCardProps) {
         className="p-3 sm:p-4 cursor-grab active:cursor-grabbing bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all"
         onClick={() => setIsFormOpen(true)}
       >
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Company & Role */}
-          <div>
+          <div className="space-y-1">
             <h4 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base leading-tight">{job.companyName}</h4>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{job.role}</p>
           </div>
@@ -105,6 +105,14 @@ function JobCard({ job, isDragging }: JobCardProps) {
             </div>
           )}
 
+          {/* Applied Date */}
+          {job.appliedDate && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <Calendar className="w-3 h-3 flex-shrink-0" />
+              <span>Applied {format(new Date(job.appliedDate), 'MMM d, yyyy')}</span>
+            </div>
+          )}
+
           {/* Job URL */}
           {job.jobUrl && (
             <a
@@ -119,17 +127,9 @@ function JobCard({ job, isDragging }: JobCardProps) {
             </a>
           )}
 
-          {/* Applied Date */}
-          {job.appliedDate && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-              <Calendar className="w-3 h-3" />
-              Applied {format(new Date(job.appliedDate), 'MMM d, yyyy')}
-            </div>
-          )}
-
           {/* Tags */}
           {job.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-1">
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {job.tags.slice(0, 3).map((tag, idx) => {
                 const colors = getTagColor(tag);
                 return (

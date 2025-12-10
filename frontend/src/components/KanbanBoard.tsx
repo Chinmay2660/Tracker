@@ -1,6 +1,7 @@
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -81,6 +82,26 @@ function KanbanBoard() {
     }
   }, [jobs, columns]);
 
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Only handle job-to-job reordering during drag over
+    if (!activeId.startsWith('column-') && !overId.startsWith('column-')) {
+      const activeJobObj = jobs.find((j: Job) => j._id === activeId);
+      const overJobObj = jobs.find((j: Job) => j._id === overId);
+      
+      if (activeJobObj && overJobObj && activeJobObj.columnId === overJobObj.columnId) {
+        // Same column - let @dnd-kit handle the visual reordering
+        // The actual reorder will be saved in handleDragEnd
+      }
+    }
+  }, [jobs]);
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setActiveJob(null);
@@ -136,13 +157,19 @@ function KanbanBoard() {
     }
 
     // Handle job moving between columns
+    // Note: If dropping on the same column container (not on a job), do nothing
+    // The job is already in the correct column, and reordering should happen
+    // when dropping directly on another job (handled above)
     if (!activeId.startsWith('column-') && overId.startsWith('column-')) {
       const jobId = activeId;
       const targetColumnId = overId.replace('column-', '');
       const currentJob = jobs.find((j: Job) => j._id === jobId);
+      
       if (currentJob && currentJob.columnId !== targetColumnId) {
+        // Different column - move job
         moveJob({ id: jobId, columnId: targetColumnId });
       }
+      // If same column, do nothing - job is already in the right place
     }
   }, [jobs, moveJob, reorderJobs, sortedColumns, updateColumn, columnJobsMap]);
 
@@ -171,7 +198,7 @@ function KanbanBoard() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <SortableContext
         items={sortedColumns.map((c: Column) => `column-${c._id}`)}
         strategy={verticalListSortingStrategy}
