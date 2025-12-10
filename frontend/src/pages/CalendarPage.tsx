@@ -101,11 +101,10 @@ export default function CalendarPage() {
       if (isNaN(endDate.getTime())) endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       if (endDate <= startDate) endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
       
-      const timeStr = interview.time?.trim()
-        ? format(new Date(`${dateOnly}T${interview.time.length === 5 ? interview.time : `${interview.time}:00`}`), 'h:mm a')
-        : '9:00 AM';
-      
-      const title = `${job?.companyName ?? 'Unknown'} - ${interview.stage ?? 'Interview'} - ${timeStr}`;
+      // Title format: From Time - To Time - Company Name - Interview Stage
+      const fromTime = format(startDate, 'h:mm a');
+      const toTime = format(endDate, 'h:mm a');
+      const title = `${fromTime} - ${toTime} - ${job?.companyName ?? 'Unknown'} - ${interview.stage ?? 'Interview'}`;
       
       return {
         id: interview._id ?? '',
@@ -154,10 +153,12 @@ export default function CalendarPage() {
     const dateKey = format(slotInfo.start, 'yyyy-MM-dd');
     const dayEvents = eventsByDate[dateKey] || [];
     
-    if (dayEvents.length > 2) {
+    // If there's 1 or more interviews, show list dialog
+    if (dayEvents.length >= 1) {
       setListDialogDate(slotInfo.start);
       setIsListDialogOpen(true);
     } else {
+      // Empty day - open add form directly
       setSelectedEvent(null);
       setSelectedDate(slotInfo.start);
       setSelectedEndDate(slotInfo.end);
@@ -167,21 +168,12 @@ export default function CalendarPage() {
 
   const handleSelectEvent = (event: any) => {
     const eventStart = event.start || event.event?.start;
-    const interview = event.resource || event.event?.resource;
     
     if (!eventStart || isNaN(new Date(eventStart).getTime())) return;
     
-    const dateKey = format(new Date(eventStart), 'yyyy-MM-dd');
-    const dayEvents = eventsByDate[dateKey] || [];
-    
-    if (dayEvents.length > 2) {
-      setListDialogDate(new Date(eventStart));
-      setIsListDialogOpen(true);
-    } else if (interview) {
-      setSelectedEvent(interview);
-      setSelectedDate(null);
-      setIsFormOpen(true);
-    }
+    // Always show list dialog when clicking an event
+    setListDialogDate(new Date(eventStart));
+    setIsListDialogOpen(true);
   };
 
   const eventStyleGetter = (event: any) => {
@@ -199,9 +191,10 @@ export default function CalendarPage() {
       style: {
         backgroundColor,
         borderRadius: '6px',
-        color: 'black',
+        color: '#ffffff',
         border: 'none',
-        opacity: event.isCompleted || event.isCancelled ? 0.8 : 1,
+        opacity: 1,
+        fontWeight: 500,
       },
     };
   };
@@ -247,6 +240,7 @@ export default function CalendarPage() {
             scrollToTime={new Date(1970, 0, 1, 0, 0, 0)}
             style={{ height: '100%' }}
             eventPropGetter={eventStyleGetter}
+            dayLayoutAlgorithm="no-overlap"
             components={{
               event: (props: any) => {
                 const interview = props.event.resource as InterviewRound;
@@ -266,6 +260,62 @@ export default function CalendarPage() {
           />
         </div>
       </div>
+
+      {/* Calendar styles for week/day view */}
+      <style>{`
+        .rbc-day-slot .rbc-events-container {
+          margin-right: 0 !important;
+        }
+        .rbc-day-slot .rbc-event, 
+        .rbc-day-slot .rbc-background-event {
+          width: 100% !important;
+          left: 0 !important;
+          right: 0 !important;
+          max-width: 100% !important;
+        }
+        .rbc-event {
+          border: none !important;
+          font-size: 12px !important;
+        }
+        .rbc-event-label {
+          display: none !important;
+        }
+        .rbc-event-content {
+          width: 100%;
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .rbc-time-slot {
+          min-height: 20px;
+        }
+        .dark .rbc-time-view,
+        .dark .rbc-time-header,
+        .dark .rbc-time-content,
+        .dark .rbc-timeslot-group,
+        .dark .rbc-time-gutter,
+        .dark .rbc-day-slot {
+          border-color: #334155;
+        }
+        .dark .rbc-time-header-content {
+          border-color: #334155;
+        }
+        .dark .rbc-header {
+          color: #e2e8f0;
+          border-color: #334155;
+        }
+        .dark .rbc-today {
+          background-color: rgba(45, 212, 191, 0.1);
+        }
+        .dark .rbc-current-time-indicator {
+          background-color: #14b8a6;
+        }
+        .dark .rbc-label {
+          color: #94a3b8;
+        }
+        .dark .rbc-allday-cell {
+          border-color: #334155;
+        }
+      `}</style>
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -307,11 +357,7 @@ export default function CalendarPage() {
               return (
                 <Card
                   key={interview._id}
-                  className={`cursor-pointer hover:shadow-md transition-shadow ${
-                    interview.status === 'cancelled' ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/10' :
-                    interview.status === 'completed' ? 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-900/10' :
-                    'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10'
-                  }`}
+                  className="cursor-pointer hover:shadow-md transition-shadow border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
                   onClick={() => {
                     setSelectedEvent(interview);
                     setSelectedDate(null);
@@ -326,7 +372,7 @@ export default function CalendarPage() {
                           <h4 className="font-semibold text-slate-900 dark:text-white truncate">
                             {job?.companyName || 'Unknown'} - {interview.stage}
                           </h4>
-                          <span className={`flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium text-white ${
+                          <span className={`flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium text-white capitalize ${
                             interview.status === 'cancelled' ? 'bg-red-500' :
                             interview.status === 'completed' ? 'bg-green-500' : 'bg-amber-500'
                           }`}>
@@ -352,10 +398,10 @@ export default function CalendarPage() {
                   setIsListDialogOpen(false);
                   setIsFormOpen(true);
                 }}
-                className="w-full"
+                className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add New Interview
+                Add Interview
               </Button>
             </div>
           )}
