@@ -34,10 +34,13 @@ export default function LoginPage() {
     'Kanban board for applications',
     'Never miss an interview',
     'Store multiple resumes',
+    'Track compensation details',
+    'Analytics and insights',
+    'Mobile-friendly interface',
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B0F17] flex relative overflow-hidden">
+    <div className="h-screen bg-white dark:bg-[#0B0F17] flex relative overflow-hidden">
       {/* Particles */}
       <Particles quantity={30} className="opacity-30 dark:opacity-20" />
 
@@ -53,48 +56,61 @@ export default function LoginPage() {
         {/* Grid pattern */}
         <div className="absolute inset-0 bg-grid opacity-10" />
         
-        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16">
+        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 py-6 overflow-y-auto max-h-screen">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Briefcase className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white">JobTracker</span>
+            <span className="text-xl font-bold text-white">JobTracker</span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
+          <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-3">
             Organize Your<br />Job Search
           </h1>
-          <p className="text-lg text-white/90 mb-8 max-w-md">
+          <p className="text-base text-white/90 mb-6 max-w-md">
             Join thousands of job seekers who stay organized and land their dream jobs.
           </p>
 
           {/* Features */}
-          <div className="space-y-3 mb-10">
+          <div className="space-y-2 mb-6">
             {features.map((f, i) => (
               <div key={i} className="flex items-center gap-3 text-white/90 group">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                  <f.icon className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                  <f.icon className="w-3.5 h-3.5" />
                 </div>
-                <span className="font-medium">{f.label}</span>
+                <span className="font-medium text-sm">{f.label}</span>
               </div>
             ))}
           </div>
 
+          {/* Benefits List */}
+          <div className="mb-6 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+            <p className="text-xs font-semibold text-white mb-2">What you'll get:</p>
+            <div className="space-y-1.5">
+              {benefits.map((b, i) => (
+                <div key={i} className="flex items-center gap-2 text-white/90">
+                  <Check className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />
+                  <span className="text-xs">{b}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Stats */}
-          <div className="flex gap-8 pt-8 border-t border-white/20">
+          <div className="flex gap-6 pt-4 border-t border-white/20">
             <div>
-              <div className="text-2xl font-bold text-white">10K+</div>
-              <div className="text-sm text-white/70">Users</div>
+              <div className="text-xl font-bold text-white">10K+</div>
+              <div className="text-xs text-white/70">Users</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">50K+</div>
-              <div className="text-sm text-white/70">Jobs Tracked</div>
+              <div className="text-xl font-bold text-white">50K+</div>
+              <div className="text-xs text-white/70">Jobs</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">95%</div>
-              <div className="text-sm text-white/70">Success Rate</div>
+              <div className="text-xl font-bold text-white">95%</div>
+              <div className="text-xs text-white/70">Success</div>
             </div>
           </div>
         </div>
@@ -106,7 +122,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-mesh opacity-50 dark:opacity-30" />
 
         {/* Top bar */}
-        <div className="relative z-10 flex items-center justify-between p-4">
+        <div className="relative z-10 flex items-center justify-between p-4 sm:p-6 pt-6 sm:pt-8">
           <Link to="/" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span className="text-sm font-medium">Back</span>
@@ -114,11 +130,11 @@ export default function LoginPage() {
           <ThemeToggle />
         </div>
 
-        {/* Form container - adjusted for mobile to reduce scrolling */}
-        <div className="relative z-10 flex-1 flex flex-col justify-start lg:justify-center px-4 sm:px-6 pt-2 pb-6 lg:pb-12">
+        {/* Form container - centered on mobile */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 pt-6 pb-8 sm:pt-8 lg:py-12">
           <div className="w-full max-w-sm mx-auto">
             {/* Mobile logo - smaller spacing */}
-            <div className="lg:hidden flex items-center justify-center gap-2 mb-4 animate-fade-in">
+            <div className="lg:hidden flex items-center justify-center gap-2 mb-6 animate-fade-in">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center">
                 <Briefcase className="w-4 h-4 text-white" />
               </div>
@@ -180,13 +196,13 @@ export default function LoginPage() {
             </BorderBeam>
 
             {/* Mobile benefits - show on mobile only */}
-            <div className="lg:hidden mt-5 p-4 rounded-xl bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 border border-teal-100 dark:border-teal-800/50">
-              <p className="text-xs font-semibold text-teal-800 dark:text-teal-300 mb-3">What you'll get:</p>
-              <div className="space-y-2">
+            <div className="lg:hidden mt-3 p-3 rounded-xl bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 border border-teal-100 dark:border-teal-800/50">
+              <p className="text-xs font-semibold text-teal-800 dark:text-teal-300 mb-2">What you'll get:</p>
+              <div className="space-y-1.5">
                 {benefits.map((b, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-2.5 h-2.5 text-white" />
+                    <div className="w-3.5 h-3.5 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-2 h-2 text-white" />
                     </div>
                     <span className="text-xs text-slate-700 dark:text-slate-300">{b}</span>
                   </div>
@@ -195,17 +211,17 @@ export default function LoginPage() {
             </div>
 
             {/* Mobile stats */}
-            <div className="lg:hidden flex justify-center gap-6 mt-4 py-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="lg:hidden flex justify-center gap-4 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
               <div className="text-center">
-                <div className="text-lg font-bold text-teal-600 dark:text-teal-400">10K+</div>
+                <div className="text-base font-bold text-teal-600 dark:text-teal-400">10K+</div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400">Users</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">50K+</div>
+                <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">50K+</div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400">Jobs</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-lime-600 dark:text-lime-400">95%</div>
+                <div className="text-base font-bold text-lime-600 dark:text-lime-400">95%</div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400">Success</div>
               </div>
             </div>

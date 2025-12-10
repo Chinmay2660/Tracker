@@ -26,15 +26,19 @@ export default function JobStageCharts() {
   const { jobs = [] } = useJobs();
 
   const chartData = useMemo(() => {
+    if (!Array.isArray(columns) || !Array.isArray(jobs)) return [];
     return columns
-      .sort((a, b) => a.order - b.order)
+      .filter((col) => col?.order !== undefined)
+      .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
       .map((column) => {
-        const jobCount = jobs.filter((job) => job.columnId === column._id).length;
+        if (!column?._id) return null;
+        const jobCount = jobs.filter((job) => job?.columnId === column._id).length;
         return {
-          name: column.title,
+          name: column?.title ?? 'Unknown',
           count: jobCount,
         };
-      });
+      })
+      .filter((item) => item !== null);
   }, [columns, jobs]);
 
   const pieData = useMemo(() => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useJobs } from '../hooks/useJobs';
 import { useResumes } from '../hooks/useResumes';
@@ -155,11 +156,17 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
     };
 
     try {
-      if (job) {
+      if (job?._id) {
         updateJob({ id: job._id, ...jobData }, {
           onSuccess: () => {
             // Cache is already updated optimistically, just call onSuccess
             onSuccess?.();
+          },
+          onError: (error: any) => {
+            const errorMessage = error?.response?.data?.message ?? error?.message ?? 'An unexpected error occurred';
+            toast.error('Failed to update job', {
+              description: errorMessage,
+            });
           },
         });
       } else {
@@ -168,13 +175,19 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             // Cache is already updated optimistically, just call onSuccess
             onSuccess?.();
           },
-          onError: (error) => {
-            console.error('Failed to create job:', error);
+          onError: (error: any) => {
+            const errorMessage = error?.response?.data?.message ?? error?.message ?? 'An unexpected error occurred';
+            toast.error('Failed to create job', {
+              description: errorMessage,
+            });
           },
         });
       }
-    } catch (error) {
-      console.error('Error submitting job:', error);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message ?? error?.message ?? 'An unexpected error occurred';
+      toast.error('Failed to submit job', {
+        description: errorMessage,
+      });
     }
   };
 
@@ -470,10 +483,22 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             <Button
               variant="destructive"
               onClick={() => {
+                if (!job?._id) {
+                  toast.error('Invalid job data', {
+                    description: 'Cannot delete job with missing information.',
+                  });
+                  return;
+                }
                 deleteJob(job._id, {
                   onSuccess: () => {
                     setIsDeleteDialogOpen(false);
                     onSuccess?.();
+                  },
+                  onError: (error: any) => {
+                    const errorMessage = error?.response?.data?.message ?? error?.message ?? 'An unexpected error occurred';
+                    toast.error('Failed to delete job', {
+                      description: errorMessage,
+                    });
                   },
                 });
               }}

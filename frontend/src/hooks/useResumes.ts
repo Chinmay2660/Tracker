@@ -9,8 +9,16 @@ export const useResumes = () => {
   const { data: resumes = [], isLoading } = useQuery<ResumeVersion[]>({
     queryKey: ['resumes'],
     queryFn: async () => {
-      const response = await api.get('/resumes');
-      return response.data.resumes;
+      try {
+        const response = await api.get('/resumes');
+        return response?.data?.resumes ?? [];
+      } catch (error: any) {
+        const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch resumes';
+        toast.error('Error loading resumes', {
+          description: errorMessage,
+        });
+        return [];
+      }
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     refetchOnWindowFocus: false, // Don't refetch on window focus
@@ -18,13 +26,20 @@ export const useResumes = () => {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!file) {
+        throw new Error('File is required');
+      }
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('name', file.name);
+      formData.append('name', file.name ?? 'Untitled');
       const response = await api.post('/resumes/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return response.data.resume;
+      const resume = response?.data?.resume;
+      if (!resume) {
+        throw new Error('Invalid response from server');
+      }
+      return resume;
     },
     onSuccess: (resume) => {
       queryClient.invalidateQueries({ queryKey: ['resumes'] });
@@ -41,6 +56,9 @@ export const useResumes = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!id) {
+        throw new Error('Resume ID is required');
+      }
       await api.delete(`/resumes/${id}`);
     },
     onSuccess: () => {

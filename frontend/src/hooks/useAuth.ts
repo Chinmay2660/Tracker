@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
@@ -13,8 +14,19 @@ export const useAuth = () => {
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
-      const response = await api.get('/auth/me');
-      return response.data.user;
+      try {
+        const response = await api.get('/auth/me');
+        return response?.data?.user;
+      } catch (error: any) {
+        // Don't show toast for 401 errors as they're handled by interceptor
+        if (error?.response?.status !== 401) {
+          const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch user';
+          toast.error('Error loading user', {
+            description: errorMessage,
+          });
+        }
+        throw error;
+      }
     },
     enabled: !!token,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -38,9 +50,14 @@ export const useAuth = () => {
     mutationFn: async () => {
       try {
         await api.post('/auth/logout');
-      } catch (error) {
+      } catch (error: any) {
         // Even if logout API fails, clear local state
-        console.error('Logout API error:', error);
+        const errorMessage = error?.response?.data?.message ?? error?.message;
+        if (errorMessage) {
+          toast.error('Logout error', {
+            description: errorMessage,
+          });
+        }
       }
     },
     onSuccess: () => {

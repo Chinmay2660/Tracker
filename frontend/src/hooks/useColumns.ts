@@ -12,8 +12,16 @@ export const useColumns = () => {
   const { data: columns = [], isLoading } = useQuery<Column[]>({
     queryKey: ['columns'],
     queryFn: async () => {
-      const response = await api.get('/columns');
-      return response.data.columns;
+      try {
+        const response = await api.get('/columns');
+        return response?.data?.columns ?? [];
+      } catch (error: any) {
+        const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch columns';
+        toast.error('Error loading columns', {
+          description: errorMessage,
+        });
+        return [];
+      }
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (allows React Query to deduplicate)
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (formerly cacheTime)
@@ -30,8 +38,15 @@ export const useColumns = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: { title: string; order?: number }) => {
+      if (!data?.title?.trim()) {
+        throw new Error('Column title is required');
+      }
       const response = await api.post('/columns', data);
-      return response.data.column;
+      const column = response?.data?.column;
+      if (!column) {
+        throw new Error('Invalid response from server');
+      }
+      return column;
     },
     onSuccess: (newColumn) => {
       // Optimistically update cache instead of refetching
@@ -49,8 +64,15 @@ export const useColumns = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: { id: string; title?: string; order?: number }) => {
+      if (!id) {
+        throw new Error('Column ID is required');
+      }
       const response = await api.put(`/columns/${id}`, data);
-      return response.data.column;
+      const column = response?.data?.column;
+      if (!column) {
+        throw new Error('Invalid response from server');
+      }
+      return column;
     },
     onSuccess: (updatedColumn) => {
       // Optimistically update cache instead of refetching
@@ -70,6 +92,9 @@ export const useColumns = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!id) {
+        throw new Error('Column ID is required');
+      }
       await api.delete(`/columns/${id}`);
     },
     onSuccess: (_, deletedId) => {
