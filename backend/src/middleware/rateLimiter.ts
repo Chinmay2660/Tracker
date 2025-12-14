@@ -40,10 +40,22 @@ export const uploadLimiter = rateLimit({
 // Rate limiter for job creation/updates
 export const jobLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 job operations per windowMs
+  max: 50, // Limit each IP to 50 job operations per windowMs
   message: {
     success: false,
     error: 'Too many job operations, please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// More lenient rate limiter for move/reorder operations (drag and drop)
+export const moveLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // Limit each IP to 60 move operations per minute
+  message: {
+    success: false,
+    error: 'Too many move operations, please try again later.',
   },
   standardHeaders: true,
   legacyHeaders: false,
