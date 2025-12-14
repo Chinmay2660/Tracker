@@ -19,6 +19,12 @@ export interface StageHistory {
   enteredDate: string;
 }
 
+export interface HRContact {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface Job {
   _id: string;
   userId: string;
@@ -45,6 +51,7 @@ export interface Job {
   lastWorkingDay?: string;
   order?: number;
   stageHistory?: StageHistory[];
+  hrContacts?: HRContact[];
   createdAt: string;
   updatedAt: string;
 }

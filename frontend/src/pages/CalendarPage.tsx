@@ -206,7 +206,7 @@ export default function CalendarPage() {
   }, [listDialogDate, eventsByDate]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -215,7 +215,7 @@ export default function CalendarPage() {
         </div>
         <Button 
           onClick={() => { setSelectedEvent(null); setSelectedDate(new Date()); setIsFormOpen(true); }}
-          className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+          className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Interview
@@ -261,8 +261,71 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Calendar styles for week/day view */}
+      {/* Calendar styles */}
       <style>{`
+        /* Toolbar - mobile layout: Nav buttons, then label, then view buttons */
+        .rbc-toolbar {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+          margin-bottom: 24px;
+          justify-content: center;
+          align-items: center;
+        }
+        /* Navigation buttons (Today, Back, Next) - first row */
+        .rbc-toolbar > .rbc-btn-group:first-child {
+          order: 1;
+          width: 100%;
+          justify-content: center;
+        }
+        /* Month label - second row */
+        .rbc-toolbar-label {
+          order: 2;
+          width: 100%;
+          text-align: center;
+          font-size: 18px;
+          font-weight: 600;
+          padding: 4px 0;
+        }
+        /* View buttons (Month, Week, Day) - third row */
+        .rbc-toolbar > .rbc-btn-group:last-child {
+          order: 3;
+          width: 100%;
+          justify-content: center;
+        }
+        .rbc-btn-group {
+          display: flex;
+          gap: 4px;
+        }
+        .rbc-btn-group + .rbc-btn-group {
+          margin-left: 0;
+        }
+        
+        /* Desktop: single line layout */
+        @media (min-width: 768px) {
+          .rbc-toolbar {
+            flex-wrap: nowrap;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 28px;
+          }
+          .rbc-toolbar > .rbc-btn-group:first-child {
+            order: 1;
+            width: auto;
+          }
+          .rbc-toolbar-label {
+            order: 2;
+            width: auto;
+            flex: 1;
+            padding: 0;
+          }
+          .rbc-toolbar > .rbc-btn-group:last-child {
+            order: 3;
+            width: auto;
+          }
+        }
+        
+        /* Week/Day view styles */
         .rbc-day-slot .rbc-events-container {
           margin-right: 0 !important;
         }
@@ -287,6 +350,11 @@ export default function CalendarPage() {
         }
         .rbc-time-slot {
           min-height: 20px;
+        }
+        
+        /* Dark mode styles */
+        .dark .rbc-toolbar-label {
+          color: #f1f5f9;
         }
         .dark .rbc-time-view,
         .dark .rbc-time-header,

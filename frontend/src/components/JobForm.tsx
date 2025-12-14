@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ import TagSelect from './TagSelect';
 import { Job } from '../types';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
-import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 
 // Helper to convert NaN to undefined for optional number fields
 const optionalNumber = z.preprocess(
@@ -30,6 +30,12 @@ const optionalNumber = z.preprocess(
   },
   z.number().optional()
 );
+
+const hrContactSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')),
+});
 
 const jobSchema = z.object({
   companyName: z.string().min(1, 'Company name is required'),
@@ -53,6 +59,7 @@ const jobSchema = z.object({
   appliedDate: z.string().min(1, 'Applied date is required'),
   lastWorkingDay: z.string().optional(),
   columnId: z.string().min(1, 'Stage is required'),
+  hrContacts: z.array(hrContactSchema).default([]),
 }).refine((data) => {
   // If CTC range is provided, min should be less than max
   // Only validate if both values are provided and are valid numbers (not NaN)
@@ -93,6 +100,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
     handleSubmit,
     watch,
     control,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
@@ -121,11 +129,18 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             ? format(new Date(job.lastWorkingDay), 'yyyy-MM-dd')
             : '',
           columnId: job.columnId,
+          hrContacts: job.hrContacts || [],
         }
       : {
           tags: [],
           columnId: defaultAppliedColumnId,
+          hrContacts: [],
         },
+  });
+
+  const { fields: hrContactFields, append: appendHRContact, remove: removeHRContact } = useFieldArray({
+    control,
+    name: 'hrContacts',
   });
 
   const notesValue = watch('notesMarkdown');
@@ -135,42 +150,29 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   const isOfferStage = selectedColumn?.title === 'Offer';
 
   const steps = [
-    { label: 'Basic Info', description: 'Company & Role' },
-    { label: 'Compensation', description: 'Salary Details' },
-    { label: 'Additional', description: 'Dates & Notes' },
+    { label: 'Basic Details' },
+    { label: 'HR Contact Details' },
+    { label: 'Compensation Details' },
+    { label: 'Additional Details' },
   ];
 
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 0:
-        // Validate basic info
-        if (!watch('companyName') || !watch('role') || !watch('location') || !watch('columnId')) {
-          return false;
-        }
-        return true;
-      case 1:
-        // Compensation is optional, so always valid
-        return true;
-      case 2:
-        // Applied date is required
-        if (!watch('appliedDate')) {
-          return false;
-        }
-        return true;
-      default:
-        return true;
-    }
+  // Fields to validate for each step
+  const stepFields: Record<number, (keyof JobFormData)[]> = {
+    0: ['companyName', 'role', 'location', 'columnId'],
+    1: [], // HR contacts are optional
+    2: [], // Compensation is optional
+    3: ['appliedDate'],
   };
 
-  const handleNext = (e?: React.MouseEvent<HTMLButtonElement>) => {
+  const handleNext = async (e?: React.MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (validateStep(currentStep)) {
+    
+    const fieldsToValidate = stepFields[currentStep] || [];
+    const isValid = fieldsToValidate.length === 0 || await trigger(fieldsToValidate);
+    
+    if (isValid) {
       setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-    } else {
-      toast.error('Please fill in all required fields', {
-        description: 'Required fields are marked with *',
-      });
     }
   };
 
@@ -193,6 +195,11 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   };
 
   const onSubmit = async (data: JobFormData) => {
+    // Filter out empty HR contacts
+    const filteredHRContacts = (data.hrContacts || []).filter(
+      (contact) => contact.name || contact.phone || contact.email
+    );
+
     const jobData = {
       ...data,
       jobUrl: data.jobUrl || undefined,
@@ -207,6 +214,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       offeredCompensationRSU: safeNumber(data.offeredCompensationRSU),
       appliedDate: data.appliedDate ? new Date(data.appliedDate).toISOString() : undefined,
       lastWorkingDay: data.lastWorkingDay ? new Date(data.lastWorkingDay).toISOString() : undefined,
+      hrContacts: filteredHRContacts,
     };
 
     try {
@@ -253,9 +261,16 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         <Stepper
           steps={steps}
           currentStep={currentStep}
-          onStepClick={(step) => {
-            if (step <= currentStep || validateStep(step - 1)) {
+          onStepClick={async (step) => {
+            if (step <= currentStep) {
               setCurrentStep(step);
+            } else {
+              // Validate current step before moving forward
+              const fieldsToValidate = stepFields[currentStep] || [];
+              const isValid = fieldsToValidate.length === 0 || await trigger(fieldsToValidate);
+              if (isValid) {
+                setCurrentStep(step);
+              }
             }
           }}
         />
@@ -352,8 +367,79 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </div>
       )}
 
-      {/* Step 1: Compensation */}
+      {/* Step 1: HR Contacts */}
       {currentStep === 1 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">HR/Recruiter Contacts</h3>
+              <p className="text-sm text-muted-foreground">Add contact details for HR or recruiters</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => appendHRContact({ name: '', phone: '', email: '' })}
+              className="gap-1"
+            >
+              <Plus className="w-3 h-3" />
+              Add HR
+            </Button>
+          </div>
+          {hrContactFields.length === 0 && (
+            <div className="text-center py-8 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+              <p className="text-muted-foreground">No HR contacts added yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Click "Add HR" to add recruiter details</p>
+            </div>
+          )}
+          {hrContactFields.map((field, index) => (
+            <div key={field.id} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">HR #{index + 1}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeHRContact(index)}
+                  className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Label htmlFor={`hrContacts.${index}.name`} className="text-sm w-16 flex-shrink-0">Name</Label>
+                  <Input
+                    id={`hrContacts.${index}.name`}
+                    {...register(`hrContacts.${index}.name`)}
+                    placeholder="HR Name"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label htmlFor={`hrContacts.${index}.phone`} className="text-sm w-16 flex-shrink-0">Phone</Label>
+                  <Input
+                    id={`hrContacts.${index}.phone`}
+                    {...register(`hrContacts.${index}.phone`)}
+                    placeholder="+91 9876543210"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label htmlFor={`hrContacts.${index}.email`} className="text-sm w-16 flex-shrink-0">Email</Label>
+                  <Input
+                    id={`hrContacts.${index}.email`}
+                    {...register(`hrContacts.${index}.email`)}
+                    type="email"
+                    placeholder="hr@company.com"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Step 2: Compensation */}
+      {currentStep === 2 && (
         <div className="space-y-6">
           {/* Asked Compensation */}
           <div className="space-y-4">
@@ -415,8 +501,8 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </div>
       )}
 
-      {/* Step 2: Additional Details */}
-      {currentStep === 2 && (
+      {/* Step 3: Additional Details */}
+      {currentStep === 3 && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>

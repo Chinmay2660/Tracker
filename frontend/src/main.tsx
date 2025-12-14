@@ -1,12 +1,10 @@
-import React, { lazy, Suspense } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './contexts/ThemeContext'
-
-// Lazy load non-critical components
-const Toaster = lazy(() => import('./components/ui/toaster').then(m => ({ default: m.Toaster })));
+import { Toaster } from './components/ui/toaster'
 
 // Optimized QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -21,11 +19,6 @@ const queryClient = new QueryClient({
   },
 })
 
-// Mark performance for debugging
-if (typeof performance !== 'undefined') {
-  performance.mark('app-init-start');
-}
-
 // Use concurrent features for faster hydration
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
@@ -34,19 +27,8 @@ root.render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <App />
-        <Suspense fallback={null}>
-          <Toaster />
-        </Suspense>
+        <Toaster />
       </QueryClientProvider>
     </ThemeProvider>
   </React.StrictMode>,
 );
-
-// Mark when app is fully rendered
-if (typeof performance !== 'undefined') {
-  requestIdleCallback?.(() => {
-    performance.mark('app-init-end');
-    performance.measure('app-init', 'app-init-start', 'app-init-end');
-  });
-}
-

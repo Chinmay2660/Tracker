@@ -6,6 +6,12 @@ export interface IStageHistory {
   enteredDate: Date;
 }
 
+export interface IHRContact {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface IJob extends Document {
   userId: mongoose.Types.ObjectId;
   columnId: mongoose.Types.ObjectId;
@@ -32,6 +38,7 @@ export interface IJob extends Document {
   lastWorkingDay?: Date;
   order?: number;
   stageHistory: IStageHistory[];
+  hrContacts: IHRContact[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +48,15 @@ const StageHistorySchema = new Schema<IStageHistory>(
     columnId: { type: Schema.Types.ObjectId, ref: 'Column', required: true },
     columnTitle: { type: String },
     enteredDate: { type: Date, required: true, default: Date.now },
+  },
+  { _id: false }
+);
+
+const HRContactSchema = new Schema<IHRContact>(
+  {
+    name: { type: String },
+    phone: { type: String },
+    email: { type: String },
   },
   { _id: false }
 );
@@ -72,6 +88,7 @@ const JobSchema = new Schema<IJob>(
     lastWorkingDay: { type: Date },
     order: { type: Number, default: 0 },
     stageHistory: { type: [StageHistorySchema], default: [] },
+    hrContacts: { type: [HRContactSchema], default: [] },
   },
   { timestamps: true }
 );

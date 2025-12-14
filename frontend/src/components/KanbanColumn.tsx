@@ -1,4 +1,5 @@
 import { useSortable } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { MoreVertical, Trash2, Edit2, GripVertical } from 'lucide-react';
 import { Job } from '../types';
@@ -43,13 +44,24 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   
   const {
-    setNodeRef,
+    setNodeRef: setSortableRef,
     transform,
     transition,
     isDragging,
     attributes,
     listeners,
   } = useSortable({ id: `column-${column._id}` });
+
+  // Make the column a drop target for jobs
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `column-${column._id}`,
+  });
+
+  // Combine refs
+  const setNodeRef = (node: HTMLElement | null) => {
+    setSortableRef(node);
+    setDroppableRef(node);
+  };
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ColumnEditData>({
     resolver: zodResolver(columnEditSchema),
@@ -100,7 +112,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className="bg-slate-100 dark:bg-slate-900/50 rounded-xl p-3 sm:p-4 flex flex-col min-w-[260px] sm:min-w-[300px] max-w-[300px] sm:max-w-[320px]"
+        className={`bg-slate-100 dark:bg-slate-900/50 rounded-xl p-3 sm:p-4 flex flex-col w-[280px] sm:w-auto sm:min-w-0 shrink-0 sm:shrink transition-colors ${isOver ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' : ''}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3 sm:mb-4">

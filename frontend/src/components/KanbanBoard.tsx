@@ -5,8 +5,13 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
+  pointerWithin,
+  rectIntersection,
+  getFirstCollision,
+  CollisionDetection,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { useState, memo, useMemo, useCallback } from 'react';
@@ -31,8 +36,25 @@ function KanbanBoard() {
       activationConstraint: {
         distance: 8,
       },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 8,
+      },
     })
   );
+
+  // Custom collision detection that works better for grid layouts
+  const collisionDetection: CollisionDetection = (args) => {
+    // First, try pointer within (most accurate for the pointer position)
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    // Fallback to rect intersection for edge cases
+    return rectIntersection(args);
+  };
 
   const sortedColumns = useMemo(() => {
     return [...columns].sort((a: Column, b: Column) => a.order - b.order);
@@ -135,89 +157,103 @@ function KanbanBoard() {
       return;
     }
 
-    // Handle job reordering within the same column
-    if (!activeId.startsWith('column-') && !overId.startsWith('column-')) {
+    // Handle job drag (not column drag)
+    if (!activeId.startsWith('column-')) {
       const activeJobObj = jobs.find((j: Job) => j._id === activeId);
-      const overJobObj = jobs.find((j: Job) => j._id === overId);
-      
-      if (activeJobObj && overJobObj && activeJobObj.columnId === overJobObj.columnId) {
-        // Same column - reorder jobs
-        const columnId = activeJobObj.columnId;
-        const columnJobs = columnJobsMap.get(columnId) || [];
-        const oldIndex = columnJobs.findIndex((j: Job) => j._id === activeId);
-        const newIndex = columnJobs.findIndex((j: Job) => j._id === overId);
+      if (!activeJobObj) return;
+
+      // Dropping on another job
+      if (!overId.startsWith('column-')) {
+        const overJobObj = jobs.find((j: Job) => j._id === overId);
+        if (!overJobObj) return;
+
+        if (activeJobObj.columnId === overJobObj.columnId) {
+          // Same column - reorder jobs
+          const columnId = activeJobObj.columnId;
+          const columnJobs = columnJobsMap.get(columnId) || [];
+          const oldIndex = columnJobs.findIndex((j: Job) => j._id === activeId);
+          const newIndex = columnJobs.findIndex((j: Job) => j._id === overId);
+          
+          if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+            const reorderedJobsList = arrayMove(columnJobs, oldIndex, newIndex);
+            const jobIds = reorderedJobsList.map((j: Job) => j._id);
+            reorderJobs(jobIds);
+          }
+        } else {
+          // Different column - move job to the column of the target job
+          moveJob({ id: activeId, columnId: overJobObj.columnId });
+        }
+        return;
+      }
+
+      // Dropping on a column container
+      if (overId.startsWith('column-')) {
+        const targetColumnId = overId.replace('column-', '');
         
-        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-          const reorderedJobsList = arrayMove(columnJobs, oldIndex, newIndex);
-          const jobIds = reorderedJobsList.map((j: Job) => j._id);
-          reorderJobs(jobIds);
+        if (activeJobObj.columnId !== targetColumnId) {
+          // Different column - move job
+          moveJob({ id: activeId, columnId: targetColumnId });
         }
       }
-      return;
-    }
-
-    // Handle job moving between columns
-    // Note: If dropping on the same column container (not on a job), do nothing
-    // The job is already in the correct column, and reordering should happen
-    // when dropping directly on another job (handled above)
-    if (!activeId.startsWith('column-') && overId.startsWith('column-')) {
-      const jobId = activeId;
-      const targetColumnId = overId.replace('column-', '');
-      const currentJob = jobs.find((j: Job) => j._id === jobId);
-      
-      if (currentJob && currentJob.columnId !== targetColumnId) {
-        // Different column - move job
-        moveJob({ id: jobId, columnId: targetColumnId });
-      }
-      // If same column, do nothing - job is already in the right place
     }
   }, [jobs, moveJob, reorderJobs, sortedColumns, updateColumn, columnJobsMap]);
 
   if (columnsLoading || jobsLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-muted/50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <Skeleton className="h-6 w-24" />
-              <Skeleton className="h-6 w-8" />
+      <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
+        <div className="flex gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-w-max sm:min-w-0">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-muted/50 rounded-lg p-4 w-[280px] sm:w-auto shrink-0 sm:shrink">
+              <div className="flex items-center justify-between mb-4">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-6 w-8" />
+              </div>
+              <div className="space-y-2">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="p-4 bg-background rounded-lg border border-border">
+                    <Skeleton className="h-5 w-32 mb-2" />
+                    <Skeleton className="h-4 w-24 mb-2" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              {[1, 2, 3].map((j) => (
-                <div key={j} className="p-4 bg-background rounded-lg border border-border">
-                  <Skeleton className="h-5 w-32 mb-2" />
-                  <Skeleton className="h-4 w-24 mb-2" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    <DndContext 
+      sensors={sensors} 
+      collisionDetection={collisionDetection}
+      onDragStart={handleDragStart} 
+      onDragOver={handleDragOver} 
+      onDragEnd={handleDragEnd}
+    >
       <SortableContext
         items={sortedColumns.map((c: Column) => `column-${c._id}`)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {sortedColumns.map((column) => {
-            const columnJobs = columnJobsMap.get(column._id) || [];
+        {/* Mobile: Horizontal scroll, Desktop: Grid layout */}
+        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
+          <div className="flex gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-w-max sm:min-w-0">
+            {sortedColumns.map((column) => {
+              const columnJobs = columnJobsMap.get(column._id) || [];
 
-            return (
-              <SortableContext
-                key={column._id}
-                id={`column-${column._id}`}
-                items={columnJobs.map((j) => j._id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <KanbanColumn column={column} jobs={columnJobs} />
-              </SortableContext>
-            );
-          })}
+              return (
+                <SortableContext
+                  key={column._id}
+                  id={`column-${column._id}`}
+                  items={columnJobs.map((j) => j._id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <KanbanColumn column={column} jobs={columnJobs} />
+                </SortableContext>
+              );
+            })}
+          </div>
         </div>
       </SortableContext>
       <DragOverlay
