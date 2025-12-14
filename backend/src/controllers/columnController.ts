@@ -6,11 +6,13 @@ import { z } from 'zod';
 const createColumnSchema = z.object({
   title: z.string().min(1),
   order: z.number().optional(),
+  color: z.string().optional(),
 });
 
 const updateColumnSchema = z.object({
   title: z.string().min(1).optional(),
   order: z.number().optional(),
+  color: z.string().optional(),
 });
 
 export const getColumns = async (req: AuthRequest, res: Response) => {
@@ -33,6 +35,7 @@ export const createColumn = async (req: AuthRequest, res: Response) => {
       userId: req.user._id,
       title: data.title,
       order: data.order ?? (maxOrder?.order ?? -1) + 1,
+      color: data.color,
     });
 
     res.status(201).json({ success: true, column });

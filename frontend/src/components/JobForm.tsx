@@ -15,6 +15,7 @@ import { Select } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Stepper } from './ui/stepper';
 import TagSelect from './TagSelect';
+import AddStageDialog from './AddStageDialog';
 import { Job } from '../types';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
@@ -35,6 +36,33 @@ const hrContactSchema = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
+});
+
+const INTERVIEW_STAGE_STATUSES = [
+  'Pending',
+  'Scheduled',
+  'Cleared',
+  'Rejected',
+  'Shortlisted',
+  'Pending Results',
+  'Abandoned by HR',
+  'Back Off',
+  'Budget Issue',
+  'Notice Period Issue',
+  'No Offer',
+  'Position Closed',
+  'Position On Hold',
+  'Offer Received',
+  'Offer Accepted',
+  'Offer Declined',
+] as const;
+
+const interviewStageSchema = z.object({
+  stageId: z.string(),
+  stageName: z.string().optional(),
+  status: z.enum(INTERVIEW_STAGE_STATUSES).default('Pending'),
+  date: z.string().optional(),
+  order: z.number(),
 });
 
 const jobSchema = z.object({
@@ -58,7 +86,7 @@ const jobSchema = z.object({
   notesMarkdown: z.string().optional(),
   appliedDate: z.string().min(1, 'Applied date is required'),
   lastWorkingDay: z.string().optional(),
-  columnId: z.string().min(1, 'Stage is required'),
+  interviewStages: z.array(interviewStageSchema).min(1, 'At least one interview stage is required'),
   hrContacts: z.array(hrContactSchema).default([]),
 }).refine((data) => {
   // If CTC range is provided, min should be less than max
@@ -86,6 +114,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   const { createJob, updateJob, deleteJob } = useJobs();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isAddStageOpen, setIsAddStageOpen] = useState(false);
   // Only load resumes when form is open (lazy loading)
   const { resumes = [] } = useResumes();
   const { columns = [] } = useColumns();
@@ -95,12 +124,41 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   const appliedColumn = columns.find((col) => col.title.toLowerCase() === 'applied');
   const defaultAppliedColumnId = defaultColumnId || appliedColumn?._id || '';
   
+  // Sort columns by order for proper stage progression display
+  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
+
+  // Convert existing interview stages or create default
+  const getDefaultInterviewStages = () => {
+    if (job?.interviewStages && job.interviewStages.length > 0) {
+      return job.interviewStages.map(stage => ({
+        stageId: stage.stageId,
+        stageName: stage.stageName || columns.find(c => c._id === stage.stageId)?.title || '',
+        status: stage.status,
+        date: stage.date ? format(new Date(stage.date), 'yyyy-MM-dd') : '',
+        order: stage.order,
+      }));
+    }
+    // Default: create one stage for Applied
+    const appliedCol = columns.find(c => c.title.toLowerCase() === 'applied') || columns[0];
+    if (appliedCol) {
+      return [{
+        stageId: defaultColumnId || appliedCol._id,
+        stageName: appliedCol.title,
+        status: 'Pending' as const,
+        date: '',
+        order: 0,
+      }];
+    }
+    return [];
+  };
+
   const {
     register,
     handleSubmit,
     watch,
     control,
     trigger,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
@@ -128,12 +186,12 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           lastWorkingDay: job.lastWorkingDay
             ? format(new Date(job.lastWorkingDay), 'yyyy-MM-dd')
             : '',
-          columnId: job.columnId,
+          interviewStages: getDefaultInterviewStages(),
           hrContacts: job.hrContacts || [],
         }
       : {
           tags: [],
-          columnId: defaultAppliedColumnId,
+          interviewStages: getDefaultInterviewStages(),
           hrContacts: [],
         },
   });
@@ -143,25 +201,80 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
     name: 'hrContacts',
   });
 
+  const { fields: interviewStageFields, append: appendStage, remove: removeStage, move: moveStage } = useFieldArray({
+    control,
+    name: 'interviewStages',
+  });
+
   const notesValue = watch('notesMarkdown');
-  const columnId = watch('columnId');
-  const selectedColumn = columns.find((col) => col._id === columnId);
+  const interviewStages = watch('interviewStages') || [];
+  
+  // Find the furthest (highest order) selected stage for determining current column
+  const getFurthestStageId = () => {
+    if (interviewStages.length === 0) return '';
+    const sortedStages = [...interviewStages].sort((a, b) => a.order - b.order);
+    return sortedStages[sortedStages.length - 1]?.stageId || '';
+  };
+
+  const currentColumnId = getFurthestStageId();
+  const selectedColumn = columns.find((col) => col._id === currentColumnId);
   const isRecruiterCall = selectedColumn?.title.toLowerCase().includes('recruiter') || selectedColumn?.title.toLowerCase().includes('call');
   const isOfferStage = selectedColumn?.title === 'Offer';
 
+  // Add a new interview stage
+  const handleAddStage = (stageId: string) => {
+    const column = columns.find(c => c._id === stageId);
+    if (!column) return;
+    
+    // Check if stage already exists
+    const exists = interviewStages.some(s => s.stageId === stageId);
+    if (exists) return;
+    
+    const maxOrder = Math.max(...interviewStages.map(s => s.order), -1);
+    appendStage({
+      stageId,
+      stageName: column.title,
+      status: 'Pending',
+      date: '',
+      order: maxOrder + 1,
+    });
+  };
+
+  // Move stage up in order
+  const handleMoveUp = (index: number) => {
+    if (index > 0) {
+      moveStage(index, index - 1);
+      // Update order values
+      const stages = [...interviewStages];
+      stages.forEach((s, i) => setValue(`interviewStages.${i}.order`, i));
+    }
+  };
+
+  // Move stage down in order
+  const handleMoveDown = (index: number) => {
+    if (index < interviewStages.length - 1) {
+      moveStage(index, index + 1);
+      // Update order values
+      const stages = [...interviewStages];
+      stages.forEach((s, i) => setValue(`interviewStages.${i}.order`, i));
+    }
+  };
+
   const steps = [
     { label: 'Basic Details' },
-    { label: 'HR Contact Details' },
-    { label: 'Compensation Details' },
-    { label: 'Additional Details' },
+    { label: 'Interview Stages' },
+    { label: 'HR Contacts' },
+    { label: 'Compensation' },
+    { label: 'Additional' },
   ];
 
   // Fields to validate for each step
   const stepFields: Record<number, (keyof JobFormData)[]> = {
-    0: ['companyName', 'role', 'location', 'columnId'],
-    1: [], // HR contacts are optional
-    2: [], // Compensation is optional
-    3: ['appliedDate'],
+    0: ['companyName', 'role', 'location'],
+    1: ['interviewStages'], // Interview stages
+    2: [], // HR contacts are optional
+    3: [], // Compensation is optional
+    4: ['appliedDate'],
   };
 
   const handleNext = async (e?: React.MouseEvent<HTMLButtonElement>) => {
@@ -200,8 +313,26 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       (contact) => contact.name || contact.phone || contact.email
     );
 
+    // Sort stages by order and get the furthest one for columnId
+    const sortedStages = [...(data.interviewStages || [])].sort((a, b) => a.order - b.order);
+    const columnId = sortedStages.length > 0 ? sortedStages[sortedStages.length - 1].stageId : '';
+    
+    if (!columnId) {
+      toast.error('Please add at least one interview stage');
+      return;
+    }
+
+    // Process interview stages - ensure dates are properly formatted
+    const processedStages = sortedStages.map((stage, index) => ({
+      ...stage,
+      order: index, // Normalize order
+      date: stage.date || undefined,
+    }));
+
     const jobData = {
       ...data,
+      columnId, // Set to furthest stage
+      interviewStages: processedStages,
       jobUrl: data.jobUrl || undefined,
       ctcMin: safeNumber(data.ctcMin),
       ctcMax: safeNumber(data.ctcMax),
@@ -342,33 +473,140 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             />
           </div>
 
-          {!defaultColumnId && (
+        </div>
+      )}
+
+      {/* Step 1: Interview Stages */}
+      {currentStep === 1 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="columnId">Stage *</Label>
-              <Select
-                id="columnId"
-                {...register('columnId')}
-                className={errors.columnId ? 'border-destructive' : ''}
-              >
-                <option value="">Select a stage</option>
-                {columns.map((column) => (
-                  <option key={column._id} value={column._id}>
-                    {column.title}
-                  </option>
-                ))}
-              </Select>
-              {errors.columnId && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.columnId.message}
-                </p>
-              )}
+              <h3 className="text-lg font-semibold">Interview Stages</h3>
+              <p className="text-sm text-muted-foreground">Track your interview progression. Drag to reorder.</p>
             </div>
+          </div>
+
+          {/* Add Stage Dropdown */}
+          <div className="flex gap-2">
+            <Select
+              className="flex-1"
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleAddStage(e.target.value);
+                  e.target.value = '';
+                }
+              }}
+            >
+              <option value="">+ Add interview stage...</option>
+              {sortedColumns
+                .filter(col => !interviewStages.some(s => s.stageId === col._id))
+                .map(col => (
+                  <option key={col._id} value={col._id}>{col.title}</option>
+                ))
+              }
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddStageOpen(true)}
+              className="shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Interview Stages List */}
+          {interviewStageFields.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No interview stages added yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {interviewStageFields.map((field, index) => {
+                const column = columns.find(c => c._id === field.stageId);
+                return (
+                  <div
+                    key={field.id}
+                    className="p-3 border rounded-lg bg-muted/30 space-y-3"
+                    style={{ borderLeftWidth: 4, borderLeftColor: column?.color || '#14b8a6' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveUp(index)}
+                            disabled={index === 0}
+                            className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30"
+                          >
+                            <ChevronLeft className="w-4 h-4 rotate-90" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveDown(index)}
+                            disabled={index === interviewStageFields.length - 1}
+                            className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30"
+                          >
+                            <ChevronRight className="w-4 h-4 rotate-90" />
+                          </button>
+                        </div>
+                        <span
+                          className="px-2 py-1 text-sm font-medium rounded text-white"
+                          style={{ backgroundColor: column?.color || '#14b8a6' }}
+                        >
+                          {field.stageName || column?.title || 'Unknown'}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeStage(index)}
+                        disabled={interviewStageFields.length === 1}
+                        className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="min-w-0">
+                        <Label className="text-xs">Status</Label>
+                        <Select
+                          {...register(`interviewStages.${index}.status`)}
+                          className="min-h-[36px] py-1.5 text-sm"
+                        >
+                          {INTERVIEW_STAGE_STATUSES.map(status => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="text-xs">Date</Label>
+                        <Input
+                          type="date"
+                          {...register(`interviewStages.${index}.date`)}
+                          className="h-[36px] py-1.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <input type="hidden" {...register(`interviewStages.${index}.stageId`)} />
+                    <input type="hidden" {...register(`interviewStages.${index}.stageName`)} />
+                    <input type="hidden" {...register(`interviewStages.${index}.order`)} value={index} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {errors.interviewStages && (
+            <p className="text-sm text-destructive">
+              {errors.interviewStages.message || 'At least one interview stage is required'}
+            </p>
           )}
         </div>
       )}
 
-      {/* Step 1: HR Contacts */}
-      {currentStep === 1 && (
+      {/* Step 2: HR Contacts */}
+      {currentStep === 2 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -438,8 +676,8 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </div>
       )}
 
-      {/* Step 2: Compensation */}
-      {currentStep === 2 && (
+      {/* Step 3: Compensation */}
+      {currentStep === 3 && (
         <div className="space-y-6">
           {/* Asked Compensation */}
           <div className="space-y-4">
@@ -501,8 +739,8 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </div>
       )}
 
-      {/* Step 3: Additional Details */}
-      {currentStep === 3 && (
+      {/* Step 4: Additional Details */}
+      {currentStep === 4 && (
         <div className="space-y-4 overflow-hidden">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="min-w-0">
@@ -717,6 +955,9 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         </DialogContent>
       </Dialog>
     )}
+
+    {/* Add Stage Dialog */}
+    <AddStageDialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen} />
   </>
   );
 }

@@ -4,7 +4,7 @@ import { useColumns } from '../hooks/useColumns';
 import { useJobs } from '../hooks/useJobs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
-const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#6366f1'];
+const FALLBACK_COLORS = ['#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#22c55e', '#ef4444'];
 
 // Custom tooltip component for better dark mode support
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -25,7 +25,7 @@ function JobStageCharts() {
   const { columns = [] } = useColumns();
   const { jobs = [] } = useJobs();
 
-  // Create a color map based on column order for consistency
+  // Create a color map using actual column colors
   const colorMap = useMemo(() => {
     if (!Array.isArray(columns)) return new Map();
     const map = new Map();
@@ -34,8 +34,10 @@ function JobStageCharts() {
       .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
       .forEach((column, index) => {
         if (column?._id && column?.title) {
-          map.set(column._id, COLORS[index % COLORS.length]);
-          map.set(column.title, COLORS[index % COLORS.length]);
+          // Use the column's actual color, or fall back to a default color
+          const color = column.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+          map.set(column._id, color);
+          map.set(column.title, color);
         }
       });
     return map;
@@ -53,7 +55,7 @@ function JobStageCharts() {
           name: column?.title ?? 'Unknown',
           count: jobCount,
           columnId: column._id,
-          color: colorMap.get(column._id) || COLORS[0],
+          color: colorMap.get(column._id) || column.color || FALLBACK_COLORS[0],
         };
       })
       .filter((item) => item !== null);
@@ -94,7 +96,7 @@ function JobStageCharts() {
                 {chartData.map((entry, index) => {
                   if (!entry) return null;
                   return (
-                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={entry.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length]} />
                   );
                 })}
               </Bar>
@@ -129,7 +131,7 @@ function JobStageCharts() {
                   paddingAngle={2}
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={entry.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
@@ -160,7 +162,7 @@ function JobStageCharts() {
             </div>
             {chartData.map((item) => (
               <div key={item.name} className="text-center p-4 bg-muted/50 rounded-lg">
-                <div className="text-2xl font-bold" style={{ color: item.color || COLORS[0] }}>
+                <div className="text-2xl font-bold" style={{ color: item.color || FALLBACK_COLORS[0] }}>
                   {item.count}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">{item.name}</div>
