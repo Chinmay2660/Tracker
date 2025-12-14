@@ -4,7 +4,7 @@ import { MapPin, ExternalLink, Calendar } from 'lucide-react';
 import { Job } from '../types';
 import { Card } from './ui/card';
 import { format } from 'date-fns';
-import { useState, memo, useMemo, lazy, Suspense } from 'react';
+import { useState, memo, useMemo, useRef, lazy, Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
 
@@ -64,22 +64,50 @@ interface JobCardProps {
 
 function JobCard({ job, isDragging }: JobCardProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const pointerStartPos = useRef<{ x: number; y: number } | null>(null);
+  const didDrag = useRef(false);
+  
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
+    isDragging: isSortableDragging,
   } = useSortable({ id: job._id });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : transition,
-    opacity: isDragging ? 0.4 : 1,
-    pointerEvents: isDragging ? 'none' : 'auto',
+    transition: isDragging || isSortableDragging ? 'none' : transition,
+    opacity: isDragging || isSortableDragging ? 0.4 : 1,
   };
 
   const compensation = useMemo(() => formatCompensation(job), [job]);
+
+  // Track if user dragged to prevent click after drag
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStartPos.current = { x: e.clientX, y: e.clientY };
+    didDrag.current = false;
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (pointerStartPos.current) {
+      const dx = Math.abs(e.clientX - pointerStartPos.current.x);
+      const dy = Math.abs(e.clientY - pointerStartPos.current.y);
+      if (dx > 5 || dy > 5) {
+        didDrag.current = true;
+      }
+    }
+    pointerStartPos.current = null;
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Only open dialog if no drag occurred
+    if (!didDrag.current && !isSortableDragging) {
+      setIsFormOpen(true);
+    }
+    didDrag.current = false;
+  };
 
   return (
     <>
@@ -88,8 +116,13 @@ function JobCard({ job, isDragging }: JobCardProps) {
         style={style}
         {...attributes}
         {...listeners}
-        className="p-3 sm:p-4 cursor-grab active:cursor-grabbing bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all"
-        onClick={() => setIsFormOpen(true)}
+        onPointerDown={(e) => {
+          handlePointerDown(e);
+          listeners?.onPointerDown?.(e);
+        }}
+        onPointerUp={handlePointerUp}
+        onClick={handleClick}
+        className="p-3 sm:p-4 cursor-grab active:cursor-grabbing bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all touch-none select-none"
       >
         <div className="space-y-3">
           {/* Company & Role */}

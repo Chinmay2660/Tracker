@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { toast } from 'sonner';
 import { useInterviews } from '../hooks/useInterviews';
 import { useJobs } from '../hooks/useJobs';
 import { useColumns } from '../hooks/useColumns';
@@ -13,7 +12,7 @@ import { Select } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { InterviewRound } from '../types';
 import { format } from 'date-fns';
-import { Trash2 } from 'lucide-react';
+import { Trash2, AlertCircle } from 'lucide-react';
 
 const interviewSchema = z.object({
   jobId: z.string().min(1, 'Job is required'),
@@ -43,6 +42,7 @@ export default function InterviewForm({
   const { jobs = [] } = useJobs();
   const { columns = [] } = useColumns();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -82,6 +82,8 @@ export default function InterviewForm({
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
 
   const onSubmit = async (data: InterviewFormData) => {
+    setFormError(null);
+    
     // For new interviews, use defaultDate if date is not provided
     let dateStr: string;
     if (interview) {
@@ -106,9 +108,7 @@ export default function InterviewForm({
       } else {
         // For creates, include jobId
         if (!data.jobId) {
-          toast.error('Job is required', {
-            description: 'Please select a job.',
-          });
+          setFormError('Please select a job.');
           return;
         }
         const interviewData: any = {
@@ -124,14 +124,20 @@ export default function InterviewForm({
       onSuccess?.();
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message ?? error?.message ?? 'An unexpected error occurred';
-      toast.error('Failed to save interview', {
-        description: errorMessage,
-      });
+      setFormError(errorMessage);
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
+      {/* Form Error Message */}
+      {formError && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <p className="text-sm">{formError}</p>
+        </div>
+      )}
+      
       <div className="space-y-2">
         <Label htmlFor="jobId">Job *</Label>
         <Select
