@@ -4,8 +4,28 @@ import Job from '../models/Job';
 import Column from '../models/Column';
 import { z } from 'zod';
 
+const hrContactSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+});
+
+const interviewStageSchema = z.object({
+  stageId: z.string(),
+  stageName: z.string().optional(),
+  status: z.enum([
+    'Pending', 'Scheduled', 'Cleared', 'Rejected', 'Shortlisted',
+    'Pending Results', 'Abandoned by HR', 'Back Off', 'Budget Issue',
+    'Notice Period Issue', 'No Offer', 'Position Closed', 'Position On Hold',
+    'Offer Received', 'Offer Accepted', 'Offer Declined'
+  ]).default('Pending'),
+  date: z.string().optional(),
+  order: z.number(),
+});
+
 const createJobSchema = z.object({
   columnId: z.string(),
+  interviewStages: z.array(interviewStageSchema).optional(),
   companyName: z.string().min(1),
   role: z.string().min(1),
   jobUrl: z.string().url().optional().or(z.literal('')),
@@ -26,10 +46,12 @@ const createJobSchema = z.object({
   notesMarkdown: z.string().optional(),
   appliedDate: z.string().optional(),
   lastWorkingDay: z.string().optional(),
+  hrContacts: z.array(hrContactSchema).optional(),
 });
 
 const updateJobSchema = z.object({
   columnId: z.string().optional(),
+  interviewStages: z.array(interviewStageSchema).optional(),
   companyName: z.string().min(1).optional(),
   role: z.string().min(1).optional(),
   jobUrl: z.string().url().optional().or(z.literal('')),
@@ -50,6 +72,7 @@ const updateJobSchema = z.object({
   notesMarkdown: z.string().optional(),
   appliedDate: z.string().optional(),
   lastWorkingDay: z.string().optional(),
+  hrContacts: z.array(hrContactSchema).optional(),
 });
 
 export const getJobs = async (req: AuthRequest, res: Response) => {
@@ -84,9 +107,25 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       .limit(1);
     const newOrder = maxOrderJob && maxOrderJob.order !== undefined ? (maxOrderJob.order + 1) : 0;
 
+    // Process interview stages - convert date strings to Date objects
+    const interviewStages = (data.interviewStages || []).map(stage => ({
+      ...stage,
+      date: stage.date ? new Date(stage.date) : undefined,
+    }));
+
+    // If no interview stages provided, create a default one for the current column
+    const defaultInterviewStages = interviewStages.length > 0 ? interviewStages : [{
+      stageId: data.columnId,
+      stageName: column.title,
+      status: 'Pending' as const,
+      date: appliedDate || new Date(),
+      order: 0,
+    }];
+
     const job = await Job.create({
       userId: req.user._id,
       columnId: data.columnId,
+      interviewStages: defaultInterviewStages,
       companyName: data.companyName,
       role: data.role,
       jobUrl: data.jobUrl || undefined,
@@ -110,6 +149,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
         columnTitle: column.title,
         enteredDate: initialStageDate,
       }],
+      hrContacts: data.hrContacts || [],
     });
 
     res.status(201).json({ success: true, job });
@@ -294,9 +334,25 @@ export const moveJob = async (req: AuthRequest, res: Response) => {
       .limit(1);
     const newOrder = maxOrderJob && maxOrderJob.order !== undefined ? (maxOrderJob.order + 1) : 0;
 
+    // Update interviewStages to include the new column if not already there
+    const currentInterviewStages = job.interviewStages || [];
+    const stageExists = currentInterviewStages.some(s => s.stageId.toString() === columnId);
+    
+    let interviewStages = currentInterviewStages;
+    if (!stageExists) {
+      const maxStageOrder = Math.max(...currentInterviewStages.map(s => s.order), -1);
+      interviewStages = [...currentInterviewStages, {
+        stageId: columnId as any,
+        stageName: column.title,
+        status: 'Pending' as const,
+        date: new Date(),
+        order: maxStageOrder + 1,
+      }];
+    }
+
     const updatedJob = await Job.findOneAndUpdate(
       { _id: id, userId: req.user._id },
-      { columnId, stageHistory, order: newOrder },
+      { columnId, stageHistory, order: newOrder, interviewStages },
       { new: true }
     );
 

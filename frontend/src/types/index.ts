@@ -10,6 +10,7 @@ export interface Column {
   userId: string;
   title: string;
   order: number;
+  color?: string;
   createdAt: string;
 }
 
@@ -17,6 +18,32 @@ export interface StageHistory {
   columnId: string;
   columnTitle?: string;
   enteredDate: string;
+}
+
+export type InterviewStageStatus = 
+  | 'Pending'
+  | 'Scheduled'
+  | 'Cleared'
+  | 'Rejected'
+  | 'Shortlisted'
+  | 'Pending Results'
+  | 'Abandoned by HR'
+  | 'Back Off'
+  | 'Budget Issue'
+  | 'Notice Period Issue'
+  | 'No Offer'
+  | 'Position Closed'
+  | 'Position On Hold'
+  | 'Offer Received'
+  | 'Offer Accepted'
+  | 'Offer Declined';
+
+export interface InterviewStage {
+  stageId: string;
+  stageName?: string;
+  status: InterviewStageStatus;
+  date?: string;
+  order: number;
 }
 
 export interface HRContact {
@@ -29,6 +56,7 @@ export interface Job {
   _id: string;
   userId: string;
   columnId: string;
+  interviewStages?: InterviewStage[]; // Detailed interview stages with status and date
   companyName: string;
   role: string;
   jobUrl?: string;

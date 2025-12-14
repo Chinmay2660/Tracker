@@ -37,7 +37,7 @@ export const useColumns = () => {
   }, [columns, setColumns, isLoading]);
 
   const createMutation = useMutation({
-    mutationFn: async (data: { title: string; order?: number }) => {
+    mutationFn: async (data: { title: string; order?: number; color?: string }, options?: { onSuccess?: (data: any) => void }) => {
       if (!data?.title?.trim()) {
         throw new Error('Stage title is required');
       }
@@ -63,7 +63,7 @@ export const useColumns = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; title?: string; order?: number }) => {
+    mutationFn: async ({ id, ...data }: { id: string; title?: string; order?: number; color?: string }) => {
       if (!id) {
         throw new Error('Stage ID is required');
       }

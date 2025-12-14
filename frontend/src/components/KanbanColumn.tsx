@@ -26,12 +26,27 @@ interface KanbanColumnProps {
     _id: string;
     title: string;
     order: number;
+    color?: string;
   };
   jobs: Job[];
 }
 
+const PRESET_COLORS = [
+  '#14b8a6', // teal
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#ef4444', // red
+  '#6366f1', // indigo
+  '#64748b', // slate
+];
+
 const columnEditSchema = z.object({
   title: z.string().min(1, 'Title is required'),
+  color: z.string().optional(),
 });
 
 type ColumnEditData = z.infer<typeof columnEditSchema>;
@@ -41,6 +56,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(column.color || '#14b8a6');
   const menuRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -99,11 +115,12 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
   const handleEdit = () => {
     setIsEditOpen(true);
     setShowMenu(false);
-    reset({ title: column.title });
+    setSelectedColor(column.color || '#14b8a6');
+    reset({ title: column.title, color: column.color || '#14b8a6' });
   };
 
   const onSubmitEdit = (data: ColumnEditData) => {
-    updateColumn({ id: column._id, title: data.title });
+    updateColumn({ id: column._id, title: data.title, color: selectedColor });
     setIsEditOpen(false);
   };
 
@@ -124,6 +141,10 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
             >
               <GripVertical className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
+            <div 
+              className="w-3 h-3 rounded-full flex-shrink-0" 
+              style={{ backgroundColor: column.color || '#14b8a6' }}
+            />
             <h3 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white truncate">{column.title}</h3>
             <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">
               {jobs.length}
@@ -194,6 +215,37 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
                   {errors.title && (
                     <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>
                   )}
+                </div>
+                <div>
+                  <Label>Stage Color</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {PRESET_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`w-8 h-8 rounded-full transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-slate-900 dark:ring-white' : 'hover:scale-110'}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Label htmlFor="customColor" className="text-sm text-muted-foreground">Custom:</Label>
+                    <Input
+                      id="customColor"
+                      type="text"
+                      value={selectedColor}
+                      onChange={(e) => setSelectedColor(e.target.value)}
+                      placeholder="#14b8a6"
+                      className="w-28 h-9 font-mono text-sm"
+                    />
+                    <input
+                      type="color"
+                      value={selectedColor}
+                      onChange={(e) => setSelectedColor(e.target.value)}
+                      className="w-9 h-9 rounded cursor-pointer border-0"
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>

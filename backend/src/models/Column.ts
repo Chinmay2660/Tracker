@@ -4,6 +4,7 @@ export interface IColumn extends Document {
   userId: mongoose.Types.ObjectId;
   title: string;
   order: number;
+  color?: string;
   createdAt: Date;
 }
 
@@ -12,6 +13,7 @@ const ColumnSchema = new Schema<IColumn>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true },
     order: { type: Number, required: true, default: 0 },
+    color: { type: String, default: '#14b8a6' }, // Default teal color
   },
   { timestamps: true }
 );
