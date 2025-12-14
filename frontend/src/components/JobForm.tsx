@@ -503,43 +503,43 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
 
       {/* Step 3: Additional Details */}
       {currentStep === 3 && (
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-hidden">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="resumeVersion">Resume Version</Label>
-          <Select id="resumeVersion" {...register('resumeVersion')}>
-            <option value="">None</option>
-            {resumes.map((resume) => (
-              <option key={resume._id} value={resume._id}>
-                {resume.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="appliedDate">Applied Date *</Label>
-          <Input
-            id="appliedDate"
-            {...register('appliedDate')}
-            type="date"
-            className={errors.appliedDate ? 'border-destructive' : ''}
-          />
-          {errors.appliedDate && (
-            <p className="text-sm text-destructive mt-1">
-              {errors.appliedDate.message}
-            </p>
-          )}
-        </div>
-        {isRecruiterCall && (
-          <div>
-            <Label htmlFor="lastWorkingDay">Last Working Day</Label>
-            <Input
-              id="lastWorkingDay"
-              {...register('lastWorkingDay')}
-              type="date"
-            />
-          </div>
-          )}
+            <div className="min-w-0">
+              <Label htmlFor="resumeVersion">Resume Version</Label>
+              <Select id="resumeVersion" {...register('resumeVersion')}>
+                <option value="">None</option>
+                {resumes.map((resume) => (
+                  <option key={resume._id} value={resume._id}>
+                    {resume.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="min-w-0">
+              <Label htmlFor="appliedDate">Applied Date *</Label>
+              <Input
+                id="appliedDate"
+                {...register('appliedDate')}
+                type="date"
+                className={errors.appliedDate ? 'border-destructive' : ''}
+              />
+              {errors.appliedDate && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.appliedDate.message}
+                </p>
+              )}
+            </div>
+            {isRecruiterCall && (
+              <div className="min-w-0">
+                <Label htmlFor="lastWorkingDay">Last Working Day</Label>
+                <Input
+                  id="lastWorkingDay"
+                  {...register('lastWorkingDay')}
+                  type="date"
+                />
+              </div>
+            )}
           </div>
 
           {job && job.stageHistory && job.stageHistory.length > 0 && (
@@ -622,51 +622,52 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between items-center pt-4 border-t">
-        <div className="flex items-center gap-2">
-          {job && (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => setIsDeleteDialogOpen(true)}
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Job
-            </Button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {currentStep > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handlePrevious}
-              className="gap-2"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-          )}
-          {currentStep < steps.length - 1 ? (
-            <Button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleNext(e);
-              }}
-              className="gap-2"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button type="submit" disabled={isSubmitting}>
-              {job ? 'Update' : 'Create'} Job
-            </Button>
-          )}
-        </div>
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-4 border-t">
+        {/* Delete button */}
+        {job && (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="gap-2 order-1"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Job
+          </Button>
+        )}
+        
+        {/* Previous button */}
+        {currentStep > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePrevious}
+            className="gap-2 order-2 sm:ml-auto"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+        )}
+        
+        {/* Next/Submit button */}
+        {currentStep < steps.length - 1 ? (
+          <Button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleNext(e);
+            }}
+            className={`gap-2 order-3 ${currentStep === 0 && !job ? 'sm:ml-auto' : ''}`}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button type="submit" disabled={isSubmitting} className={`order-3 ${!job ? 'sm:ml-auto' : ''}`}>
+            {job ? 'Update' : 'Create'} Job
+          </Button>
+        )}
       </div>
     </form>
 
