@@ -49,7 +49,7 @@ function JobStageCharts() {
     return columns
       .filter((col) => col?.order !== undefined)
       .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
-      .map((column) => {
+      .map((column, index) => {
         if (!column?._id) return null;
         // Count jobs that have this stage in their interviewStages array
         const jobCount = jobs.filter((job) => {
@@ -60,7 +60,7 @@ function JobStageCharts() {
           name: column?.title ?? 'Unknown',
           count: jobCount,
           columnId: column._id,
-          color: colorMap.get(column._id) || column.color || FALLBACK_COLORS[0],
+          color: colorMap.get(column._id) || column.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
         };
       })
       .filter((item) => item !== null);
@@ -166,11 +166,11 @@ function JobStageCharts() {
               <div className="text-2xl font-bold text-primary">{totalJobs}</div>
               <div className="text-sm text-muted-foreground mt-1">Total Jobs</div>
             </div>
-            {chartData.map((item) => {
+            {chartData.map((item, index) => {
               const percentage = totalJobs > 0 ? Math.round((item.count / totalJobs) * 100) : 0;
               return (
                 <div key={item.name} className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold" style={{ color: item.color || FALLBACK_COLORS[0] }}>
+                  <div className="text-2xl font-bold" style={{ color: item.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length] }}>
                     {item.count}
                   </div>
                   <div className="text-xs text-muted-foreground">
