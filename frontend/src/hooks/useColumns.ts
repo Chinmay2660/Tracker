@@ -37,7 +37,7 @@ export const useColumns = () => {
   }, [columns, setColumns, isLoading]);
 
   const createMutation = useMutation({
-    mutationFn: async (data: { title: string; order?: number; color?: string }, options?: { onSuccess?: (data: any) => void }) => {
+    mutationFn: async (data: { title: string; order?: number; color?: string }) => {
       if (!data?.title?.trim()) {
         throw new Error('Stage title is required');
       }
