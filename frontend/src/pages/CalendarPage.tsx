@@ -7,11 +7,12 @@ import api from '../lib/api';
 import { InterviewRound } from '../types';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import InterviewForm from '../components/InterviewForm';
+import InterviewFormDialog from '../components/InterviewFormDialog';
+import RescheduleDialog from '../components/RescheduleDialog';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { format } from 'date-fns';
-import { Plus } from 'lucide-react';
+import { Plus, CalendarClock, Pencil } from 'lucide-react';
 
 const localizer = momentLocalizer(moment);
 
@@ -23,6 +24,10 @@ export default function CalendarPage() {
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
   const [listDialogDate, setListDialogDate] = useState<Date | null>(null);
+  
+  // Reschedule state
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [rescheduleInterview, setRescheduleInterview] = useState<InterviewRound | null>(null);
 
   const { data: allInterviews = [] } = useQuery<InterviewRound[]>({
     queryKey: ['interviews'],
@@ -132,24 +137,6 @@ export default function CalendarPage() {
   }, [events]);
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
-    // Prevent selection of off-range dates (previous/next month dates)
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const slotMonth = slotInfo.start.getMonth();
-    const slotYear = slotInfo.start.getFullYear();
-    
-    // Check if the selected slot is in the current month being viewed
-    // We need to check against the calendar's current view, not today's date
-    // For now, we'll use a simpler check - if it's clearly in a different month
-    const viewDate = new Date(); // This should ideally come from calendar state
-    const viewMonth = viewDate.getMonth();
-    const viewYear = viewDate.getFullYear();
-    
-    if (slotMonth !== viewMonth || slotYear !== viewYear) {
-      // This is an off-range date, don't allow selection
-      return;
-    }
-    
     const dateKey = format(slotInfo.start, 'yyyy-MM-dd');
     const dayEvents = eventsByDate[dateKey] || [];
     
@@ -205,6 +192,18 @@ export default function CalendarPage() {
     return eventsByDate[dateKey] || [];
   }, [listDialogDate, eventsByDate]);
 
+  // Get job by ID helper
+  const getJob = (jobId: string) => {
+    return jobs.find(j => j._id === jobId);
+  };
+
+  // Open reschedule dialog
+  const openRescheduleDialog = (interview: InterviewRound, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setRescheduleInterview(interview);
+    setIsRescheduleOpen(true);
+  };
+
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* Header */}
@@ -235,6 +234,11 @@ export default function CalendarPage() {
             selectable
             defaultView="month"
             views={['month', 'week', 'day']}
+            drilldownView={null}
+            onDrillDown={(date) => {
+              // Instead of navigating to day view, trigger our slot selection
+              handleSelectSlot({ start: date, end: new Date(date.getTime() + 60 * 60 * 1000) });
+            }}
             min={new Date(1970, 0, 1, 0, 0, 0)}
             max={new Date(1970, 0, 1, 23, 59, 59)}
             scrollToTime={new Date(1970, 0, 1, 0, 0, 0)}
@@ -352,27 +356,73 @@ export default function CalendarPage() {
           min-height: 20px;
         }
         
-        /* Dark mode styles */
+        /* Dark mode styles - comprehensive */
+        .dark .rbc-calendar {
+          background-color: transparent;
+        }
         .dark .rbc-toolbar-label {
           color: #f1f5f9;
         }
+        .dark .rbc-toolbar button {
+          color: #e2e8f0;
+          border-color: #475569;
+        }
+        .dark .rbc-toolbar button:hover {
+          background-color: #334155;
+          border-color: #475569;
+        }
+        .dark .rbc-toolbar button.rbc-active {
+          background-color: #334155;
+          border-color: #475569;
+        }
+        .dark .rbc-month-view {
+          border: 1px solid #475569 !important;
+          background-color: transparent;
+        }
+        .dark .rbc-month-view,
         .dark .rbc-time-view,
         .dark .rbc-time-header,
         .dark .rbc-time-content,
         .dark .rbc-timeslot-group,
         .dark .rbc-time-gutter,
-        .dark .rbc-day-slot {
-          border-color: #334155;
+        .dark .rbc-day-slot,
+        .dark .rbc-month-row,
+        .dark .rbc-day-bg,
+        .dark .rbc-row-bg,
+        .dark .rbc-row-content,
+        .dark .rbc-date-cell {
+          border-color: #475569 !important;
+          background-color: transparent;
         }
         .dark .rbc-time-header-content {
-          border-color: #334155;
+          border-color: #475569 !important;
         }
         .dark .rbc-header {
           color: #e2e8f0;
-          border-color: #334155;
+          border-color: #475569 !important;
+          background-color: #0f172a !important;
+          padding: 8px 4px;
+        }
+        .dark .rbc-month-row {
+          border-top: 1px solid #475569 !important;
+        }
+        .dark .rbc-month-row + .rbc-month-row {
+          border-color: #475569 !important;
+        }
+        .dark .rbc-day-bg {
+          background-color: transparent !important;
+        }
+        .dark .rbc-day-bg + .rbc-day-bg {
+          border-left: 1px solid #475569 !important;
+        }
+        .dark .rbc-off-range-bg {
+          background-color: rgba(15, 23, 42, 0.6) !important;
+        }
+        .dark .rbc-off-range {
+          color: #64748b;
         }
         .dark .rbc-today {
-          background-color: rgba(45, 212, 191, 0.1);
+          background-color: rgba(45, 212, 191, 0.08) !important;
         }
         .dark .rbc-current-time-indicator {
           background-color: #14b8a6;
@@ -381,29 +431,36 @@ export default function CalendarPage() {
           color: #94a3b8;
         }
         .dark .rbc-allday-cell {
-          border-color: #334155;
+          border-color: #475569 !important;
+        }
+        .dark .rbc-row-segment {
+          border-color: #475569 !important;
+        }
+        .dark .rbc-date-cell {
+          color: #e2e8f0;
+          padding: 4px 8px;
+        }
+        .dark .rbc-button-link {
+          color: #e2e8f0;
+        }
+        .dark .rbc-show-more {
+          color: #14b8a6;
         }
       `}</style>
 
       {/* Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent onClose={() => setIsFormOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>{selectedEvent ? 'Edit Interview' : 'Add Interview'}</DialogTitle>
-          </DialogHeader>
-          <InterviewForm
-            interview={selectedEvent || undefined}
-            defaultDate={selectedDate}
-            defaultEndDate={selectedEndDate}
-            onSuccess={() => {
-              setIsFormOpen(false);
-              setSelectedEvent(null);
-              setSelectedDate(null);
-              setSelectedEndDate(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      <InterviewFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        interview={selectedEvent}
+        defaultDate={selectedDate}
+        defaultEndDate={selectedEndDate}
+        onSuccess={() => {
+          setSelectedEvent(null);
+          setSelectedDate(null);
+          setSelectedEndDate(null);
+        }}
+      />
 
       {/* List Dialog */}
       <Dialog open={isListDialogOpen} onOpenChange={setIsListDialogOpen}>
@@ -425,13 +482,7 @@ export default function CalendarPage() {
               return (
                 <Card
                   key={interview._id}
-                  className="cursor-pointer hover:shadow-md transition-shadow border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
-                  onClick={() => {
-                    setSelectedEvent(interview);
-                    setSelectedDate(null);
-                    setIsListDialogOpen(false);
-                    setIsFormOpen(true);
-                  }}
+                  className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 group"
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
@@ -449,6 +500,38 @@ export default function CalendarPage() {
                         </div>
                         <p className="text-sm text-slate-500 dark:text-slate-400">{timeStr}</p>
                         {job && <p className="text-sm text-slate-500 dark:text-slate-400">Role: {job.role}</p>}
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1">
+                        {/* Reschedule Button - only for pending */}
+                        {interview.status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 dark:text-teal-400 dark:hover:text-teal-300 dark:hover:bg-teal-900/20"
+                            onClick={(e) => openRescheduleDialog(interview, e)}
+                            title="Reschedule"
+                          >
+                            <CalendarClock className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {/* Edit Button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEvent(interview);
+                            setSelectedDate(null);
+                            setIsListDialogOpen(false);
+                            setIsFormOpen(true);
+                          }}
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -475,6 +558,18 @@ export default function CalendarPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Reschedule Dialog */}
+      <RescheduleDialog
+        open={isRescheduleOpen}
+        onOpenChange={setIsRescheduleOpen}
+        interview={rescheduleInterview}
+        job={rescheduleInterview ? getJob(rescheduleInterview.jobId) : null}
+        onSuccess={() => {
+          setRescheduleInterview(null);
+          setIsListDialogOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -22,6 +22,16 @@ const interviewSchema = z.object({
   time: z.string().min(1, 'From time is required'),
   endTime: z.string().min(1, 'To time is required'),
   status: z.enum(['pending', 'completed', 'cancelled']).optional(),
+  notesMarkdown: z.string().optional(),
+}).refine((data) => {
+  // If status is completed, notesMarkdown is required
+  if (data.status === 'completed') {
+    return data.notesMarkdown && data.notesMarkdown.trim().length > 0;
+  }
+  return true;
+}, {
+  message: 'Please add notes about the questions asked in this interview',
+  path: ['notesMarkdown'],
 });
 
 type InterviewFormData = z.infer<typeof interviewSchema>;
@@ -61,6 +71,7 @@ export default function InterviewForm({
           time: interview.time || '09:00',
           endTime: interview.endTime || '10:00',
           status: interview.status,
+          notesMarkdown: interview.notesMarkdown || '',
         }
       : defaultDate
       ? {
@@ -68,16 +79,20 @@ export default function InterviewForm({
           time: format(defaultDate, 'HH:mm'),
           endTime: defaultEndDate ? format(defaultEndDate, 'HH:mm') : format(new Date(defaultDate.getTime() + 60 * 60 * 1000), 'HH:mm'),
           status: 'pending',
+          notesMarkdown: '',
         }
       : {
           time: '09:00',
           endTime: '10:00',
           status: 'pending',
+          notesMarkdown: '',
         },
   });
 
   const stage = watch('stage');
+  const status = watch('status');
   const isRecruiterCall = stage?.toLowerCase().includes('recruiter') || stage?.toLowerCase().includes('call');
+  const isCompleted = status === 'completed';
 
   // Sort columns by order for the dropdown
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
@@ -104,6 +119,7 @@ export default function InterviewForm({
           time: data.time ?? '09:00',
           endTime: data.endTime ?? '10:00',
           status: data.status ?? 'pending',
+          notesMarkdown: data.notesMarkdown || undefined,
         };
         await updateInterviewAsync({ id: interview._id, ...updateData });
       } else {
@@ -119,6 +135,7 @@ export default function InterviewForm({
           time: data.time ?? '09:00',
           endTime: data.endTime ?? '10:00',
           status: data.status ?? 'pending',
+          notesMarkdown: data.notesMarkdown || undefined,
         };
         await createInterviewAsync(interviewData);
       }
@@ -238,6 +255,35 @@ export default function InterviewForm({
             <p className="text-sm text-destructive mt-1">{errors.endTime.message}</p>
           )}
         </div>
+      </div>
+
+      {/* Notes/Questions Field - Required when status is completed */}
+      <div className="space-y-2">
+        <Label htmlFor="notesMarkdown" className="flex items-center gap-2">
+          Notes / Questions Asked
+          {isCompleted && <span className="text-red-500">*</span>}
+        </Label>
+        <textarea
+          id="notesMarkdown"
+          {...register('notesMarkdown')}
+          placeholder={isCompleted 
+            ? "Please enter the questions asked during this interview..." 
+            : "Add notes about the interview, questions asked, etc. (optional)"}
+          rows={4}
+          className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-none ${
+            errors.notesMarkdown 
+              ? 'border-destructive' 
+              : 'border-slate-300 dark:border-slate-700'
+          }`}
+        />
+        {errors.notesMarkdown && (
+          <p className="text-sm text-destructive mt-1">{errors.notesMarkdown.message}</p>
+        )}
+        {isCompleted && !errors.notesMarkdown && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Recording questions helps you prepare for similar interviews in the future.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">

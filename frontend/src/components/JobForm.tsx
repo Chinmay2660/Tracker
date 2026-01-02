@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -115,6 +115,9 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAddStageOpen, setIsAddStageOpen] = useState(false);
+  const [isDateEditOpen, setIsDateEditOpen] = useState(false);
+  const [editingStageIndex, setEditingStageIndex] = useState<number | null>(null);
+  const [editingStageDate, setEditingStageDate] = useState('');
   // Only load resumes when form is open (lazy loading)
   const { resumes = [] } = useResumes();
   const { columns = [] } = useColumns();
@@ -138,14 +141,14 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
         order: stage.order,
       }));
     }
-    // Default: create one stage for Applied
+    // Default: create one stage for Applied with current date
     const appliedCol = columns.find(c => c.title.toLowerCase() === 'applied') || columns[0];
     if (appliedCol) {
       return [{
         stageId: defaultColumnId || appliedCol._id,
         stageName: appliedCol.title,
         status: 'Pending' as const,
-        date: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
         order: 0,
       }];
     }
@@ -193,6 +196,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           tags: [],
           interviewStages: getDefaultInterviewStages(),
           hrContacts: [],
+          appliedDate: format(new Date(), 'yyyy-MM-dd'),
         },
   });
 
@@ -208,6 +212,39 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
 
   const notesValue = watch('notesMarkdown');
   const interviewStages = watch('interviewStages') || [];
+  const appliedDateValue = watch('appliedDate');
+  
+  // Track if we're programmatically updating to avoid infinite loops
+  const isUpdatingRef = useRef(false);
+  
+  // Find the Applied stage index
+  const appliedStageIndex = interviewStages.findIndex(
+    s => s.stageName?.toLowerCase() === 'applied'
+  );
+  const appliedStageDate = appliedStageIndex >= 0 ? interviewStages[appliedStageIndex]?.date : '';
+  
+  // Sync Applied Date with Applied stage date
+  useEffect(() => {
+    if (isUpdatingRef.current) return;
+    
+    // If Applied stage date changed, update Applied Date field
+    if (appliedStageIndex >= 0 && appliedStageDate && appliedStageDate !== appliedDateValue) {
+      isUpdatingRef.current = true;
+      setValue('appliedDate', appliedStageDate);
+      setTimeout(() => { isUpdatingRef.current = false; }, 0);
+    }
+  }, [appliedStageDate, appliedStageIndex, appliedDateValue, setValue]);
+  
+  useEffect(() => {
+    if (isUpdatingRef.current) return;
+    
+    // If Applied Date field changed, update Applied stage date
+    if (appliedStageIndex >= 0 && appliedDateValue && appliedDateValue !== appliedStageDate) {
+      isUpdatingRef.current = true;
+      setValue(`interviewStages.${appliedStageIndex}.date`, appliedDateValue);
+      setTimeout(() => { isUpdatingRef.current = false; }, 0);
+    }
+  }, [appliedDateValue, appliedStageIndex, appliedStageDate, setValue]);
   
   // Find the furthest (highest order) selected stage for determining current column
   const getFurthestStageId = () => {
@@ -247,6 +284,10 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       // Update order values
       const stages = [...interviewStages];
       stages.forEach((s, i) => setValue(`interviewStages.${i}.order`, i));
+      // Open date edit dialog for the moved stage (now at index - 1)
+      setEditingStageIndex(index - 1);
+      setEditingStageDate(interviewStages[index]?.date || format(new Date(), 'yyyy-MM-dd'));
+      setIsDateEditOpen(true);
     }
   };
 
@@ -257,6 +298,20 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
       // Update order values
       const stages = [...interviewStages];
       stages.forEach((s, i) => setValue(`interviewStages.${i}.order`, i));
+      // Open date edit dialog for the moved stage (now at index + 1)
+      setEditingStageIndex(index + 1);
+      setEditingStageDate(interviewStages[index]?.date || format(new Date(), 'yyyy-MM-dd'));
+      setIsDateEditOpen(true);
+    }
+  };
+
+  // Save the edited date
+  const handleSaveStageDate = () => {
+    if (editingStageIndex !== null) {
+      setValue(`interviewStages.${editingStageIndex}.date`, editingStageDate);
+      setIsDateEditOpen(false);
+      setEditingStageIndex(null);
+      setEditingStageDate('');
     }
   };
 
@@ -487,7 +542,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           </div>
 
           {/* Add Stage Dropdown */}
-          <div className="flex gap-2">
+          <div className="flex items-stretch gap-2">
             <Select
               className="flex-1"
               onChange={(e) => {
@@ -508,11 +563,10 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => setIsAddStageOpen(true)}
-              className="shrink-0"
+              className="shrink-0 h-[44px] w-[44px] p-0"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </Button>
           </div>
 
@@ -523,6 +577,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             <div className="space-y-3">
               {interviewStageFields.map((field, index) => {
                 const column = columns.find(c => c._id === field.stageId);
+                const isAppliedStage = field.stageName?.toLowerCase() === 'applied';
                 return (
                   <div
                     key={field.id}
@@ -531,24 +586,29 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <button
-                            type="button"
-                            onClick={() => handleMoveUp(index)}
-                            disabled={index === 0}
-                            className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30"
-                          >
-                            <ChevronLeft className="w-4 h-4 rotate-90" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveDown(index)}
-                            disabled={index === interviewStageFields.length - 1}
-                            className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30"
-                          >
-                            <ChevronRight className="w-4 h-4 rotate-90" />
-                          </button>
-                        </div>
+                        {/* Hide reorder buttons for Applied stage */}
+                        {!isAppliedStage ? (
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveUp(index)}
+                              disabled={index === 0 || interviewStageFields[index - 1]?.stageName?.toLowerCase() === 'applied'}
+                              className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30"
+                            >
+                              <ChevronLeft className="w-4 h-4 rotate-90" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveDown(index)}
+                              disabled={index === interviewStageFields.length - 1}
+                              className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30"
+                            >
+                              <ChevronRight className="w-4 h-4 rotate-90" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-5" /> /* Spacer for alignment */
+                        )}
                         <span
                           className="px-2 py-1 text-sm font-medium rounded text-white"
                           style={{ backgroundColor: column?.color || '#14b8a6' }}
@@ -780,63 +840,56 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             )}
           </div>
 
-          {job && job.stageHistory && job.stageHistory.length > 0 && (
-        <div>
-          <Label>Stage History</Label>
-          <div className="mt-2 p-4 border rounded-md bg-muted/50 space-y-2">
-            {job.appliedDate && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Applied Date:</span>
-                <span className="text-muted-foreground">
-                  {format(new Date(job.appliedDate), 'MMM d, yyyy')}
-                </span>
+          {/* Interview Stages Summary - shows current form values */}
+          {interviewStages && interviewStages.length > 0 && (
+            <div>
+              <Label>Interview Progress</Label>
+              <div className="mt-2 p-4 border rounded-md bg-muted/50 space-y-2">
+                {[...interviewStages]
+                  .sort((a, b) => a.order - b.order)
+                  .map((stage, idx) => {
+                    const getStatusStyle = (status: string) => {
+                      switch (status) {
+                        case 'Cleared':
+                        case 'Offer Received':
+                        case 'Offer Accepted':
+                          return 'text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20';
+                        case 'Rejected':
+                        case 'No Offer':
+                        case 'Offer Declined':
+                          return 'text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20';
+                        case 'Scheduled':
+                        case 'Shortlisted':
+                          return 'text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20';
+                        case 'Pending':
+                        case 'Pending Results':
+                          return 'text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20';
+                        default:
+                          return 'text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/20';
+                      }
+                    };
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-sm p-2 rounded bg-background/50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{stage.stageName || 'Unknown Stage'}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${getStatusStyle(stage.status)}`}>
+                            {stage.status}
+                          </span>
+                        </div>
+                        {stage.date && (
+                          <span className="text-muted-foreground">
+                            {format(new Date(stage.date), 'MMM d, yyyy')}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
-            )}
-            {(() => {
-              // Get current column order
-              const currentColumn = columns.find((col) => col._id === job.columnId);
-              const currentOrder = currentColumn?.order ?? Infinity;
-
-              // Filter and sort: only show stages up to and including current stage, sorted by column order
-              const filteredHistory = job.stageHistory
-                .filter((stage) => {
-                  const stageColumn = columns.find((col) => col._id === stage.columnId);
-                  const stageOrder = stageColumn?.order ?? Infinity;
-                  return stageOrder <= currentOrder;
-                })
-                .sort((a, b) => {
-                  const colA = columns.find((col) => col._id === a.columnId);
-                  const colB = columns.find((col) => col._id === b.columnId);
-                  const orderA = colA?.order ?? Infinity;
-                  const orderB = colB?.order ?? Infinity;
-                  return orderA - orderB; // Sort by column order (sequence)
-                });
-
-              return filteredHistory.map((stage, idx) => {
-                const column = columns.find((col) => col._id === stage.columnId);
-                const isCurrentStage = job.columnId === stage.columnId;
-                return (
-                  <div
-                    key={idx}
-                    className={`flex items-center justify-between text-sm p-2 rounded ${
-                      isCurrentStage ? 'bg-primary/10 border border-primary/20' : ''
-                    }`}
-                  >
-                    <span className="font-medium">
-                      {stage.columnTitle || column?.title || 'Unknown Stage'}
-                      {isCurrentStage && (
-                        <span className="ml-2 text-xs text-primary">(Current)</span>
-                      )}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {format(new Date(stage.enteredDate), 'MMM d, yyyy')}
-                    </span>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-          </div>
+            </div>
           )}
 
           <div>
@@ -958,6 +1011,56 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
 
     {/* Add Stage Dialog */}
     <AddStageDialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen} />
+    
+    {/* Date Edit Dialog for reordered stages */}
+    <Dialog open={isDateEditOpen} onOpenChange={setIsDateEditOpen}>
+      <DialogContent onClose={() => setIsDateEditOpen(false)} className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Update Stage Date</DialogTitle>
+          <DialogDescription>
+            Set the date for this interview stage.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          {editingStageIndex !== null && interviewStages[editingStageIndex] && (
+            <div className="p-3 rounded-lg bg-muted/50">
+              <p className="font-medium text-sm">
+                {interviewStages[editingStageIndex]?.stageName || 'Interview Stage'}
+              </p>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="stage-date">Date</Label>
+            <Input
+              id="stage-date"
+              type="date"
+              value={editingStageDate}
+              onChange={(e) => setEditingStageDate(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsDateEditOpen(false);
+                setEditingStageIndex(null);
+              }}
+              className="flex-1"
+            >
+              Skip
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveStageDate}
+              className="flex-1"
+            >
+              Save Date
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   </>
   );
 }

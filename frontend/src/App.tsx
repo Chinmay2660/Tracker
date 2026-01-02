@@ -13,6 +13,7 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const InterviewsPage = lazy(() => import('./pages/InterviewsPage'));
 const ResumeManagerPage = lazy(() => import('./pages/ResumeManagerPage'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const Layout = lazy(() => import('./components/Layout'));
@@ -91,6 +92,37 @@ const ResumeSkeleton = memo(() => (
           <div className="flex gap-2">
             <div className="skeleton" style={{ width: '4rem', height: '2rem', borderRadius: '0.375rem' }} />
             <div className="skeleton" style={{ width: '4rem', height: '2rem', borderRadius: '0.375rem' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+));
+
+// Interviews page skeleton
+const InterviewsSkeleton = memo(() => (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4">
+    {/* Header */}
+    <div className="flex justify-between items-center mb-6">
+      <div className="skeleton" style={{ width: '8rem', height: '1.75rem', borderRadius: '0.375rem' }} />
+      <div className="skeleton" style={{ width: '8rem', height: '2.25rem', borderRadius: '0.5rem' }} />
+    </div>
+    {/* Filter */}
+    <div className="flex items-center gap-3 mb-6">
+      <div className="skeleton" style={{ width: '1.25rem', height: '1.25rem', borderRadius: '0.25rem' }} />
+      <div className="skeleton" style={{ width: '11rem', height: '2.75rem', borderRadius: '0.5rem' }} />
+    </div>
+    {/* Interview cards */}
+    <div className="space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-3">
+              <div className="skeleton" style={{ width: '40%', height: '1.25rem', borderRadius: '0.25rem' }} />
+              <div className="skeleton" style={{ width: '30%', height: '1rem', borderRadius: '0.25rem' }} />
+              <div className="skeleton" style={{ width: '25%', height: '1rem', borderRadius: '0.25rem' }} />
+            </div>
+            <div className="skeleton" style={{ width: '2rem', height: '2rem', borderRadius: '0.375rem' }} />
           </div>
         </div>
       ))}
@@ -265,6 +297,14 @@ function App() {
               element={
                 <Suspense fallback={<CalendarSkeleton />}>
                   <CalendarPage />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="interviews" 
+              element={
+                <Suspense fallback={<InterviewsSkeleton />}>
+                  <InterviewsPage />
                 </Suspense>
               } 
             />

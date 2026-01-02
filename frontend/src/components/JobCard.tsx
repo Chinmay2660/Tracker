@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { MapPin, ExternalLink, Calendar, ChevronRight } from 'lucide-react';
+import { MapPin, ExternalLink, Calendar } from 'lucide-react';
 import { Job, Column } from '../types';
 import { Card } from './ui/card';
 import { format } from 'date-fns';
@@ -157,63 +157,19 @@ function JobCard({ job, isDragging }: JobCardProps) {
           {/* Stage Progression */}
           {stageProgression.length > 0 && (
             <div className="flex flex-wrap items-center gap-1">
-              {stageProgression.map((stage, idx) => {
-                // Status colors
-                const getStatusIndicator = (status: string) => {
-                  switch (status) {
-                    case 'Cleared':
-                    case 'Shortlisted':
-                    case 'Offer Received':
-                    case 'Offer Accepted':
-                      return '✓';
-                    case 'Rejected':
-                    case 'No Offer':
-                    case 'Offer Declined':
-                      return '✗';
-                    case 'Pending':
-                    case 'Scheduled':
-                    case 'Pending Results':
-                      return '•';
-                    default:
-                      return '○';
-                  }
-                };
-                const getStatusColor = (status: string) => {
-                  switch (status) {
-                    case 'Cleared':
-                    case 'Shortlisted':
-                    case 'Offer Accepted':
-                      return 'text-green-500';
-                    case 'Rejected':
-                    case 'No Offer':
-                    case 'Offer Declined':
-                      return 'text-red-500';
-                    case 'Pending Results':
-                    case 'Scheduled':
-                      return 'text-yellow-500';
-                    default:
-                      return 'text-slate-400';
-                  }
-                };
-                return (
-                  <div key={stage.stageId || idx} className="flex items-center">
-                    <div className="flex items-center gap-0.5">
-                      <span
-                        className="px-1.5 py-0.5 text-[10px] font-medium rounded text-white"
-                        style={{ backgroundColor: stage.color || '#14b8a6' }}
-                      >
-                        {stage.title}
-                      </span>
-                      <span className={`text-[10px] font-bold ${getStatusColor(stage.status)}`}>
-                        {getStatusIndicator(stage.status)}
-                      </span>
-                    </div>
-                    {idx < stageProgression.length - 1 && (
-                      <ChevronRight className="w-3 h-3 text-slate-500 dark:text-slate-300 mx-0.5" />
-                    )}
-                  </div>
-                );
-              })}
+              {stageProgression.map((stage, idx) => (
+                <div key={stage.stageId || idx} className="flex items-center">
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] font-medium rounded text-white"
+                    style={{ backgroundColor: stage.color || '#14b8a6' }}
+                  >
+                    {stage.title}
+                  </span>
+                  {stageProgression.length > 1 && idx < stageProgression.length - 1 && (
+                    <span className="text-slate-400 dark:text-slate-300 mx-1 text-xs">→</span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
