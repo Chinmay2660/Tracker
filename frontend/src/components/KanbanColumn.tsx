@@ -129,7 +129,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-slate-100 dark:bg-slate-900/50 rounded-xl p-3 sm:p-4 flex flex-col w-[280px] sm:w-auto sm:min-w-0 shrink-0 sm:shrink transition-colors ${isOver ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' : ''}`}
+        className={`bg-slate-100 dark:bg-slate-900/50 rounded-xl p-3 sm:p-4 flex flex-col w-[300px] shrink-0 transition-colors ${isOver ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' : ''}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
