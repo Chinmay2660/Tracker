@@ -37,28 +37,33 @@ export const useColumns = () => {
   }, [columns, setColumns, isLoading]);
 
   const createMutation = useMutation({
-    mutationFn: async (data: { title: string; order?: number; color?: string }) => {
+    mutationFn: async (data: { title: string; order?: number; color?: string; silent?: boolean }) => {
       if (!data?.title?.trim()) {
         throw new Error('Stage title is required');
       }
-      const response = await api.post('/columns', data);
+      const { silent, ...apiData } = data;
+      const response = await api.post('/columns', apiData);
       const column = response?.data?.column;
       if (!column) {
         throw new Error('Invalid response from server');
       }
-      return column;
+      return { column, silent };
     },
-    onSuccess: (newColumn) => {
+    onSuccess: ({ column: newColumn, silent }) => {
       // Optimistically update cache instead of refetching
       queryClient.setQueryData<Column[]>(['columns'], (old = []) => [...old, newColumn]);
-      toast.success('Stage added successfully!', {
-        description: newColumn.title,
-      });
+      if (!silent) {
+        toast.success('Stage added successfully!', {
+          description: newColumn.title,
+        });
+      }
     },
-    onError: () => {
-      toast.error('Failed to add stage', {
-        description: 'Please try again.',
-      });
+    onError: (_, variables) => {
+      if (!variables.silent) {
+        toast.error('Failed to add stage', {
+          description: 'Please try again.',
+        });
+      }
     },
   });
 

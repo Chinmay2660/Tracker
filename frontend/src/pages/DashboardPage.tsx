@@ -28,7 +28,7 @@ function DashboardPage() {
       setHasInitialized(true);
       const defaultColumns = ['Applied', 'Recruiter Call', 'OA', 'Phone Screen', 'Onsite', 'Offer'];
       defaultColumns.forEach((title, index) => {
-        createColumn({ title, order: index });
+        createColumn({ title, order: index, silent: true });
       });
     }
   }, [columns.length, createColumn, isLoading, hasInitialized]);
