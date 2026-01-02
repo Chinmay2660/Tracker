@@ -16,11 +16,15 @@ const faqs = [
   },
   {
     question: 'Can I use it on mobile?',
-    answer: 'Yes! Job Tracker is fully responsive and works great on desktop, tablet, and mobile devices. Access your job board from anywhere.',
+    answer: 'Yes! Job Tracker is fully responsive and works great on desktop, tablet, and mobile devices. Manage your interviews and applications from anywhere.',
   },
   {
     question: 'What features are included?',
-    answer: 'All features are included: Kanban board, interview calendar, resume manager, job analytics, tags, notes, and more. Everything is free!',
+    answer: 'All features are included: Kanban board, interview management with calendar view, stage-based progress tracking, resume manager, smart analytics, filtering, rescheduling, and more. Everything is free!',
+  },
+  {
+    question: 'How does interview tracking work?',
+    answer: 'Define custom interview stages for each job (Applied, OA, Phone Screen, Onsite, etc.). Schedule interviews with date and time, add notes for completed rounds, and filter by status - upcoming, completed, cancelled, or overdue.',
   },
 ];
 

@@ -5,8 +5,8 @@ const benefits = [
   { icon: '⚡', title: 'Lightning Fast', desc: 'Track in seconds.' },
   { icon: '🎨', title: 'Beautiful UI', desc: 'Modern design.' },
   { icon: '📱', title: 'Works Everywhere', desc: 'Any device.' },
-  { icon: '🔒', title: 'Privacy First', desc: 'Data never sold.' },
-  { icon: '📊', title: 'Smart Insights', desc: 'Track progress.' },
+  { icon: '📅', title: 'Never Miss Interviews', desc: 'Reschedule easily.' },
+  { icon: '📊', title: 'Stage Analytics', desc: 'Track every round.' },
 ];
 
 function BenefitsSection() {
