@@ -2,12 +2,12 @@ import { memo } from 'react';
 import { Briefcase, Calendar, FileText, TrendingUp, BarChart3, Shield } from 'lucide-react';
 
 const features = [
-  { icon: Briefcase, title: 'Kanban Board', description: 'Drag-and-drop columns to track every application.', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30' },
-  { icon: Calendar, title: 'Interview Calendar', description: 'Never miss an interview with scheduling view.', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/30' },
-  { icon: FileText, title: 'Resume Manager', description: 'Store and organize multiple resume versions.', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
-  { icon: TrendingUp, title: 'Progress Tracking', description: 'Track tags, locations, and notes for every app.', iconColor: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-900/30' },
-  { icon: BarChart3, title: 'Smart Analytics', description: 'Visualize your application funnel and metrics.', iconColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-100 dark:bg-violet-900/30' },
-  { icon: Shield, title: 'Secure & Private', description: 'Your data stays private with Google OAuth.', iconColor: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-200 dark:bg-slate-800' },
+  { icon: Briefcase, title: 'Kanban Board', description: 'Drag-and-drop cards across customizable stages. Track every application at a glance.', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+  { icon: Calendar, title: 'Interview Management', description: 'Schedule, reschedule, and filter interviews. View upcoming, completed, or overdue rounds.', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/30' },
+  { icon: FileText, title: 'Resume Manager', description: 'Store multiple resume versions. Link the right resume to each application.', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+  { icon: TrendingUp, title: 'Stage Tracking', description: 'Track interview stages like OA, Phone Screen, Onsite. Log dates and notes for each round.', iconColor: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-900/30' },
+  { icon: BarChart3, title: 'Smart Analytics', description: 'See how many jobs passed through each stage. Visualize your funnel with charts.', iconColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-100 dark:bg-violet-900/30' },
+  { icon: Shield, title: 'Secure & Private', description: 'Your data stays private with Google OAuth. No tracking, no ads.', iconColor: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-200 dark:bg-slate-800' },
 ];
 
 function FeaturesSection() {

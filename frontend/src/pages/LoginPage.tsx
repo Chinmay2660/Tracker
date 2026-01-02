@@ -23,17 +23,17 @@ export default function LoginPage() {
   };
 
   const features = [
-    { icon: Calendar, label: 'Track Interviews' },
+    { icon: Calendar, label: 'Schedule & Reschedule Interviews' },
     { icon: FileText, label: 'Manage Resumes' },
-    { icon: BarChart3, label: 'View Analytics' },
+    { icon: BarChart3, label: 'Stage-based Analytics' },
   ];
 
   const benefits = [
     'Kanban board for applications',
-    'Never miss an interview',
+    'Custom interview stages (OA, Phone, Onsite)',
+    'Filter interviews by status',
     'Store multiple resumes',
     'Track compensation details',
-    'Analytics and insights',
     'Mobile-friendly interface',
   ];
 
@@ -68,7 +68,7 @@ export default function LoginPage() {
             Organize Your<br />Job Search
           </h1>
           <p className="text-base text-white/90 mb-6 max-w-md">
-            Join thousands of job seekers who stay organized and land their dream jobs.
+            Track applications, manage interview stages, and stay on top of every round until you land your dream job.
           </p>
 
           {/* Features */}

@@ -57,8 +57,8 @@ function LandingPage() {
     <>
       <SEO 
         title="Job Tracker - Track Your Job Applications & Interviews | Free Forever"
-        description="Organize and track your job applications across different stages with Job Tracker. Manage interviews, resumes, and application progress with a beautiful Kanban board. Free forever, no credit card required."
-        keywords="job tracker, job application tracker, interview scheduler, resume manager, job search, application management, career tracker, job board, kanban board, job hunting"
+        description="Organize and track your job applications with Job Tracker. Manage interview stages, schedule rounds, reschedule easily, filter by status, and visualize progress with analytics. Beautiful Kanban board, resume manager, and more. Free forever."
+        keywords="job tracker, job application tracker, interview scheduler, interview stages, resume manager, job search, application management, career tracker, job board, kanban board, job hunting, interview calendar"
       />
       <div className="min-h-screen bg-white dark:bg-[#0B0F17] relative overflow-x-hidden transition-colors duration-0">
         {/* Subtle animated gradient background */}

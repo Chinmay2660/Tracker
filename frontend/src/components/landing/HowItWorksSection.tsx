@@ -11,13 +11,13 @@ const steps = [
   {
     step: '02',
     title: 'Add Your Jobs',
-    description: 'Start tracking applications. Add company details, roles, locations, and compensation info.',
+    description: 'Add applications with company details, roles, salary info, and define your interview stages.',
     icon: '📝',
   },
   {
     step: '03',
     title: 'Track & Succeed',
-    description: 'Organize interviews, manage resumes, and visualize your progress with analytics.',
+    description: 'Schedule interviews, track stage progress, manage resumes, and view analytics to land your dream job.',
     icon: '📊',
   },
 ];
