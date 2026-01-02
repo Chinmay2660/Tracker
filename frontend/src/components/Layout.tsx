@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from './ui/button';
-import { Calendar, Briefcase, FileText, LogOut, User as UserIcon, Menu, X, ChevronDown } from 'lucide-react';
+import { Calendar, Briefcase, FileText, LogOut, User as UserIcon, Menu, X, ChevronDown, Users } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { usePrefetchDashboard } from '../hooks/usePrefetchDashboard';
@@ -38,6 +38,7 @@ function Layout() {
   const navItems = useMemo(() => [
     { path: '/dashboard', icon: Briefcase, label: 'Board' },
     { path: '/dashboard/calendar', icon: Calendar, label: 'Calendar' },
+    { path: '/dashboard/interviews', icon: Users, label: 'Interviews' },
     { path: '/dashboard/resumes', icon: FileText, label: 'Resumes' },
   ], []);
 

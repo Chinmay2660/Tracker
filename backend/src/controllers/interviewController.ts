@@ -100,6 +100,9 @@ export const updateInterview = async (req: AuthRequest, res: Response) => {
     if (data.status !== undefined) {
       updateData.status = data.status;
     }
+    if (data.notesMarkdown !== undefined) {
+      updateData.notesMarkdown = data.notesMarkdown || undefined;
+    }
 
     const updatedInterview = await InterviewRound.findByIdAndUpdate(
       id,
