@@ -26,9 +26,16 @@ function DashboardPage() {
   useEffect(() => {
     if (!isLoading && columns.length === 0 && !hasInitialized) {
       setHasInitialized(true);
-      const defaultColumns = ['Applied', 'Recruiter Call', 'OA', 'Phone Screen', 'Onsite', 'Offer'];
-      defaultColumns.forEach((title, index) => {
-        createColumn({ title, order: index, silent: true });
+      const defaultColumns = [
+        { title: 'Applied', color: '#14b8a6' },      // Teal
+        { title: 'Recruiter Call', color: '#3b82f6' }, // Blue
+        { title: 'OA', color: '#8b5cf6' },           // Purple
+        { title: 'Phone Screen', color: '#ec4899' }, // Pink
+        { title: 'Onsite', color: '#f97316' },       // Orange
+        { title: 'Offer', color: '#22c55e' },        // Green
+      ];
+      defaultColumns.forEach(({ title, color }, index) => {
+        createColumn({ title, order: index, color, silent: true });
       });
     }
   }, [columns.length, createColumn, isLoading, hasInitialized]);
