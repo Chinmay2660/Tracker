@@ -92,7 +92,13 @@ function JobCard({ job, isDragging }: JobCardProps) {
     if (stages.length === 0) {
       // Fallback: just show current column
       const currentCol = columns.find(c => c._id === job.columnId);
-      return currentCol ? [{ ...currentCol, status: 'Pending' as const }] : [];
+      return currentCol ? [{ 
+        stageId: currentCol._id,
+        title: currentCol.title,
+        color: currentCol.color || '#14b8a6',
+        status: 'Pending' as const,
+        order: 0,
+      }] : [];
     }
     // Sort by order and enrich with column data
     return [...stages]
@@ -100,9 +106,11 @@ function JobCard({ job, isDragging }: JobCardProps) {
       .map(stage => {
         const column = columns.find(c => c._id === stage.stageId);
         return {
-          ...stage,
+          stageId: stage.stageId,
           title: stage.stageName || column?.title || 'Unknown',
           color: column?.color || '#14b8a6',
+          status: stage.status,
+          order: stage.order,
         };
       });
   }, [job.interviewStages, job.columnId, columns]);
