@@ -43,6 +43,7 @@ function JobStageCharts() {
     return map;
   }, [columns]);
 
+  // Count jobs that have passed through each stage (based on interviewStages)
   const chartData = useMemo(() => {
     if (!Array.isArray(columns) || !Array.isArray(jobs)) return [];
     return columns
@@ -50,7 +51,11 @@ function JobStageCharts() {
       .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
       .map((column) => {
         if (!column?._id) return null;
-        const jobCount = jobs.filter((job) => job?.columnId === column._id).length;
+        // Count jobs that have this stage in their interviewStages array
+        const jobCount = jobs.filter((job) => {
+          const stages = job?.interviewStages || [];
+          return stages.some((stage) => stage.stageId === column._id);
+        }).length;
         return {
           name: column?.title ?? 'Unknown',
           count: jobCount,
@@ -90,6 +95,7 @@ function JobStageCharts() {
               <YAxis 
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 stroke="hsl(var(--muted))"
+                allowDecimals={false}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="count" radius={[8, 8, 0, 0]}>
@@ -160,14 +166,20 @@ function JobStageCharts() {
               <div className="text-2xl font-bold text-primary">{totalJobs}</div>
               <div className="text-sm text-muted-foreground mt-1">Total Jobs</div>
             </div>
-            {chartData.map((item) => (
-              <div key={item.name} className="text-center p-4 bg-muted/50 rounded-lg">
-                <div className="text-2xl font-bold" style={{ color: item.color || FALLBACK_COLORS[0] }}>
-                  {item.count}
+            {chartData.map((item) => {
+              const percentage = totalJobs > 0 ? Math.round((item.count / totalJobs) * 100) : 0;
+              return (
+                <div key={item.name} className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold" style={{ color: item.color || FALLBACK_COLORS[0] }}>
+                    {item.count}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {percentage}% of total
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">{item.name}</div>
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">{item.name}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

@@ -200,10 +200,10 @@ function KanbanBoard() {
 
   if (columnsLoading || jobsLoading) {
     return (
-      <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
-        <div className="flex gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-w-max sm:min-w-0">
+      <div className="overflow-x-auto pb-4 -mx-4 px-4">
+        <div className="flex gap-4 min-w-max">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-muted/50 rounded-lg p-4 w-[280px] sm:w-auto shrink-0 sm:shrink">
+            <div key={i} className="bg-muted/50 rounded-lg p-4 w-[300px] shrink-0">
               <div className="flex items-center justify-between mb-4">
                 <Skeleton className="h-6 w-24" />
                 <Skeleton className="h-6 w-8" />
@@ -236,9 +236,9 @@ function KanbanBoard() {
         items={sortedColumns.map((c: Column) => `column-${c._id}`)}
         strategy={verticalListSortingStrategy}
       >
-        {/* Mobile: Horizontal scroll, Desktop: Grid layout */}
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
-          <div className="flex gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-w-max sm:min-w-0">
+        {/* Horizontal scroll board */}
+        <div className="overflow-x-auto pb-4 -mx-4 px-4">
+          <div className="flex gap-4 min-w-max">
             {sortedColumns.map((column) => {
               const columnJobs = columnJobsMap.get(column._id) || [];
 
