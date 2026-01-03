@@ -102,7 +102,7 @@ export default function ResumeManagerPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Resume Manager</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Upload and manage your resume versions</p>
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <input
             ref={fileInputRef}
             type="file"
@@ -113,7 +113,7 @@ export default function ResumeManagerPage() {
           <Button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
           >
             <Upload className="h-4 w-4 mr-2" />
             {uploading ? 'Uploading...' : 'Upload Resume'}
@@ -124,20 +124,21 @@ export default function ResumeManagerPage() {
       {/* Empty State */}
       {resumes.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-              <FileText className="h-6 w-6 text-slate-400" />
+          <CardContent className="py-16 sm:py-20 text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-6">
+              <FileText className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
             </div>
-            <h3 className="text-base font-medium text-slate-900 dark:text-white mb-1">No resumes yet</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white mb-2">No resumes yet</h3>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
               Upload your first resume to get started
             </p>
             <Button
               onClick={() => fileInputRef.current?.click()}
               variant="outline"
-              size="sm"
+              size="lg"
+              className="px-6"
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-5 w-5 mr-2" />
               Upload Resume
             </Button>
           </CardContent>
