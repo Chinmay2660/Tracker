@@ -129,7 +129,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-slate-100 dark:bg-slate-800/50 rounded-xl p-3 sm:p-4 flex flex-col w-[300px] shrink-0 transition-colors ${isOver ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' : ''}`}
+        className={`bg-slate-100 dark:bg-slate-800/50 rounded-xl p-3 sm:p-4 flex flex-col w-[calc(100vw-32px)] sm:w-[300px] shrink-0 transition-colors ${isOver ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' : ''}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -183,7 +183,7 @@ function KanbanColumn({ column, jobs }: KanbanColumnProps) {
         </div>
 
         {/* Jobs list */}
-        <div className="flex-1 space-y-2 sm:space-y-3 overflow-y-auto min-h-[150px] max-h-[calc(100vh-280px)] scrollbar-hide">
+        <div className="flex-1 space-y-2 sm:space-y-3 overflow-y-auto min-h-[200px] sm:min-h-[150px] max-h-[calc(100vh-280px)] scrollbar-hide">
           {jobs.map((job) => (
             <JobCard key={job._id} job={job} />
           ))}

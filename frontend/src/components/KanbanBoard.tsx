@@ -203,7 +203,7 @@ function KanbanBoard() {
       <div className="overflow-x-auto pb-4 -mx-4 px-4">
         <div className="flex gap-4 min-w-max">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-muted/50 rounded-lg p-4 w-[300px] shrink-0">
+            <div key={i} className="bg-muted/50 rounded-lg p-4 w-[calc(100vw-32px)] sm:w-[300px] shrink-0">
               <div className="flex items-center justify-between mb-4">
                 <Skeleton className="h-6 w-24" />
                 <Skeleton className="h-6 w-8" />

@@ -73,82 +73,96 @@ function JobStageCharts() {
   const totalJobs = jobs.length;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
       {/* Bar Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Jobs by Stage</CardTitle>
-          <CardDescription>Distribution of jobs across different stages</CardDescription>
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">Jobs by Stage</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Distribution of jobs across stages</CardDescription>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" opacity={0.3} />
-              <XAxis 
-                dataKey="name" 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                interval={0}
-              />
-              <YAxis 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                stroke="hsl(var(--muted))"
-                allowDecimals={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                {chartData.map((entry, index) => {
-                  if (!entry) return null;
-                  return (
-                    <Cell key={`cell-${index}`} fill={entry.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length]} />
-                  );
-                })}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent className="px-2 sm:px-6">
+          <div className="h-[220px] sm:h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={chartData} 
+                margin={{ top: 5, right: 10, left: -15, bottom: 50 }}
+                style={{ outline: 'none' }}
+                tabIndex={-1}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  stroke="hsl(var(--muted))"
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                  width={30}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                  {chartData.map((entry, index) => {
+                    if (!entry) return null;
+                    return (
+                      <Cell key={`cell-${index}`} fill={entry.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length]} />
+                    );
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
       {/* Pie Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Stage Distribution</CardTitle>
-          <CardDescription>Percentage of jobs in each stage</CardDescription>
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">Stage Distribution</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Percentage of jobs in each stage</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => {
-                    if (!percent || percent < 0.05) return ''; // Hide labels for very small slices
-                    return `${name}: ${(percent * 100).toFixed(0)}%`;
-                  }}
-                  outerRadius={90}
-                  innerRadius={30}
-                  fill="#8884d8"
-                  dataKey="count"
-                  paddingAngle={2}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  wrapperStyle={{ fontSize: '12px' }}
-                  formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="h-[220px] sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart style={{ outline: 'none' }} tabIndex={-1}>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="45%"
+                    labelLine={false}
+                    label={({ name, percent }) => {
+                      if (!percent || percent < 0.08) return '';
+                      return `${(percent * 100).toFixed(0)}%`;
+                    }}
+                    outerRadius="70%"
+                    innerRadius="25%"
+                    fill="#8884d8"
+                    dataKey="count"
+                    paddingAngle={2}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                    formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            <div className="flex items-center justify-center h-[220px] sm:h-[300px] text-muted-foreground text-sm">
               No jobs to display
             </div>
           )}

@@ -1150,3 +1150,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 20px;
   padding: 2px;
 }
+
+/* Remove Recharts focus indicators */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus,
+.recharts-surface:focus,
+.recharts-sector:focus,
+.recharts-rectangle:focus,
+.recharts-pie-sector:focus,
+.recharts-bar-rectangle:focus {
+  outline: none !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
+}
+
+.recharts-sector[tabindex],
+.recharts-rectangle[tabindex],
+.recharts-pie-sector[tabindex] {
+  outline: none !important;
+}
+
+/* Remove blue focus ring from chart elements */
+.recharts-wrapper svg *:focus {
+  outline: none !important;
+}
+
+.recharts-layer path:focus,
+.recharts-layer rect:focus {
+  outline: none !important;
+  stroke-width: 0 !important;
+}
