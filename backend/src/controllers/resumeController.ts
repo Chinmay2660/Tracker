@@ -1,16 +1,20 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 import ResumeVersion from '../models/ResumeVersion';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// For Vercel serverless, use /tmp directory (only writable location)
-const uploadDir = process.env.VERCEL === '1' 
-  ? '/tmp/uploads/resumes'
-  : (process.env.UPLOAD_DIR || './uploads/resumes');
+/** Ephemeral filesystem on Vercel — store bytes in MongoDB so any instance can serve the file. */
+const isVercelServerless = process.env.VERCEL === '1';
 
-if (!fs.existsSync(uploadDir)) {
+// For non-serverless, use disk under project or UPLOAD_DIR
+const uploadDir = isVercelServerless
+  ? '/tmp/uploads/resumes'
+  : process.env.UPLOAD_DIR || './uploads/resumes';
+
+if (!isVercelServerless && !fs.existsSync(uploadDir)) {
   try {
     fs.mkdirSync(uploadDir, { recursive: true });
   } catch (error) {
@@ -18,7 +22,7 @@ if (!fs.existsSync(uploadDir)) {
   }
 }
 
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
@@ -29,8 +33,8 @@ const storage = multer.diskStorage({
 });
 
 export const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  storage: isVercelServerless ? multer.memoryStorage() : diskStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB (MongoDB doc limit is 16MB)
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['.pdf', '.doc', '.docx'];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -48,9 +52,29 @@ export const uploadResume = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
+    const displayName = req.body.name || req.file.originalname;
+
+    if (isVercelServerless && 'buffer' in req.file && req.file.buffer) {
+      const ext = path.extname(req.file.originalname);
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const filename = `${uniqueSuffix}${ext}`;
+      const fileUrl = `/uploads/resumes/${filename}`;
+
+      const resume = await ResumeVersion.create({
+        userId: req.user._id,
+        name: displayName,
+        fileUrl,
+        fileData: req.file.buffer,
+      });
+
+      const lean = resume.toObject();
+      delete (lean as { fileData?: Buffer }).fileData;
+      return res.status(201).json({ success: true, resume: lean });
+    }
+
     const resume = await ResumeVersion.create({
       userId: req.user._id,
-      name: req.body.name || req.file.originalname,
+      name: displayName,
       fileUrl: `/uploads/resumes/${req.file.filename}`,
     });
 
@@ -68,33 +92,55 @@ function getResumeAbsolutePath(fileUrl: string): string {
   return path.join(process.cwd(), relative);
 }
 
-/** Stream file for owner — works on serverless where /uploads static is not mounted. */
+function setResumeFileHeaders(res: Response, resume: { fileUrl: string; name: string }): void {
+  const ext = path.extname(resume.fileUrl).toLowerCase();
+  const mimeByExt: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx':
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  };
+  const contentType = mimeByExt[ext] || 'application/octet-stream';
+  res.setHeader('Content-Type', contentType);
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="${encodeURIComponent(resume.name || 'resume')}"`
+  );
+}
+
+/** Stream file for owner — DB buffer on serverless, else disk. */
 export const downloadResumeFile = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const resume = await ResumeVersion.findOne({ _id: id, userId: req.user._id });
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid resume id' });
+    }
+
+    const resume = await ResumeVersion.findOne({ _id: id, userId: req.user._id }).select(
+      '+fileData'
+    );
     if (!resume) {
       return res.status(404).json({ success: false, error: 'Resume not found' });
     }
 
-    const absolutePath = getResumeAbsolutePath(resume.fileUrl);
-    if (!fs.existsSync(absolutePath)) {
-      return res.status(404).json({ success: false, error: 'File not found' });
+    const buf = resume.fileData;
+    if (buf && buf.length > 0) {
+      setResumeFileHeaders(res, resume);
+      return res.send(buf);
     }
 
-    const ext = path.extname(resume.fileUrl).toLowerCase();
-    const mimeByExt: Record<string, string> = {
-      '.pdf': 'application/pdf',
-      '.doc': 'application/msword',
-      '.docx':
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    };
-    const contentType = mimeByExt[ext] || 'application/octet-stream';
-    res.setHeader('Content-Type', contentType);
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename="${encodeURIComponent(resume.name || 'resume')}"`
-    );
+    const absolutePath = getResumeAbsolutePath(resume.fileUrl);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found on server',
+        hint:
+          'If you use serverless hosting, upload this resume again so it can be stored for your account.',
+      });
+    }
+
+    setResumeFileHeaders(res, resume);
     return res.sendFile(path.resolve(absolutePath));
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -122,7 +168,7 @@ export const deleteResume = async (req: AuthRequest, res: Response) => {
     }
 
     const filePath = getResumeAbsolutePath(resume.fileUrl);
-    if (fs.existsSync(filePath)) {
+    if (!isVercelServerless && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
@@ -132,4 +178,3 @@ export const deleteResume = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
