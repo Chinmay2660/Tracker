@@ -1,12 +1,19 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
- * Opens a resume file (PDF/DOC) in a new tab only (never navigates the current tab).
- * Uses fetch → blob URL so mobile browsers can open the file reliably.
+ * Opens a resume file URL in a new browser context (new tab / external browser).
+ *
+ * Important for **mobile and “Add to Home Screen” / PWA standalone**:
+ * Opening must happen **synchronously** in the same turn as the user’s tap. Any `await`
+ * before this (e.g. fetch) consumes “user activation”, and Safari / standalone WebViews
+ * will block pop-ups and synthetic navigations—so we do **not** fetch+blob here.
+ *
+ * Files are served as static uploads on the API (`/uploads/...`); a direct absolute URL
+ * is enough for the OS/browser to open PDF or download DOC.
  */
 function openUrlInNewTabOnly(url: string): void {
-  const opened = window.open(url, '_blank', 'noopener,noreferrer');
-  if (opened) return;
+  // Single path: <a target="_blank"> works best for iOS PWA / “Add to Home Screen” (standalone).
+  // Do not call window.open() as well — that would open a second tab.
   const a = document.createElement('a');
   a.href = url;
   a.target = '_blank';
@@ -16,21 +23,8 @@ function openUrlInNewTabOnly(url: string): void {
   document.body.removeChild(a);
 }
 
-export async function openResumeFile(fileUrl: string): Promise<void> {
+export function openResumeFile(fileUrl: string): void {
   const path = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
   const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${API_BASE.replace(/\/$/, '')}${path}`;
-
-  // No Authorization header: uploads are served as static files (simple GET avoids CORS preflight).
-  try {
-    const res = await fetch(fullUrl);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    openUrlInNewTabOnly(blobUrl);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 120_000);
-  } catch {
-    openUrlInNewTabOnly(fullUrl);
-  }
+  openUrlInNewTabOnly(fullUrl);
 }

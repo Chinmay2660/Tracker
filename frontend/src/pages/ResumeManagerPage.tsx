@@ -26,7 +26,6 @@ export default function ResumeManagerPage() {
   const [uploading, setUploading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resumeToDelete, setResumeToDelete] = useState<string | null>(null);
-  const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,13 +47,8 @@ export default function ResumeManagerPage() {
     }
   };
 
-  const handleViewResume = async (resumeId: string, fileUrl: string) => {
-    setOpeningResumeId(resumeId);
-    try {
-      await openResumeFile(fileUrl);
-    } finally {
-      setOpeningResumeId(null);
-    }
+  const handleViewResume = (fileUrl: string) => {
+    openResumeFile(fileUrl);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -171,12 +165,11 @@ export default function ResumeManagerPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleViewResume(resume._id, resume.fileUrl)}
-                    disabled={openingResumeId === resume._id}
+                    onClick={() => handleViewResume(resume.fileUrl)}
                     className="flex-1"
                   >
                     <Eye className="h-4 w-4 mr-1.5" />
-                    {openingResumeId === resume._id ? 'Opening…' : 'View'}
+                    View
                   </Button>
                   <Button
                     variant="outline"
