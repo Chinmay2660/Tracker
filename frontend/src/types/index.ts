@@ -94,14 +94,14 @@ export type HrCompanyType =
 export interface HrContactRecord {
   _id: string;
   userId: string;
-  companyName: string;
-  hrName: string;
-  phone: string;
+  companyName?: string;
+  hrName?: string;
+  phone?: string;
   phoneNormalized?: string;
   email?: string;
   /** What you told this recruiter about notice / LWD (per company story). */
   noticePeriodLwdNote?: string;
-  companyType: HrCompanyType;
+  companyType?: HrCompanyType;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,12 +109,12 @@ export interface HrContactRecord {
 /** Populated HR on an interview from the API */
 export interface HrContactBrief {
   _id: string;
-  companyName: string;
-  hrName: string;
-  phone: string;
+  companyName?: string;
+  hrName?: string;
+  phone?: string;
   email?: string;
   noticePeriodLwdNote?: string;
-  companyType: HrCompanyType;
+  companyType?: HrCompanyType;
 }
 
 export interface InterviewRound {

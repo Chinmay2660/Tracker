@@ -12,16 +12,56 @@ const companyTypeEnum = z.enum([
   'product_based',
 ]);
 
-const createHrContactSchema = z.object({
-  companyName: z.string().min(1),
-  hrName: z.string().min(1),
-  phone: z.string().min(1),
+type HrBody = {
+  companyName?: string;
+  hrName?: string;
+  phone?: string;
+  email?: string;
+  noticePeriodLwdNote?: string;
+  companyType?: z.infer<typeof companyTypeEnum>;
+};
+
+function trimOrEmpty(s: string | undefined): string {
+  return (s ?? '').trim();
+}
+
+/** True if at least one meaningful field is filled (phone counts when it has digits). */
+export function hrContactHasAtLeastOneField(input: HrBody): boolean {
+  if (trimOrEmpty(input.companyName)) return true;
+  if (trimOrEmpty(input.hrName)) return true;
+  if (normalizePhoneDigits(trimOrEmpty(input.phone))) return true;
+  if (trimOrEmpty(input.email)) return true;
+  if (trimOrEmpty(input.noticePeriodLwdNote)) return true;
+  if (input.companyType !== undefined) return true;
+  return false;
+}
+
+const optionalCompanyType = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? undefined : v),
+  companyTypeEnum.optional()
+);
+
+const optionalHrFields = {
+  companyName: z.string().optional(),
+  hrName: z.string().optional(),
+  phone: z.string().optional(),
   email: z.union([z.string().email(), z.literal('')]).optional(),
   noticePeriodLwdNote: z.string().max(5000).optional(),
-  companyType: companyTypeEnum,
-});
+  companyType: optionalCompanyType,
+};
 
-const updateHrContactSchema = createHrContactSchema.partial();
+const createHrContactSchema = z
+  .object(optionalHrFields)
+  .superRefine((data, ctx) => {
+    if (!hrContactHasAtLeastOneField(data)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one field must be filled.',
+      });
+    }
+  });
+
+const updateHrContactSchema = z.object(optionalHrFields).partial();
 
 async function assertUniquePhone(
   userId: string,
@@ -29,7 +69,7 @@ async function assertUniquePhone(
   excludeId?: string
 ): Promise<boolean> {
   if (!phoneNormalized) {
-    return false;
+    return true;
   }
   const query: Record<string, unknown> = {
     userId,
@@ -56,41 +96,48 @@ export const listHrContacts = async (req: AuthRequest, res: Response) => {
 export const createHrContact = async (req: AuthRequest, res: Response) => {
   try {
     const data = createHrContactSchema.parse(req.body);
-    const phoneNormalized = normalizePhoneDigits(data.phone);
-    if (!phoneNormalized) {
-      return res.status(400).json({
-        success: false,
-        error: 'Phone number must contain digits.',
-      });
-    }
-    const isUnique = await assertUniquePhone(req.user._id.toString(), phoneNormalized);
-    if (!isUnique) {
-      return res.status(409).json({
-        success: false,
-        error: 'This phone number is already saved for another HR contact.',
-      });
+    const phoneNormalized = normalizePhoneDigits(trimOrEmpty(data.phone));
+
+    if (phoneNormalized) {
+      const isUnique = await assertUniquePhone(req.user._id.toString(), phoneNormalized);
+      if (!isUnique) {
+        return res.status(409).json({
+          success: false,
+          error: 'This phone number is already saved for another HR contact.',
+        });
+      }
     }
 
     const noticeNote =
-      data.noticePeriodLwdNote !== undefined && data.noticePeriodLwdNote.trim() !== ''
-        ? data.noticePeriodLwdNote.trim()
+      data.noticePeriodLwdNote !== undefined && trimOrEmpty(data.noticePeriodLwdNote) !== ''
+        ? trimOrEmpty(data.noticePeriodLwdNote)
         : undefined;
 
-    const hrContact = await HrContact.create({
+    const doc: Record<string, unknown> = {
       userId: req.user._id,
-      companyName: data.companyName.trim(),
-      hrName: data.hrName.trim(),
-      phone: data.phone.trim(),
-      phoneNormalized,
-      email: data.email?.trim() || undefined,
+      companyName: trimOrEmpty(data.companyName),
+      hrName: trimOrEmpty(data.hrName),
+      phone: trimOrEmpty(data.phone),
+      email: data.email !== undefined ? trimOrEmpty(data.email) || undefined : undefined,
       noticePeriodLwdNote: noticeNote,
       companyType: data.companyType,
-    });
+    };
+
+    if (phoneNormalized) {
+      doc.phoneNormalized = phoneNormalized;
+    }
+
+    const hrContact = await HrContact.create(doc);
 
     res.status(201).json({ success: true, hrContact });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      const first = error.errors[0];
+      const msg =
+        first?.message === 'At least one field must be filled.'
+          ? first.message
+          : 'Invalid input';
+      return res.status(400).json({ success: false, error: msg, details: error.errors });
     }
     if (error?.code === 11000) {
       return res.status(409).json({
@@ -112,53 +159,85 @@ export const updateHrContact = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'HR contact not found' });
     }
 
+    const merged: HrBody = {
+      companyName:
+        data.companyName !== undefined ? trimOrEmpty(data.companyName) : existing.companyName,
+      hrName: data.hrName !== undefined ? trimOrEmpty(data.hrName) : existing.hrName,
+      phone: data.phone !== undefined ? trimOrEmpty(data.phone) : existing.phone,
+      email: data.email !== undefined ? trimOrEmpty(data.email) : existing.email ?? '',
+      noticePeriodLwdNote:
+        data.noticePeriodLwdNote !== undefined
+          ? trimOrEmpty(data.noticePeriodLwdNote)
+          : existing.noticePeriodLwdNote ?? '',
+      companyType:
+        data.companyType !== undefined ? data.companyType : existing.companyType,
+    };
+
+    if (!hrContactHasAtLeastOneField(merged)) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one field must remain filled.',
+      });
+    }
+
     const updatePayload: Record<string, unknown> = {};
 
     if (data.companyName !== undefined) {
-      updatePayload.companyName = data.companyName.trim();
+      updatePayload.companyName = trimOrEmpty(data.companyName);
     }
     if (data.hrName !== undefined) {
-      updatePayload.hrName = data.hrName.trim();
+      updatePayload.hrName = trimOrEmpty(data.hrName);
     }
     if (data.email !== undefined) {
-      updatePayload.email = data.email?.trim() || undefined;
+      updatePayload.email = trimOrEmpty(data.email) || undefined;
     }
     if (data.companyType !== undefined) {
       updatePayload.companyType = data.companyType;
     }
     if (data.noticePeriodLwdNote !== undefined) {
       updatePayload.noticePeriodLwdNote =
-        data.noticePeriodLwdNote.trim() === '' ? undefined : data.noticePeriodLwdNote.trim();
+        trimOrEmpty(data.noticePeriodLwdNote) === ''
+          ? undefined
+          : trimOrEmpty(data.noticePeriodLwdNote);
     }
+
+    const $set: Record<string, unknown> = { ...updatePayload };
+    const $unset: Record<string, 1> = {};
 
     if (data.phone !== undefined) {
-      const phoneNormalized = normalizePhoneDigits(data.phone);
-      if (!phoneNormalized) {
-        return res.status(400).json({
-          success: false,
-          error: 'Phone number must contain digits.',
-        });
+      const phoneNormalized = normalizePhoneDigits(trimOrEmpty(data.phone));
+      $set.phone = trimOrEmpty(data.phone);
+      if (phoneNormalized) {
+        const isUnique = await assertUniquePhone(
+          req.user._id.toString(),
+          phoneNormalized,
+          id
+        );
+        if (!isUnique) {
+          return res.status(409).json({
+            success: false,
+            error: 'This phone number is already saved for another HR contact.',
+          });
+        }
+        $set.phoneNormalized = phoneNormalized;
+      } else {
+        $unset.phoneNormalized = 1;
       }
-      const isUnique = await assertUniquePhone(
-        req.user._id.toString(),
-        phoneNormalized,
-        id
-      );
-      if (!isUnique) {
-        return res.status(409).json({
-          success: false,
-          error: 'This phone number is already saved for another HR contact.',
-        });
-      }
-      updatePayload.phone = data.phone.trim();
-      updatePayload.phoneNormalized = phoneNormalized;
     }
 
-    const hrContact = await HrContact.findByIdAndUpdate(
-      id,
-      { $set: updatePayload },
-      { new: true }
-    );
+    const mongoUpdate: { $set?: Record<string, unknown>; $unset?: Record<string, 1> } = {};
+    if (Object.keys($set).length > 0) {
+      mongoUpdate.$set = $set;
+    }
+    if (Object.keys($unset).length > 0) {
+      mongoUpdate.$unset = $unset;
+    }
+
+    if (Object.keys(mongoUpdate).length === 0) {
+      return res.json({ success: true, hrContact: existing });
+    }
+
+    const hrContact = await HrContact.findByIdAndUpdate(id, mongoUpdate, { new: true });
 
     res.json({ success: true, hrContact });
   } catch (error: any) {

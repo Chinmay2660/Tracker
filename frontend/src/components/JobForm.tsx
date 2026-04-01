@@ -779,10 +779,15 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                               className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                               onClick={() => applyHrFromDirectory(c)}
                             >
-                              <span className="font-medium text-slate-900 dark:text-slate-100">{c.companyName}</span>
-                              <span className="text-slate-600 dark:text-slate-400"> — {c.hrName}</span>
+                              <span className="font-medium text-slate-900 dark:text-slate-100">
+                                {c.companyName?.trim() || '—'}
+                              </span>
+                              <span className="text-slate-600 dark:text-slate-400">
+                                {' '}
+                                — {c.hrName?.trim() || '—'}
+                              </span>
                               <span className="block text-xs text-muted-foreground mt-0.5 tabular-nums">
-                                {c.phone}
+                                {c.phone?.trim() || '—'}
                                 {c.email ? ` · ${c.email}` : ''}
                               </span>
                             </button>

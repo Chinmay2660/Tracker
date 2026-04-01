@@ -207,7 +207,7 @@ export default function InterviewForm({
           <option value="">None</option>
           {hrOptions.map((h) => (
             <option key={h._id} value={h._id}>
-              {h.companyName} — {h.hrName}
+              {`${h.companyName?.trim() || '—'} — ${h.hrName?.trim() || '—'}`}
             </option>
           ))}
         </Select>
