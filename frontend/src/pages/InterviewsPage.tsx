@@ -2,14 +2,23 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useJobs } from '../hooks/useJobs';
 import api from '../lib/api';
-import { InterviewRound, Job } from '../types';
+import { HrContactBrief, InterviewRound, Job } from '../types';
 import InterviewFormDialog from '../components/InterviewFormDialog';
 import RescheduleDialog from '../components/RescheduleDialog';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Select } from '../components/ui/select';
 import { format, isPast, parseISO, startOfDay } from 'date-fns';
-import { Plus, Calendar, Building2, Clock, Filter, Pencil, CalendarClock } from 'lucide-react';
+import { Plus, Calendar, Building2, Clock, Filter, Pencil, CalendarClock, User } from 'lucide-react';
+
+function getInterviewHrBrief(interview: InterviewRound): HrContactBrief | null {
+  const h = interview.hrContactId;
+  if (!h || typeof h === 'string') return null;
+  if (typeof h === 'object' && h !== null && 'hrName' in h) {
+    return h as HrContactBrief;
+  }
+  return null;
+}
 
 type StatusFilter = 'all' | 'upcoming' | 'completed' | 'cancelled' | 'overdue';
 
@@ -259,6 +268,7 @@ export default function InterviewsPage() {
         <div className="grid gap-3">
           {filteredInterviews.map((interview) => {
             const job = getJob(interview.jobId);
+            const hr = getInterviewHrBrief(interview);
             const interviewDate = getInterviewDate(interview);
             const isOverdue = isInterviewOverdue(interview);
             
@@ -319,6 +329,22 @@ export default function InterviewsPage() {
                       <span className="truncate">{job.role}</span>
                     </div>
                   )}
+                  {hr && (
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 mb-2">
+                      <User className="w-4 h-4 flex-shrink-0 text-teal-600 dark:text-teal-400" />
+                      <span className="truncate">
+                        HR: {hr.hrName}
+                        {hr.phone ? ` · ${hr.phone}` : ''}
+                        {hr.companyName ? ` (${hr.companyName})` : ''}
+                      </span>
+                    </div>
+                  )}
+                  {hr?.noticePeriodLwdNote ? (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-2 pl-5 border-l-2 border-teal-200 dark:border-teal-800 line-clamp-3">
+                      <span className="font-medium text-slate-600 dark:text-slate-300">Notice / LWD: </span>
+                      {hr.noticePeriodLwdNote}
+                    </div>
+                  ) : null}
                   
                   {/* Date & Time - Stack on mobile, inline on larger screens */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-slate-500 dark:text-slate-400">

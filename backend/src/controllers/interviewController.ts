@@ -2,10 +2,12 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import InterviewRound from '../models/InterviewRound';
 import Job from '../models/Job';
+import HrContact from '../models/HrContact';
 import { z } from 'zod';
 
 const createInterviewSchema = z.object({
   jobId: z.string(),
+  hrContactId: z.string().optional(),
   stage: z.string().min(1),
   date: z.string(),
   time: z.string().optional(),
@@ -15,6 +17,7 @@ const createInterviewSchema = z.object({
 });
 
 const updateInterviewSchema = z.object({
+  hrContactId: z.union([z.string(), z.literal(''), z.null()]).optional(),
   stage: z.string().min(1).optional(),
   date: z.string().optional(),
   time: z.string().optional(),
@@ -32,8 +35,18 @@ export const createInterview = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Job not found' });
     }
 
+    let hrContactId: string | undefined;
+    if (data.hrContactId) {
+      const hr = await HrContact.findOne({ _id: data.hrContactId, userId: req.user._id });
+      if (!hr) {
+        return res.status(400).json({ success: false, error: 'HR contact not found' });
+      }
+      hrContactId = data.hrContactId;
+    }
+
     const interview = await InterviewRound.create({
       jobId: data.jobId,
+      ...(hrContactId ? { hrContactId } : {}),
       stage: data.stage,
       date: new Date(data.date),
       time: data.time,
@@ -42,7 +55,12 @@ export const createInterview = async (req: AuthRequest, res: Response) => {
       status: data.status || 'pending',
     });
 
-    res.status(201).json({ success: true, interview });
+    const populated = await InterviewRound.findById(interview._id).populate(
+      'hrContactId',
+      'companyName hrName phone email companyType noticePeriodLwdNote'
+    );
+
+    res.status(201).json({ success: true, interview: populated });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ success: false, error: error.errors });
@@ -60,7 +78,9 @@ export const getJobInterviews = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Job not found' });
     }
 
-    const interviews = await InterviewRound.find({ jobId }).sort({ date: 1 });
+    const interviews = await InterviewRound.find({ jobId })
+      .populate('hrContactId', 'companyName hrName phone email companyType noticePeriodLwdNote')
+      .sort({ date: 1 });
     res.json({ success: true, interviews });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -103,12 +123,32 @@ export const updateInterview = async (req: AuthRequest, res: Response) => {
     if (data.notesMarkdown !== undefined) {
       updateData.notesMarkdown = data.notesMarkdown || undefined;
     }
+    let unsetHrContact = false;
+    if (data.hrContactId !== undefined) {
+      if (data.hrContactId === '' || data.hrContactId === null) {
+        unsetHrContact = true;
+      } else {
+        const hr = await HrContact.findOne({ _id: data.hrContactId, userId: req.user._id });
+        if (!hr) {
+          return res.status(400).json({ success: false, error: 'HR contact not found' });
+        }
+        updateData.hrContactId = data.hrContactId;
+      }
+    }
+
+    const mongoUpdate: { $set?: typeof updateData; $unset?: { hrContactId: 1 } } = {};
+    if (Object.keys(updateData).length > 0) {
+      mongoUpdate.$set = updateData;
+    }
+    if (unsetHrContact) {
+      mongoUpdate.$unset = { hrContactId: 1 };
+    }
 
     const updatedInterview = await InterviewRound.findByIdAndUpdate(
       id,
-      { $set: updateData },
+      mongoUpdate,
       { new: true }
-    );
+    ).populate('hrContactId', 'companyName hrName phone email companyType noticePeriodLwdNote');
 
     res.json({ success: true, interview: updatedInterview });
   } catch (error: any) {

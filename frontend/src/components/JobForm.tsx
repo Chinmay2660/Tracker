@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useJobs } from '../hooks/useJobs';
 import { useResumes } from '../hooks/useResumes';
 import { useColumns } from '../hooks/useColumns';
+import { useHrContacts } from '../hooks/useHrContacts';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -16,10 +18,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Stepper } from './ui/stepper';
 import TagSelect from './TagSelect';
 import AddStageDialog from './AddStageDialog';
-import { Job } from '../types';
+import { HrContactRecord, Job } from '../types';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
-import { Trash2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight, Plus, X, Search } from 'lucide-react';
 
 // Helper to convert NaN to undefined for optional number fields
 const optionalNumber = z.preprocess(
@@ -104,6 +106,15 @@ const jobSchema = z.object({
 
 type JobFormData = z.infer<typeof jobSchema>;
 
+function filterHrDirectoryContacts(contacts: HrContactRecord[], query: string): HrContactRecord[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return contacts;
+  return contacts.filter((c) => {
+    const hay = `${c.companyName} ${c.hrName} ${c.phone} ${c.email ?? ''}`.toLowerCase();
+    return hay.includes(q);
+  });
+}
+
 interface JobFormProps {
   job?: Job;
   defaultColumnId?: string;
@@ -121,7 +132,10 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
   // Only load resumes when form is open (lazy loading)
   const { resumes = [] } = useResumes();
   const { columns = [] } = useColumns();
+  const { hrContacts = [], isLoading: hrDirectoryLoading } = useHrContacts();
   const queryClient = useQueryClient();
+  /** Per HR row: search text for filtering saved contacts */
+  const [hrDirectorySearch, setHrDirectorySearch] = useState<Record<number, string>>({});
   
   // Find "Applied" column for default
   const appliedColumn = columns.find((col) => col.title.toLowerCase() === 'applied');
@@ -671,7 +685,16 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold">HR/Recruiter Contacts</h3>
-              <p className="text-sm text-muted-foreground">Add contact details for HR or recruiters</p>
+              <p className="text-sm text-muted-foreground">
+                Search saved contacts from{' '}
+                <Link
+                  to="/dashboard/hr-contacts"
+                  className="text-teal-600 dark:text-teal-400 underline-offset-2 hover:underline"
+                >
+                  HR Contacts
+                </Link>{' '}
+                to fill name, phone, and email, or type them manually.
+              </p>
             </div>
             <Button
               type="button"
@@ -690,7 +713,22 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
               <p className="text-sm text-muted-foreground mt-1">Click "Add HR" to add recruiter details</p>
             </div>
           )}
-          {hrContactFields.map((field, index) => (
+          {hrContactFields.map((field, index) => {
+            const searchQ = hrDirectorySearch[index] ?? '';
+            const filteredDirectory = filterHrDirectoryContacts(hrContacts, searchQ);
+            const applyHrFromDirectory = (c: HrContactRecord) => {
+              setValue(`hrContacts.${index}.name`, c.hrName);
+              setValue(`hrContacts.${index}.phone`, c.phone);
+              setValue(`hrContacts.${index}.email`, c.email ?? '');
+              void trigger([
+                `hrContacts.${index}.name`,
+                `hrContacts.${index}.phone`,
+                `hrContacts.${index}.email`,
+              ] as const);
+              setHrDirectorySearch((prev) => ({ ...prev, [index]: '' }));
+            };
+
+            return (
             <div key={field.id} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">HR #{index + 1}</span>
@@ -704,6 +742,65 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                   <X className="w-4 h-4" />
                 </Button>
               </div>
+
+              <div className="rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50/80 dark:bg-slate-800/40 p-3 space-y-2">
+                <Label className="text-xs font-medium text-slate-600 dark:text-slate-300">Pick from HR Contacts</Label>
+                {hrDirectoryLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading saved contacts…</p>
+                ) : hrContacts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No contacts in your directory yet. Add them under the HR Contacts tab, then search here.
+                  </p>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      <Input
+                        type="search"
+                        autoComplete="off"
+                        placeholder="Search by company, name, phone, or email…"
+                        value={searchQ}
+                        onChange={(e) =>
+                          setHrDirectorySearch((prev) => ({ ...prev, [index]: e.target.value }))
+                        }
+                        className="pl-9 h-9 text-sm"
+                      />
+                    </div>
+                    {filteredDirectory.length > 0 ? (
+                      <ul
+                        className="max-h-40 overflow-y-auto rounded-md border border-slate-200 dark:border-slate-600 divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900 text-sm"
+                        role="listbox"
+                      >
+                        {filteredDirectory.map((c) => (
+                          <li key={c._id}>
+                            <button
+                              type="button"
+                              role="option"
+                              className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              onClick={() => applyHrFromDirectory(c)}
+                            >
+                              <span className="font-medium text-slate-900 dark:text-slate-100">{c.companyName}</span>
+                              <span className="text-slate-600 dark:text-slate-400"> — {c.hrName}</span>
+                              <span className="block text-xs text-muted-foreground mt-0.5 tabular-nums">
+                                {c.phone}
+                                {c.email ? ` · ${c.email}` : ''}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : searchQ.trim() ? (
+                      <p className="text-xs text-muted-foreground">No matches. Try another search.</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Showing all {hrContacts.length} contact(s). Type to filter.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground">Or enter manually:</p>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Label htmlFor={`hrContacts.${index}.name`} className="text-sm w-16 flex-shrink-0">Name</Label>
@@ -732,7 +829,8 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

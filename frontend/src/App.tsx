@@ -14,6 +14,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const InterviewsPage = lazy(() => import('./pages/InterviewsPage'));
+const HrContactsPage = lazy(() => import('./pages/HrContactsPage'));
 const ResumeManagerPage = lazy(() => import('./pages/ResumeManagerPage'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const Layout = lazy(() => import('./components/Layout'));
@@ -93,6 +94,24 @@ const ResumeSkeleton = memo(() => (
             <div className="skeleton" style={{ width: '4rem', height: '2rem', borderRadius: '0.375rem' }} />
             <div className="skeleton" style={{ width: '4rem', height: '2rem', borderRadius: '0.375rem' }} />
           </div>
+        </div>
+      ))}
+    </div>
+  </div>
+));
+
+// HR Contacts page skeleton
+const HrContactsSkeleton = memo(() => (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4">
+    <div className="flex justify-between items-center mb-6">
+      <div className="skeleton" style={{ width: '10rem', height: '1.75rem', borderRadius: '0.375rem' }} />
+      <div className="skeleton" style={{ width: '9rem', height: '2.25rem', borderRadius: '0.5rem' }} />
+    </div>
+    <div className="space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+          <div className="skeleton" style={{ width: '60%', height: '1.25rem', borderRadius: '0.25rem', marginBottom: '0.75rem' }} />
+          <div className="skeleton" style={{ width: '40%', height: '1rem', borderRadius: '0.25rem' }} />
         </div>
       ))}
     </div>
@@ -305,6 +324,14 @@ function App() {
               element={
                 <Suspense fallback={<InterviewsSkeleton />}>
                   <InterviewsPage />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="hr-contacts" 
+              element={
+                <Suspense fallback={<HrContactsSkeleton />}>
+                  <HrContactsPage />
                 </Suspense>
               } 
             />
