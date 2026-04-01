@@ -7,9 +7,11 @@ interface DialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   children: React.ReactNode
+  /** Max width of the centered panel (default: max-w-lg). Use max-w-5xl for wide content (e.g. previews). */
+  containerClassName?: string
 }
 
-const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
+const Dialog = ({ open, onOpenChange, children, containerClassName }: DialogProps) => {
   const [mounted, setMounted] = React.useState(false)
 
   // Ensure we only render portal on client
@@ -60,7 +62,12 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
       {/* Centering wrapper - uses min-height to center vertically */}
       <div className="flex min-h-full items-center justify-center p-4">
         {/* Content container - centered in viewport */}
-        <div className="relative z-[10000] w-full max-w-lg mx-auto">
+        <div
+          className={cn(
+            'relative z-[10000] w-full mx-auto',
+            containerClassName ?? 'max-w-lg'
+          )}
+        >
           {children}
         </div>
       </div>
