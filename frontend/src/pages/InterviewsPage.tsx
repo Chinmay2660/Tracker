@@ -333,9 +333,9 @@ export default function InterviewsPage() {
                     <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 mb-2">
                       <User className="w-4 h-4 flex-shrink-0 text-teal-600 dark:text-teal-400" />
                       <span className="truncate">
-                        HR: {hr.hrName}
-                        {hr.phone ? ` · ${hr.phone}` : ''}
-                        {hr.companyName ? ` (${hr.companyName})` : ''}
+                        HR: {hr.hrName?.trim() || '—'}
+                        {hr.phone?.trim() ? ` · ${hr.phone.trim()}` : ''}
+                        {hr.companyName?.trim() ? ` (${hr.companyName.trim()})` : ''}
                       </span>
                     </div>
                   )}

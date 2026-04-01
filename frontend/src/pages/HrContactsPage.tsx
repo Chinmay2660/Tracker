@@ -9,6 +9,7 @@ import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
 import { HR_COMPANY_TYPE_LABELS, HR_COMPANY_TYPE_OPTIONS } from '../lib/hrCompanyTypes';
+import { normalizePhoneDigits } from '../lib/phoneNormalize';
 import { Plus, Pencil, Trash2, Phone, Building2, User, StickyNote } from 'lucide-react';
 
 const emptyForm: HrContactInput = {
@@ -17,8 +18,31 @@ const emptyForm: HrContactInput = {
   phone: '',
   email: '',
   noticePeriodLwdNote: '',
-  companyType: 'service_based',
+  companyType: undefined,
 };
+
+function hasAtLeastOneHrField(f: HrContactInput): boolean {
+  if (f.companyName.trim()) return true;
+  if (f.hrName.trim()) return true;
+  if (normalizePhoneDigits(f.phone)) return true;
+  if (f.email?.trim()) return true;
+  if ((f.noticePeriodLwdNote ?? '').trim()) return true;
+  if (f.companyType) return true;
+  return false;
+}
+
+function isDuplicatePhoneForUser(
+  digits: string,
+  contacts: HrContactRecord[],
+  excludeId?: string
+): boolean {
+  if (!digits) return false;
+  return contacts.some((c) => {
+    if (excludeId && c._id === excludeId) return false;
+    const n = c.phoneNormalized ?? normalizePhoneDigits(c.phone ?? '');
+    return n.length > 0 && n === digits;
+  });
+}
 
 export default function HrContactsPage() {
   const {
@@ -53,9 +77,9 @@ export default function HrContactsPage() {
   const openEdit = (row: HrContactRecord) => {
     setEditing(row);
     setForm({
-      companyName: row.companyName,
-      hrName: row.hrName,
-      phone: row.phone,
+      companyName: row.companyName ?? '',
+      hrName: row.hrName ?? '',
+      phone: row.phone ?? '',
       email: row.email ?? '',
       noticePeriodLwdNote: row.noticePeriodLwdNote ?? '',
       companyType: row.companyType,
@@ -67,8 +91,13 @@ export default function HrContactsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    if (!form.companyName.trim() || !form.hrName.trim() || !form.phone.trim()) {
-      setFormError('Company name, HR name, and phone are required.');
+    if (!hasAtLeastOneHrField(form)) {
+      setFormError('Fill in at least one field before saving.');
+      return;
+    }
+    const phoneDigits = normalizePhoneDigits(form.phone);
+    if (phoneDigits && isDuplicatePhoneForUser(phoneDigits, sortedContacts, editing?._id)) {
+      setFormError('This phone number is already used for another HR contact.');
       return;
     }
     try {
@@ -201,18 +230,22 @@ export default function HrContactsPage() {
                   <td className="px-4 py-3 align-top">
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" aria-hidden />
-                      <span className="font-medium text-slate-900 dark:text-white truncate">{row.companyName}</span>
+                      <span className="font-medium text-slate-900 dark:text-white truncate">
+                        {row.companyName?.trim() || '—'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 align-top whitespace-nowrap">
                     <span className="inline-flex text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                      {HR_COMPANY_TYPE_LABELS[row.companyType as HrCompanyType]}
+                      {row.companyType
+                        ? HR_COMPANY_TYPE_LABELS[row.companyType]
+                        : '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3 align-top text-slate-800 dark:text-slate-200">
                     <span className="inline-flex items-center gap-1.5 min-w-0">
                       <User className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" aria-hidden />
-                      {row.hrName}
+                      {row.hrName?.trim() || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400 max-w-[200px]">
@@ -223,7 +256,7 @@ export default function HrContactsPage() {
                   <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5">
                       <Phone className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" aria-hidden />
-                      {row.phone}
+                      {row.phone?.trim() || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400 max-w-[280px]">
@@ -274,7 +307,7 @@ export default function HrContactsPage() {
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit HR contact' : 'Add HR contact'}</DialogTitle>
             <DialogDescription>
-              Classify the company type. The same phone number cannot be added twice.
+              All fields are optional, but at least one must be filled. The same phone number cannot be saved twice.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -284,27 +317,25 @@ export default function HrContactsPage() {
               </p>
             )}
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company name *</Label>
+              <Label htmlFor="companyName">Company name</Label>
               <Input
                 id="companyName"
                 value={form.companyName}
                 onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
                 placeholder="Acme Corp"
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="hrName">HR / recruiter name *</Label>
+              <Label htmlFor="hrName">HR / recruiter name</Label>
               <Input
                 id="hrName"
                 value={form.hrName}
                 onChange={(e) => setForm((f) => ({ ...f, hrName: e.target.value }))}
                 placeholder="Jane Doe"
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone *</Label>
+              <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
                 value={form.phone}
@@ -312,7 +343,6 @@ export default function HrContactsPage() {
                 placeholder="+91 98765 43210"
                 inputMode="tel"
                 autoComplete="tel"
-                required
               />
             </div>
             <div className="space-y-2">
@@ -344,14 +374,19 @@ export default function HrContactsPage() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="companyType">Company type *</Label>
+              <Label htmlFor="companyType">Company type</Label>
               <Select
                 id="companyType"
-                value={form.companyType}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, companyType: e.target.value as HrCompanyType }))
-                }
+                value={form.companyType ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    companyType: v === '' ? undefined : (v as HrCompanyType),
+                  }));
+                }}
               >
+                <option value="">Select type (optional)</option>
                 {HR_COMPANY_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}

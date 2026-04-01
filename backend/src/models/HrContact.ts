@@ -11,11 +11,12 @@ export interface IHrContact extends Document {
   companyName: string;
   hrName: string;
   phone: string;
-  phoneNormalized: string;
+  /** Digits-only key for duplicate detection; omitted when phone is empty. */
+  phoneNormalized?: string;
   email?: string;
   /** What you told this recruiter about notice period / LWD (e.g. serving notice, 2 months, immediate). */
   noticePeriodLwdNote?: string;
-  companyType: HrCompanyType;
+  companyType?: HrCompanyType;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,15 +24,15 @@ export interface IHrContact extends Document {
 const HrContactSchema = new Schema<IHrContact>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    companyName: { type: String, required: true, trim: true },
-    hrName: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, trim: true },
-    phoneNormalized: { type: String, required: true },
+    companyName: { type: String, default: '', trim: true },
+    hrName: { type: String, default: '', trim: true },
+    phone: { type: String, default: '', trim: true },
+    phoneNormalized: { type: String, required: false },
     email: { type: String, trim: true },
     noticePeriodLwdNote: { type: String, trim: true },
     companyType: {
       type: String,
-      required: true,
+      required: false,
       enum: ['consultancy', 'third_party_payroll', 'service_based', 'product_based'],
     },
   },
@@ -39,6 +40,7 @@ const HrContactSchema = new Schema<IHrContact>(
 );
 
 HrContactSchema.index({ userId: 1, companyName: 1 });
-HrContactSchema.index({ userId: 1, phoneNormalized: 1 }, { unique: true });
+/** Sparse: multiple contacts without a phone number do not conflict. */
+HrContactSchema.index({ userId: 1, phoneNormalized: 1 }, { unique: true, sparse: true });
 
 export default mongoose.model<IHrContact>('HrContact', HrContactSchema);

@@ -11,7 +11,7 @@ export type HrContactInput = {
   phone: string;
   email?: string;
   noticePeriodLwdNote?: string;
-  companyType: HrCompanyType;
+  companyType?: HrCompanyType;
 };
 
 export const useHrContacts = () => {
