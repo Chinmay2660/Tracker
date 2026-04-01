@@ -149,6 +149,35 @@ const InterviewsSkeleton = memo(() => (
   </div>
 ));
 
+/**
+ * Public routes (landing, login): if the browser still has a valid session, load user and go to dashboard.
+ */
+function AuthenticatedRedirect({ children }: { children: React.ReactNode }) {
+  const token = useAuthStore((s) => s.token);
+  const { user, isLoading } = useAuth();
+
+  if (!token) {
+    return <>{children}</>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Skeleton className="h-10 w-48 rounded-lg" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Signing you in…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
@@ -255,34 +284,38 @@ function App() {
           <Route 
             path="/" 
             element={
-              <Suspense fallback={
-                <div className="min-h-screen bg-background">
-                  <div className="container mx-auto px-4 py-8">
-                    <Skeleton className="h-12 w-64 mb-8" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Skeleton className="h-96 w-full" />
-                      <Skeleton className="h-96 w-full" />
+              <AuthenticatedRedirect>
+                <Suspense fallback={
+                  <div className="min-h-screen bg-background">
+                    <div className="container mx-auto px-4 py-8">
+                      <Skeleton className="h-12 w-64 mb-8" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Skeleton className="h-96 w-full" />
+                        <Skeleton className="h-96 w-full" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              }>
-                <LandingPage />
-              </Suspense>
+                }>
+                  <LandingPage />
+                </Suspense>
+              </AuthenticatedRedirect>
             } 
           />
           <Route 
             path="/login" 
             element={
-              <Suspense fallback={
-                <div className="min-h-screen bg-background">
-                  <div className="grid grid-cols-1 md:grid-cols-2 h-screen">
-                    <Skeleton className="h-full w-full" />
-                    <Skeleton className="h-full w-full" />
+              <AuthenticatedRedirect>
+                <Suspense fallback={
+                  <div className="min-h-screen bg-background">
+                    <div className="grid grid-cols-1 md:grid-cols-2 h-screen">
+                      <Skeleton className="h-full w-full" />
+                      <Skeleton className="h-full w-full" />
+                    </div>
                   </div>
-                </div>
-              }>
-                <LoginPage />
-              </Suspense>
+                }>
+                  <LoginPage />
+                </Suspense>
+              </AuthenticatedRedirect>
             } 
           />
           <Route 
