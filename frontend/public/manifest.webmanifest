@@ -1,0 +1,18 @@
+{
+  "name": "Job Tracker",
+  "short_name": "Job Tracker",
+  "description": "Track job applications, interviews, and resumes.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B0F17",
+  "theme_color": "#14b8a6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

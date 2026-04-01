@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Preconnect to external resources - improves connection time -->
@@ -117,6 +118,22 @@
         "Secure & Private"
       ]
     }
+    </script>
+    <script>
+      // Logged-in users: skip marketing/login and open Job Board (PWA + same browser).
+      // Runs before React so the landing page never flashes when a valid session exists.
+      (function () {
+        try {
+          var token = localStorage.getItem('token');
+          var exp = localStorage.getItem('token_expiry');
+          if (!token) return;
+          if (!exp || Date.now() > parseInt(exp, 10)) return;
+          var path = location.pathname;
+          if (path === '/' || path === '/login') {
+            location.replace('/dashboard' + location.search + location.hash);
+          }
+        } catch (e) { /* ignore */ }
+      })();
     </script>
     <script>
       // Prevent flash of white background by applying theme immediately
