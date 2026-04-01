@@ -60,6 +60,47 @@ export const uploadResume = async (req: AuthRequest, res: Response) => {
   }
 };
 
+function getResumeAbsolutePath(fileUrl: string): string {
+  const relative = fileUrl.replace(/^\//, '');
+  if (process.env.VERCEL === '1') {
+    return path.join('/tmp', relative);
+  }
+  return path.join(process.cwd(), relative);
+}
+
+/** Stream file for owner — works on serverless where /uploads static is not mounted. */
+export const downloadResumeFile = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const resume = await ResumeVersion.findOne({ _id: id, userId: req.user._id });
+    if (!resume) {
+      return res.status(404).json({ success: false, error: 'Resume not found' });
+    }
+
+    const absolutePath = getResumeAbsolutePath(resume.fileUrl);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+
+    const ext = path.extname(resume.fileUrl).toLowerCase();
+    const mimeByExt: Record<string, string> = {
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    const contentType = mimeByExt[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(resume.name || 'resume')}"`
+    );
+    return res.sendFile(path.resolve(absolutePath));
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const getResumes = async (req: AuthRequest, res: Response) => {
   try {
     const resumes = await ResumeVersion.find({ userId: req.user._id }).sort({
@@ -80,7 +121,7 @@ export const deleteResume = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Resume not found' });
     }
 
-    const filePath = path.join(process.cwd(), resume.fileUrl);
+    const filePath = getResumeAbsolutePath(resume.fileUrl);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }

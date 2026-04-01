@@ -4,10 +4,17 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Skeleton } from '../components/ui/skeleton';
-import { Upload, Trash2, FileText, Eye } from 'lucide-react';
+import { Upload, Trash2, FileText, Eye, Download } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { openResumeFile } from '../lib/openResumeFile';
+import {
+  fetchResumeBlob,
+  downloadResumeFile,
+  triggerBlobDownload,
+  buildResumeDownloadFilename,
+  canPreviewResumeInBrowser,
+  ResumeFileError,
+} from '../lib/openResumeFile';
 
 const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'Unknown date';
@@ -20,12 +27,23 @@ const formatDate = (dateString: string | undefined): string => {
   }
 };
 
+type PreviewState = {
+  resumeId: string;
+  displayName: string;
+  fileUrl: string;
+  blobUrl: string;
+  blob: Blob;
+};
+
 export default function ResumeManagerPage() {
   const { resumes, uploadResume, deleteResume, isLoading } = useResumes();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resumeToDelete, setResumeToDelete] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,8 +65,55 @@ export default function ResumeManagerPage() {
     }
   };
 
-  const handleViewResume = (fileUrl: string) => {
-    openResumeFile(fileUrl);
+  const closePreview = () => {
+    if (preview?.blobUrl) {
+      URL.revokeObjectURL(preview.blobUrl);
+    }
+    setPreview(null);
+  };
+
+  const handleViewResume = async (resumeId: string, name: string, fileUrl: string) => {
+    setPreviewLoadingId(resumeId);
+    try {
+      const blob = await fetchResumeBlob(resumeId);
+      const blobUrl = URL.createObjectURL(blob);
+      setPreview((prev) => {
+        if (prev?.blobUrl) URL.revokeObjectURL(prev.blobUrl);
+        return {
+          resumeId,
+          displayName: name,
+          fileUrl,
+          blobUrl,
+          blob,
+        };
+      });
+    } catch (err) {
+      if (err instanceof ResumeFileError && err.code === 'SIGN_IN_REQUIRED') {
+        toast.error('Sign in required', { description: 'Please sign in to view your resume.' });
+      } else {
+        toast.error('Could not load resume', {
+          description:
+            'Check your connection. Ensure VITE_API_URL points to your backend, not the Vercel app URL.',
+        });
+      }
+    } finally {
+      setPreviewLoadingId(null);
+    }
+  };
+
+  const handleDownloadResume = async (resumeId: string, name: string, fileUrl: string) => {
+    setDownloadingId(resumeId);
+    try {
+      await downloadResumeFile(resumeId, name, fileUrl);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadFromPreview = () => {
+    if (!preview) return;
+    const fileName = buildResumeDownloadFilename(preview.displayName, preview.fileUrl);
+    triggerBlobDownload(preview.blob, fileName);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -63,6 +128,10 @@ export default function ResumeManagerPage() {
       setResumeToDelete(null);
     }
   };
+
+  const showIframePreview = preview
+    ? canPreviewResumeInBrowser(preview.blob, preview.fileUrl)
+    : false;
 
   if (isLoading) {
     return (
@@ -83,6 +152,7 @@ export default function ResumeManagerPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2">
+                  <Skeleton className="h-9 flex-1" />
                   <Skeleton className="h-9 flex-1" />
                   <Skeleton className="h-9 w-9" />
                 </div>
@@ -161,21 +231,33 @@ export default function ResumeManagerPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-2">
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleViewResume(resume.fileUrl)}
-                    className="flex-1"
+                    onClick={() => handleViewResume(resume._id, resume.name, resume.fileUrl)}
+                    disabled={previewLoadingId === resume._id}
+                    className="flex-1 min-w-[5rem]"
                   >
-                    <Eye className="h-4 w-4 mr-1.5" />
-                    View
+                    <Eye className="h-4 w-4 mr-1.5 shrink-0" />
+                    {previewLoadingId === resume._id ? 'Loading…' : 'View'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadResume(resume._id, resume.name, resume.fileUrl)}
+                    disabled={downloadingId === resume._id}
+                    className="flex-1 min-w-[5rem]"
+                  >
+                    <Download className="h-4 w-4 mr-1.5 shrink-0" />
+                    {downloadingId === resume._id ? '…' : 'Download'}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteClick(resume._id)}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700"
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 shrink-0"
+                    aria-label="Delete resume"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -185,6 +267,62 @@ export default function ResumeManagerPage() {
           ))}
         </div>
       )}
+
+      {/* Preview dialog */}
+      <Dialog
+        open={!!preview}
+        onOpenChange={(open) => {
+          if (!open) closePreview();
+        }}
+        containerClassName="max-w-5xl"
+      >
+        <DialogContent onClose={closePreview} className="flex flex-col max-h-[90vh] overflow-hidden p-0 sm:p-0 gap-0">
+          {preview && (
+            <>
+              <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 border-b border-slate-200 dark:border-slate-700">
+                <DialogHeader className="mb-0 pr-8">
+                  <DialogTitle className="truncate">{preview.displayName}</DialogTitle>
+                  <DialogDescription>
+                    {showIframePreview
+                      ? 'Preview below. Download saves a copy to your device.'
+                      : 'In-browser preview is not available for this file type. Use Download to open it on your device.'}
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
+              <div className="flex-1 min-h-0 bg-slate-100 dark:bg-slate-900/50">
+                {showIframePreview ? (
+                  <iframe
+                    title={`Resume preview: ${preview.displayName}`}
+                    src={preview.blobUrl}
+                    className="w-full h-[min(70vh,720px)] min-h-[240px] border-0 block bg-white"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center text-slate-600 dark:text-slate-400">
+                    <FileText className="h-12 w-12 opacity-50" />
+                    <p className="text-sm max-w-sm">
+                      Word documents usually cannot be previewed in the browser here. Tap Download to save the file and
+                      open it in Word or another app.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap justify-end gap-2 px-5 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-background rounded-b-xl">
+                <Button type="button" variant="outline" onClick={closePreview}>
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDownloadFromPreview}
+                  className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
