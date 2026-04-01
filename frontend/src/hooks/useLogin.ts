@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { getApiBaseUrl } from '../lib/apiBase';
 
 /**
  * Lightweight login hook that only handles the login redirect.
@@ -7,7 +8,7 @@ import { useMutation } from '@tanstack/react-query';
 export const useLogin = () => {
   const loginMutation = useMutation({
     mutationFn: async () => {
-      window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/google`;
+      window.location.href = `${getApiBaseUrl()}/auth/google`;
     },
   });
 

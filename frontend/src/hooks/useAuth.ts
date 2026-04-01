@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { User } from '../types';
+import { getApiBaseUrl } from '../lib/apiBase';
 
 export const useAuth = () => {
   const { setUser, token } = useAuthStore();
@@ -42,7 +43,7 @@ export const useAuth = () => {
 
   const loginMutation = useMutation({
     mutationFn: async () => {
-      window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/google`;
+      window.location.href = `${getApiBaseUrl()}/auth/google`;
     },
   });
 

@@ -13,7 +13,7 @@ import {
   triggerBlobDownload,
   buildResumeDownloadFilename,
   canPreviewResumeInBrowser,
-  ResumeFileError,
+  showResumeFetchErrorToast,
 } from '../lib/openResumeFile';
 
 const formatDate = (dateString: string | undefined): string => {
@@ -88,14 +88,7 @@ export default function ResumeManagerPage() {
         };
       });
     } catch (err) {
-      if (err instanceof ResumeFileError && err.code === 'SIGN_IN_REQUIRED') {
-        toast.error('Sign in required', { description: 'Please sign in to view your resume.' });
-      } else {
-        toast.error('Could not load resume', {
-          description:
-            'Check your connection. Ensure VITE_API_URL points to your backend, not the Vercel app URL.',
-        });
-      }
+      showResumeFetchErrorToast(err, 'view');
     } finally {
       setPreviewLoadingId(null);
     }

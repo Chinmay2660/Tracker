@@ -1,16 +1,19 @@
 import { toast } from 'sonner';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { getApiBaseUrl } from './apiBase';
 
 function resumeFileUrl(resumeId: string): string {
-  const apiBase = API_BASE.replace(/\/$/, '');
-  return `${apiBase}/resumes/${resumeId}/file`;
+  return `${getApiBaseUrl()}/resumes/${resumeId}/file`;
 }
 
 export class ResumeFileError extends Error {
   constructor(
     message: string,
-    public readonly code: 'SIGN_IN_REQUIRED' | 'FETCH_FAILED'
+    public readonly code:
+      | 'SIGN_IN_REQUIRED'
+      | 'FETCH_FAILED'
+      | 'UNAUTHORIZED'
+      | 'CORS_OR_NETWORK',
+    public readonly httpStatus?: number
   ) {
     super(message);
     this.name = 'ResumeFileError';
@@ -26,15 +29,45 @@ export async function fetchResumeBlob(resumeId: string): Promise<Blob> {
     throw new ResumeFileError('Sign in required', 'SIGN_IN_REQUIRED');
   }
 
-  const res = await fetch(resumeFileUrl(resumeId), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  let res: Response;
+  try {
+    res = await fetch(resumeFileUrl(resumeId), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (e) {
+    if (e instanceof TypeError) {
+      throw new ResumeFileError('Could not reach the server.', 'CORS_OR_NETWORK');
+    }
+    throw e;
+  }
+
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+    throw new ResumeFileError('Session expired', 'UNAUTHORIZED');
+  }
 
   if (!res.ok) {
-    throw new ResumeFileError(`HTTP ${res.status}`, 'FETCH_FAILED');
+    throw new ResumeFileError(`HTTP ${res.status}`, 'FETCH_FAILED', res.status);
   }
 
   return res.blob();
+}
+
+export function showResumeFetchErrorToast(err: unknown, context: 'view' | 'download'): void {
+  const action = context === 'view' ? 'load' : 'download';
+
+  if (err instanceof ResumeFileError && err.code === 'UNAUTHORIZED') return;
+  if (err instanceof ResumeFileError && err.code === 'SIGN_IN_REQUIRED') {
+    toast.error('Sign in required', {
+      description: `Please sign in to ${action} your resume.`,
+    });
+    return;
+  }
+
+  const description =
+    err instanceof ResumeFileError ? err.message : 'Something went wrong. Try again.';
+  toast.error(`Could not ${action} resume`, { description });
 }
 
 /** Safe download filename from display name + stored path extension. */
@@ -67,14 +100,7 @@ export async function downloadResumeFile(
     const fileName = buildResumeDownloadFilename(displayName, fileUrl);
     triggerBlobDownload(blob, fileName);
   } catch (err) {
-    if (err instanceof ResumeFileError && err.code === 'SIGN_IN_REQUIRED') {
-      toast.error('Sign in required', { description: 'Please sign in to download your resume.' });
-      return;
-    }
-    toast.error('Could not download resume', {
-      description:
-        'Check your connection. Ensure VITE_API_URL points to your backend, not the Vercel app URL.',
-    });
+    showResumeFetchErrorToast(err, 'download');
   }
 }
 
