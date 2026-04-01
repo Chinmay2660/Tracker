@@ -18,6 +18,7 @@ import columnRoutes from "./routes/columns";
 import jobRoutes from "./routes/jobs";
 import interviewRoutes from "./routes/interviews";
 import resumeRoutes from "./routes/resumes";
+import hrContactRoutes from "./routes/hrContacts";
 import "./config/passport";
 
 const app = express();
@@ -65,6 +66,7 @@ app.use("/columns", columnRoutes);
 app.use("/jobs", jobRoutes);
 app.use("/interviews", interviewRoutes);
 app.use("/resumes", resumeRoutes);
+app.use("/hr-contacts", hrContactRoutes);
 
 // Root route
 app.get("/", (req, res) => {

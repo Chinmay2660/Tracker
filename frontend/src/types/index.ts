@@ -84,9 +84,44 @@ export interface Job {
   updatedAt: string;
 }
 
+export type HrCompanyType =
+  | 'consultancy'
+  | 'third_party_payroll'
+  | 'service_based'
+  | 'product_based';
+
+/** Saved HR directory entry (HR Contacts tab) */
+export interface HrContactRecord {
+  _id: string;
+  userId: string;
+  companyName: string;
+  hrName: string;
+  phone: string;
+  phoneNormalized?: string;
+  email?: string;
+  /** What you told this recruiter about notice / LWD (per company story). */
+  noticePeriodLwdNote?: string;
+  companyType: HrCompanyType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Populated HR on an interview from the API */
+export interface HrContactBrief {
+  _id: string;
+  companyName: string;
+  hrName: string;
+  phone: string;
+  email?: string;
+  noticePeriodLwdNote?: string;
+  companyType: HrCompanyType;
+}
+
 export interface InterviewRound {
   _id: string;
   jobId: string;
+  /** Set when an HR from the directory is linked; may be populated as `HrContactBrief` */
+  hrContactId?: string | HrContactBrief | null;
   stage: string;
   date: string;
   time?: string;

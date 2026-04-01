@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useInterviews } from '../hooks/useInterviews';
 import { useJobs } from '../hooks/useJobs';
 import { useColumns } from '../hooks/useColumns';
+import { useHrContacts } from '../hooks/useHrContacts';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -15,8 +16,20 @@ import { InterviewRound } from '../types';
 import { format } from 'date-fns';
 import { Trash2, AlertCircle } from 'lucide-react';
 
+function resolveHrContactIdValue(
+  hr: InterviewRound['hrContactId']
+): string {
+  if (!hr) return '';
+  if (typeof hr === 'string') return hr;
+  if (typeof hr === 'object' && hr !== null && '_id' in hr) {
+    return String((hr as { _id: string })._id);
+  }
+  return '';
+}
+
 const interviewSchema = z.object({
   jobId: z.string().min(1, 'Job is required'),
+  hrContactId: z.string().optional(),
   stage: z.string().min(1, 'Stage is required'),
   date: z.string().optional(),
   time: z.string().min(1, 'From time is required'),
@@ -52,6 +65,7 @@ export default function InterviewForm({
   const { createInterviewAsync, updateInterviewAsync, deleteInterviewAsync } = useInterviews();
   const { jobs = [] } = useJobs();
   const { columns = [] } = useColumns();
+  const { hrContacts = [] } = useHrContacts();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const {
@@ -64,6 +78,7 @@ export default function InterviewForm({
     defaultValues: interview
       ? {
           jobId: interview.jobId,
+          hrContactId: resolveHrContactIdValue(interview.hrContactId),
           stage: interview.stage,
           date: interview.date.includes('T') 
             ? interview.date.split('T')[0] 
@@ -75,6 +90,8 @@ export default function InterviewForm({
         }
       : defaultDate
       ? {
+          jobId: '',
+          hrContactId: '',
           date: format(defaultDate, 'yyyy-MM-dd'),
           time: format(defaultDate, 'HH:mm'),
           endTime: defaultEndDate ? format(defaultEndDate, 'HH:mm') : format(new Date(defaultDate.getTime() + 60 * 60 * 1000), 'HH:mm'),
@@ -82,6 +99,8 @@ export default function InterviewForm({
           notesMarkdown: '',
         }
       : {
+          jobId: '',
+          hrContactId: '',
           time: '09:00',
           endTime: '10:00',
           status: 'pending',
@@ -96,6 +115,9 @@ export default function InterviewForm({
 
   // Sort columns by order for the dropdown
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
+  const hrOptions = [...hrContacts].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   const onSubmit = async (data: InterviewFormData) => {
     setFormError(null);
@@ -120,6 +142,7 @@ export default function InterviewForm({
           endTime: data.endTime ?? '10:00',
           status: data.status ?? 'pending',
           notesMarkdown: data.notesMarkdown || undefined,
+          hrContactId: data.hrContactId?.trim() ? data.hrContactId.trim() : '',
         };
         await updateInterviewAsync({ id: interview._id, ...updateData });
       } else {
@@ -137,6 +160,9 @@ export default function InterviewForm({
           status: data.status ?? 'pending',
           notesMarkdown: data.notesMarkdown || undefined,
         };
+        if (data.hrContactId?.trim()) {
+          interviewData.hrContactId = data.hrContactId.trim();
+        }
         await createInterviewAsync(interviewData);
       }
       onSuccess?.();
@@ -173,6 +199,21 @@ export default function InterviewForm({
         {errors.jobId && (
           <p className="text-sm text-destructive mt-1">{errors.jobId.message}</p>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="hrContactId">HR contact (optional)</Label>
+        <Select id="hrContactId" {...register('hrContactId')}>
+          <option value="">None</option>
+          {hrOptions.map((h) => (
+            <option key={h._id} value={h._id}>
+              {h.companyName} — {h.hrName}
+            </option>
+          ))}
+        </Select>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Manage contacts in the HR Contacts tab. Newest contacts appear first.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IInterviewRound extends Document {
   jobId: mongoose.Types.ObjectId;
+  hrContactId?: mongoose.Types.ObjectId;
   stage: string;
   date: Date;
   time?: string;
@@ -14,6 +15,7 @@ export interface IInterviewRound extends Document {
 const InterviewRoundSchema = new Schema<IInterviewRound>(
   {
     jobId: { type: Schema.Types.ObjectId, ref: 'Job', required: true },
+    hrContactId: { type: Schema.Types.ObjectId, ref: 'HrContact' },
     stage: { type: String, required: true },
     date: { type: Date, required: true },
     time: { type: String },
