@@ -3,5 +3,5 @@ Allow: /
 Disallow: /api/
 Disallow: /auth/
 
-Sitemap: https://jobtracker.app/sitemap.xml
+Sitemap: https://ui-tracker.vercel.app/sitemap.xml
 
