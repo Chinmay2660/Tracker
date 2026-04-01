@@ -1,9 +1,12 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, LayoutDashboard } from 'lucide-react';
 import { ShimmerButton } from '../effects';
+import { useAuth } from '../../hooks/useAuth';
 
 function CTASection() {
+  const { user } = useAuth();
+
   return (
     <section className="py-10 sm:py-16 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto scroll-reveal-scale">
@@ -24,9 +27,18 @@ function CTASection() {
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-6 max-w-md mx-auto group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
               Join thousands of successful job seekers. Start tracking in under a minute.
             </p>
-            <Link to="/login">
+            <Link to={user ? '/dashboard' : '/login'}>
               <ShimmerButton className="h-12 px-8 text-white text-base font-medium shadow-lg shadow-teal-500/25">
-                Get Started Free <ArrowRight className="w-4 h-4 ml-2" />
+                {user ? (
+                  <>
+                    <LayoutDashboard className="w-4 h-4 mr-2 inline" />
+                    Open Job Board
+                  </>
+                ) : (
+                  <>
+                    Get Started Free <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
               </ShimmerButton>
             </Link>
           </div>

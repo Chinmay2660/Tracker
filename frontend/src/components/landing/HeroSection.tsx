@@ -1,10 +1,13 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Check } from 'lucide-react';
+import { ArrowRight, Sparkles, Check, LayoutDashboard } from 'lucide-react';
 import { Button } from '../ui/button';
 import { BorderBeam, AnimatedText, ShimmerButton } from '../effects';
+import { useAuth } from '../../hooks/useAuth';
 
 function HeroSection() {
+  const { user } = useAuth();
+
   return (
     <section className="relative pt-28 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
@@ -26,9 +29,18 @@ function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
-              <Link to="/login">
+              <Link to={user ? '/dashboard' : '/login'}>
                 <ShimmerButton className="w-full sm:w-auto h-12 px-6 text-white text-base font-medium shadow-lg shadow-teal-500/25">
-                  Start Free Today <ArrowRight className="w-4 h-4 ml-2" />
+                  {user ? (
+                    <>
+                      <LayoutDashboard className="w-4 h-4 mr-2 inline" />
+                      Open Job Board
+                    </>
+                  ) : (
+                    <>
+                      Start Free Today <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </ShimmerButton>
               </Link>
               <Button variant="outline" className="w-full sm:w-auto h-12 px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md transition-all duration-300 rounded-full text-base">
