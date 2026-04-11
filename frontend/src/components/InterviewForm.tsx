@@ -7,6 +7,7 @@ import { useInterviews } from '../hooks/useInterviews';
 import { useJobs } from '../hooks/useJobs';
 import { useColumns } from '../hooks/useColumns';
 import { useHrContacts } from '../hooks/useHrContacts';
+import { formatHrContactCompanyDisplay } from '../lib/hrContactDisplay';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -207,7 +208,7 @@ export default function InterviewForm({
           <option value="">None</option>
           {hrOptions.map((h) => (
             <option key={h._id} value={h._id}>
-              {`${h.companyName?.trim() || '—'} — ${h.hrName?.trim() || '—'}`}
+              {`${formatHrContactCompanyDisplay(h)} — ${h.hrName?.trim() || '—'}`}
             </option>
           ))}
         </Select>

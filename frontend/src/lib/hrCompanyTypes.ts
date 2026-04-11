@@ -1,10 +1,10 @@
 import { HrCompanyType } from '../types';
 
 export const HR_COMPANY_TYPE_LABELS: Record<HrCompanyType, string> = {
-  consultancy: 'Consultancy (hires for other companies)',
-  third_party_payroll: 'Third-party payroll',
-  service_based: 'Service-based company',
-  product_based: 'Product-based company',
+  consultancy: 'HR Consultancy',
+  third_party_payroll: 'Third-Party Payroll',
+  service_based: 'Service-Based Company',
+  product_based: 'Product-Based Company',
 };
 
 export const HR_COMPANY_TYPE_OPTIONS: { value: HrCompanyType; label: string }[] = (

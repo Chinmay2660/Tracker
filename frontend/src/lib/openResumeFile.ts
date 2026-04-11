@@ -104,8 +104,10 @@ export async function downloadResumeFile(
   }
 }
 
-/** PDFs can be shown in an iframe; Word docs usually cannot. */
-export function canPreviewResumeInBrowser(blob: Blob, fileUrl: string): boolean {
-  if (blob.type === 'application/pdf') return true;
-  return fileUrl.toLowerCase().endsWith('.pdf');
+/**
+ * Opens a blob URL in a new tab (PDF viewer, download, or system handler). Returns false if pop-ups are blocked.
+ */
+export function openResumeBlobUrlInNewTab(blobUrl: string): boolean {
+  const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+  return win != null;
 }

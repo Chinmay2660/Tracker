@@ -19,6 +19,7 @@ import { Stepper } from './ui/stepper';
 import TagSelect from './TagSelect';
 import AddStageDialog from './AddStageDialog';
 import { HrContactRecord, Job } from '../types';
+import { formatHrContactCompanyDisplay } from '../lib/hrContactDisplay';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import { Trash2, ChevronLeft, ChevronRight, Plus, X, Search } from 'lucide-react';
@@ -110,7 +111,7 @@ function filterHrDirectoryContacts(contacts: HrContactRecord[], query: string): 
   const q = query.trim().toLowerCase();
   if (!q) return contacts;
   return contacts.filter((c) => {
-    const hay = `${c.companyName} ${c.hrName} ${c.phone} ${c.email ?? ''}`.toLowerCase();
+    const hay = `${c.companyName ?? ''} ${c.intermediaryCompanyName ?? ''} ${c.hrName} ${c.phone} ${c.email ?? ''}`.toLowerCase();
     return hay.includes(q);
   });
 }
@@ -780,7 +781,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                               onClick={() => applyHrFromDirectory(c)}
                             >
                               <span className="font-medium text-slate-900 dark:text-slate-100">
-                                {c.companyName?.trim() || '—'}
+                                {formatHrContactCompanyDisplay(c)}
                               </span>
                               <span className="text-slate-600 dark:text-slate-400">
                                 {' '}
