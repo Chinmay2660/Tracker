@@ -25,6 +25,10 @@ import "./config/passport";
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+if (process.env.VERCEL || process.env.RAILWAY_ENVIRONMENT || process.env.TRUST_PROXY === "1") {
+  app.set("trust proxy", 1);
+}
+
 // Security Middleware (must be first)
 app.use(securityHeaders);
 app.use(additionalSecurityHeaders);

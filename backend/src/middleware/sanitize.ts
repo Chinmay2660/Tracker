@@ -1,33 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import DOMPurify from 'dompurify';
-import { JSDOM } from 'jsdom';
-
-// Create a window object for DOMPurify in Node.js environment
-const window = new JSDOM('').window;
-const purify = DOMPurify(window as any);
 
 /**
- * Sanitize a string to prevent XSS attacks
+ * Strip HTML / XSS patterns from plain strings (Node-safe, no JSDOM/DOMPurify).
+ * Avoids ESM/CJS issues on Vercel (jsdom → html-encoding-sniffer → @exodus/bytes).
  */
 const sanitizeString = (str: string): string => {
-  // Remove HTML tags and dangerous content
-  const sanitized = purify.sanitize(str, {
-    ALLOWED_TAGS: [], // Remove all HTML tags
-    ALLOWED_ATTR: [], // Remove all attributes
-    KEEP_CONTENT: true, // Keep text content but remove tags
-  });
-  
-  // Additional escape for common XSS patterns
-  return sanitized
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, ''); // Remove event handlers
+  return str
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '');
 };
 
 /**
  * Recursively sanitize an object to prevent XSS attacks
  */
-const sanitizeObject = (obj: any): any => {
+const sanitizeObject = (obj: unknown): unknown => {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -41,12 +29,11 @@ const sanitizeObject = (obj: any): any => {
   }
 
   if (typeof obj === 'object') {
-    const sanitized: any = {};
+    const sanitized: Record<string, unknown> = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        // Sanitize the key as well
         const sanitizedKey = typeof key === 'string' ? sanitizeString(key) : key;
-        sanitized[sanitizedKey] = sanitizeObject(obj[key]);
+        sanitized[sanitizedKey] = sanitizeObject((obj as Record<string, unknown>)[key]);
       }
     }
     return sanitized;
@@ -81,8 +68,7 @@ export const sanitizeInput = (
   }
   setSanitizedQuery(req, sanitizeObject(req.query));
   if (req.params) {
-    req.params = sanitizeObject(req.params);
+    req.params = sanitizeObject(req.params) as typeof req.params;
   }
   next();
 };
-

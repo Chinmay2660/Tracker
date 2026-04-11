@@ -12,7 +12,7 @@ try {
   const express = require('express');
   const fallbackApp = express();
   fallbackApp.use(express.json());
-  fallbackApp.all('*', (req, res) => {
+  fallbackApp.use((req, res) => {
     console.log(`Fallback handler: ${req.method} ${req.path}`);
     res.status(500).json({ 
       success: false, 
