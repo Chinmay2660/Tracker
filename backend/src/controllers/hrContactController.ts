@@ -14,6 +14,7 @@ const companyTypeEnum = z.enum([
 
 type HrBody = {
   companyName?: string;
+  intermediaryCompanyName?: string;
   hrName?: string;
   phone?: string;
   email?: string;
@@ -28,6 +29,7 @@ function trimOrEmpty(s: string | undefined): string {
 /** True if at least one meaningful field is filled (phone counts when it has digits). */
 export function hrContactHasAtLeastOneField(input: HrBody): boolean {
   if (trimOrEmpty(input.companyName)) return true;
+  if (trimOrEmpty(input.intermediaryCompanyName)) return true;
   if (trimOrEmpty(input.hrName)) return true;
   if (normalizePhoneDigits(trimOrEmpty(input.phone))) return true;
   if (trimOrEmpty(input.email)) return true;
@@ -43,6 +45,7 @@ const optionalCompanyType = z.preprocess(
 
 const optionalHrFields = {
   companyName: z.string().optional(),
+  intermediaryCompanyName: z.string().optional(),
   hrName: z.string().optional(),
   phone: z.string().optional(),
   email: z.union([z.string().email(), z.literal('')]).optional(),
@@ -113,6 +116,11 @@ export const createHrContact = async (req: AuthRequest, res: Response) => {
         ? trimOrEmpty(data.noticePeriodLwdNote)
         : undefined;
 
+    const intermediary =
+      data.intermediaryCompanyName !== undefined
+        ? trimOrEmpty(data.intermediaryCompanyName)
+        : undefined;
+
     const doc: Record<string, unknown> = {
       userId: req.user._id,
       companyName: trimOrEmpty(data.companyName),
@@ -122,6 +130,10 @@ export const createHrContact = async (req: AuthRequest, res: Response) => {
       noticePeriodLwdNote: noticeNote,
       companyType: data.companyType,
     };
+
+    if (data.intermediaryCompanyName !== undefined) {
+      doc.intermediaryCompanyName = intermediary === '' ? undefined : intermediary;
+    }
 
     if (phoneNormalized) {
       doc.phoneNormalized = phoneNormalized;
@@ -162,6 +174,10 @@ export const updateHrContact = async (req: AuthRequest, res: Response) => {
     const merged: HrBody = {
       companyName:
         data.companyName !== undefined ? trimOrEmpty(data.companyName) : existing.companyName,
+      intermediaryCompanyName:
+        data.intermediaryCompanyName !== undefined
+          ? trimOrEmpty(data.intermediaryCompanyName)
+          : existing.intermediaryCompanyName ?? '',
       hrName: data.hrName !== undefined ? trimOrEmpty(data.hrName) : existing.hrName,
       phone: data.phone !== undefined ? trimOrEmpty(data.phone) : existing.phone,
       email: data.email !== undefined ? trimOrEmpty(data.email) : existing.email ?? '',
@@ -201,8 +217,18 @@ export const updateHrContact = async (req: AuthRequest, res: Response) => {
           : trimOrEmpty(data.noticePeriodLwdNote);
     }
 
-    const $set: Record<string, unknown> = { ...updatePayload };
     const $unset: Record<string, 1> = {};
+
+    if (data.intermediaryCompanyName !== undefined) {
+      const t = trimOrEmpty(data.intermediaryCompanyName);
+      if (t === '') {
+        $unset.intermediaryCompanyName = 1;
+      } else {
+        updatePayload.intermediaryCompanyName = t;
+      }
+    }
+
+    const $set: Record<string, unknown> = { ...updatePayload };
 
     if (data.phone !== undefined) {
       const phoneNormalized = normalizePhoneDigits(trimOrEmpty(data.phone));

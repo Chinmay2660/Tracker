@@ -57,7 +57,7 @@ export const createInterview = async (req: AuthRequest, res: Response) => {
 
     const populated = await InterviewRound.findById(interview._id).populate(
       'hrContactId',
-      'companyName hrName phone email companyType noticePeriodLwdNote'
+      'companyName intermediaryCompanyName hrName phone email companyType noticePeriodLwdNote'
     );
 
     res.status(201).json({ success: true, interview: populated });
@@ -79,7 +79,7 @@ export const getJobInterviews = async (req: AuthRequest, res: Response) => {
     }
 
     const interviews = await InterviewRound.find({ jobId })
-      .populate('hrContactId', 'companyName hrName phone email companyType noticePeriodLwdNote')
+      .populate('hrContactId', 'companyName intermediaryCompanyName hrName phone email companyType noticePeriodLwdNote')
       .sort({ date: 1 });
     res.json({ success: true, interviews });
   } catch (error: any) {
@@ -148,7 +148,7 @@ export const updateInterview = async (req: AuthRequest, res: Response) => {
       id,
       mongoUpdate,
       { new: true }
-    ).populate('hrContactId', 'companyName hrName phone email companyType noticePeriodLwdNote');
+    ).populate('hrContactId', 'companyName intermediaryCompanyName hrName phone email companyType noticePeriodLwdNote');
 
     res.json({ success: true, interview: updatedInterview });
   } catch (error: any) {

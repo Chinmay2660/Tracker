@@ -9,6 +9,11 @@ export type HrCompanyType =
 export interface IHrContact extends Document {
   userId: mongoose.Types.ObjectId;
   companyName: string;
+  /**
+   * When companyType is consultancy: HR agency name.
+   * When third_party_payroll: payroll provider name.
+   */
+  intermediaryCompanyName?: string;
   hrName: string;
   phone: string;
   /** Digits-only key for duplicate detection; omitted when phone is empty. */
@@ -25,6 +30,7 @@ const HrContactSchema = new Schema<IHrContact>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     companyName: { type: String, default: '', trim: true },
+    intermediaryCompanyName: { type: String, required: false, trim: true },
     hrName: { type: String, default: '', trim: true },
     phone: { type: String, default: '', trim: true },
     phoneNormalized: { type: String, required: false },

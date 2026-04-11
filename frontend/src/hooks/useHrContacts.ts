@@ -7,6 +7,7 @@ export const HR_CONTACTS_QUERY_KEY = ['hr-contacts'] as const;
 
 export type HrContactInput = {
   companyName: string;
+  intermediaryCompanyName: string;
   hrName: string;
   phone: string;
   email?: string;

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useJobs } from '../hooks/useJobs';
 import api from '../lib/api';
 import { HrContactBrief, InterviewRound, Job } from '../types';
+import { formatHrContactCompanyDisplay } from '../lib/hrContactDisplay';
 import InterviewFormDialog from '../components/InterviewFormDialog';
 import RescheduleDialog from '../components/RescheduleDialog';
 import { Button } from '../components/ui/button';
@@ -269,6 +270,7 @@ export default function InterviewsPage() {
           {filteredInterviews.map((interview) => {
             const job = getJob(interview.jobId);
             const hr = getInterviewHrBrief(interview);
+            const hrCompanyLine = hr ? formatHrContactCompanyDisplay(hr) : '—';
             const interviewDate = getInterviewDate(interview);
             const isOverdue = isInterviewOverdue(interview);
             
@@ -335,7 +337,7 @@ export default function InterviewsPage() {
                       <span className="truncate">
                         HR: {hr.hrName?.trim() || '—'}
                         {hr.phone?.trim() ? ` · ${hr.phone.trim()}` : ''}
-                        {hr.companyName?.trim() ? ` (${hr.companyName.trim()})` : ''}
+                        {hrCompanyLine !== '—' ? ` (${hrCompanyLine})` : ''}
                       </span>
                     </div>
                   )}

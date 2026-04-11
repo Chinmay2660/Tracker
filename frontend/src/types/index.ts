@@ -102,6 +102,8 @@ export interface HrContactRecord {
   /** What you told this recruiter about notice / LWD (per company story). */
   noticePeriodLwdNote?: string;
   companyType?: HrCompanyType;
+  /** Consultancy agency name, or third-party payroll provider (see companyType). */
+  intermediaryCompanyName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,6 +112,7 @@ export interface HrContactRecord {
 export interface HrContactBrief {
   _id: string;
   companyName?: string;
+  intermediaryCompanyName?: string;
   hrName?: string;
   phone?: string;
   email?: string;

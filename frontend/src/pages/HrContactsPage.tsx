@@ -9,11 +9,13 @@ import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
 import { HR_COMPANY_TYPE_LABELS, HR_COMPANY_TYPE_OPTIONS } from '../lib/hrCompanyTypes';
+import { formatHrContactCompanyDisplay } from '../lib/hrContactDisplay';
 import { normalizePhoneDigits } from '../lib/phoneNormalize';
 import { Plus, Pencil, Trash2, Phone, Building2, User, StickyNote } from 'lucide-react';
 
 const emptyForm: HrContactInput = {
   companyName: '',
+  intermediaryCompanyName: '',
   hrName: '',
   phone: '',
   email: '',
@@ -23,6 +25,7 @@ const emptyForm: HrContactInput = {
 
 function hasAtLeastOneHrField(f: HrContactInput): boolean {
   if (f.companyName.trim()) return true;
+  if (f.intermediaryCompanyName.trim()) return true;
   if (f.hrName.trim()) return true;
   if (normalizePhoneDigits(f.phone)) return true;
   if (f.email?.trim()) return true;
@@ -78,6 +81,7 @@ export default function HrContactsPage() {
     setEditing(row);
     setForm({
       companyName: row.companyName ?? '',
+      intermediaryCompanyName: row.intermediaryCompanyName ?? '',
       hrName: row.hrName ?? '',
       phone: row.phone ?? '',
       email: row.email ?? '',
@@ -103,6 +107,7 @@ export default function HrContactsPage() {
     try {
       const payload: HrContactInput = {
         companyName: form.companyName.trim(),
+        intermediaryCompanyName: form.intermediaryCompanyName.trim(),
         hrName: form.hrName.trim(),
         phone: form.phone.trim(),
         email: form.email?.trim() || undefined,
@@ -231,7 +236,7 @@ export default function HrContactsPage() {
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" aria-hidden />
                       <span className="font-medium text-slate-900 dark:text-white truncate">
-                        {row.companyName?.trim() || '—'}
+                        {formatHrContactCompanyDisplay(row)}
                       </span>
                     </div>
                   </td>
@@ -317,16 +322,87 @@ export default function HrContactsPage() {
               </p>
             )}
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company name</Label>
-              <Input
-                id="companyName"
-                value={form.companyName}
-                onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
-                placeholder="Acme Corp"
-              />
+              <Label htmlFor="companyType">Company Type</Label>
+              <Select
+                id="companyType"
+                value={form.companyType ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    companyType: v === '' ? undefined : (v as HrCompanyType),
+                  }));
+                }}
+              >
+                <option value="">Select Type (Optional)</option>
+                {HR_COMPANY_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
             </div>
+            {form.companyType === 'consultancy' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="intermediaryCompanyName">HR Consultancy Name</Label>
+                  <Input
+                    id="intermediaryCompanyName"
+                    value={form.intermediaryCompanyName}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))
+                    }
+                    placeholder="Agency or consultancy you deal with"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Company Name</Label>
+                  <Input
+                    id="companyName"
+                    value={form.companyName}
+                    onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
+                    placeholder="Client company they are hiring for"
+                  />
+                </div>
+              </>
+            )}
+            {form.companyType === 'third_party_payroll' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="intermediaryCompanyNamePayroll">Third Party Company Name</Label>
+                  <Input
+                    id="intermediaryCompanyNamePayroll"
+                    value={form.intermediaryCompanyName}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))
+                    }
+                    placeholder="Payroll or staffing company"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyNamePayroll">Client Name</Label>
+                  <Input
+                    id="companyNamePayroll"
+                    value={form.companyName}
+                    onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
+                    placeholder="Where you work on paper / end client"
+                  />
+                </div>
+              </>
+            )}
+            {form.companyType !== 'consultancy' && form.companyType !== 'third_party_payroll' && (
+              <div className="space-y-2">
+                <Label htmlFor="companyNameSimple">Company Name</Label>
+                <Input
+                  id="companyNameSimple"
+                  value={form.companyName}
+                  onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
+                  placeholder="Acme Corp"
+                />
+              </div>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="hrName">HR / recruiter name</Label>
+              <Label htmlFor="hrName">HR / Recruiter Name</Label>
               <Input
                 id="hrName"
                 value={form.hrName}
@@ -358,7 +434,7 @@ export default function HrContactsPage() {
             <div className="space-y-2">
               <Label htmlFor="noticePeriodLwdNote" className="flex items-center gap-2">
                 <StickyNote className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                Notice period &amp; LWD (what you told this recruiter)
+                Notice Period &amp; LWD (What you told this recruiter)
               </Label>
               <textarea
                 id="noticePeriodLwdNote"
@@ -372,27 +448,6 @@ export default function HrContactsPage() {
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 {(form.noticePeriodLwdNote ?? '').length}/5000
               </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyType">Company type</Label>
-              <Select
-                id="companyType"
-                value={form.companyType ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setForm((f) => ({
-                    ...f,
-                    companyType: v === '' ? undefined : (v as HrCompanyType),
-                  }));
-                }}
-              >
-                <option value="">Select type (optional)</option>
-                {HR_COMPANY_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
             </div>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
