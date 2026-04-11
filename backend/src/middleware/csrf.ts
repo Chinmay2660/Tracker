@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { isOriginAllowedForBrowser } from '../config/allowedOrigins';
 
 /**
  * CSRF Protection for API endpoints
@@ -20,31 +21,25 @@ export const csrfProtection = (
     return next();
   }
 
-  const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:3000',
-  ];
-
-  const origin = req.headers.origin || req.headers.referer;
+  const raw = req.headers.origin || req.headers.referer;
   
   // In development, allow requests without origin (e.g., Postman)
-  if (process.env.NODE_ENV === 'development' && !origin) {
+  if (process.env.NODE_ENV === 'development' && !raw) {
     return next();
   }
 
-  // Check if origin is allowed
-  if (origin) {
-    const originUrl = new URL(origin);
-    const isAllowed = allowedOrigins.some((allowed) => {
-      try {
-        const allowedUrl = new URL(allowed);
-        return originUrl.origin === allowedUrl.origin;
-      } catch {
-        return false;
-      }
-    });
-
-    if (!isAllowed) {
+  // Check if origin is allowed (same list as CORS)
+  if (raw) {
+    let requestOrigin: string;
+    try {
+      requestOrigin = /^https?:\/\//i.test(raw) ? new URL(raw).origin : raw;
+    } catch {
+      return res.status(403).json({
+        success: false,
+        error: 'CSRF validation failed: Invalid origin',
+      });
+    }
+    if (!isOriginAllowedForBrowser(requestOrigin)) {
       return res.status(403).json({
         success: false,
         error: 'CSRF validation failed: Invalid origin',
