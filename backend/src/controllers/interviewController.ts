@@ -63,7 +63,7 @@ export const createInterview = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, interview: populated });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      return res.status(400).json({ success: false, error: error.issues });
     }
     res.status(500).json({ success: false, error: error.message });
   }
@@ -80,7 +80,8 @@ export const getJobInterviews = async (req: AuthRequest, res: Response) => {
 
     const interviews = await InterviewRound.find({ jobId })
       .populate('hrContactId', 'companyName intermediaryCompanyName hrName phone email companyType noticePeriodLwdNote')
-      .sort({ date: 1 });
+      .sort({ date: 1 })
+      .lean();
     res.json({ success: true, interviews });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -153,7 +154,7 @@ export const updateInterview = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, interview: updatedInterview });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      return res.status(400).json({ success: false, error: error.issues });
     }
     res.status(500).json({ success: false, error: error.message });
   }

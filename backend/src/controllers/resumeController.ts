@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 import ResumeVersion from '../models/ResumeVersion';
@@ -92,20 +92,76 @@ function getResumeAbsolutePath(fileUrl: string): string {
   return path.join(process.cwd(), relative);
 }
 
+const MIME_BY_EXT: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
+function contentTypeForResume(fileUrl: string): string {
+  const ext = path.extname(fileUrl).toLowerCase();
+  return MIME_BY_EXT[ext] || 'application/octet-stream';
+}
+
 function setResumeFileHeaders(res: Response, resume: { fileUrl: string; name: string }): void {
-  const ext = path.extname(resume.fileUrl).toLowerCase();
-  const mimeByExt: Record<string, string> = {
-    '.pdf': 'application/pdf',
-    '.doc': 'application/msword',
-    '.docx':
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  };
-  const contentType = mimeByExt[ext] || 'application/octet-stream';
+  const contentType = contentTypeForResume(resume.fileUrl);
   res.setHeader('Content-Type', contentType);
   res.setHeader(
     'Content-Disposition',
     `inline; filename="${encodeURIComponent(resume.name || 'resume')}"`
   );
+}
+
+function sendResumeBufferFromMongo(
+  req: Request,
+  res: Response,
+  buf: Buffer,
+  resume: { name: string; fileUrl: string }
+): void {
+  const contentType = contentTypeForResume(resume.fileUrl);
+  const safeName = (resume.name || 'resume').replace(/[/\\?%*:|"<>]/g, '_');
+  const ext = path.extname(resume.fileUrl) || '.pdf';
+  const fileName = `${safeName}${ext}`;
+
+  res.setHeader('Content-Type', contentType);
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`
+  );
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Cache-Control', 'private, no-cache');
+
+  const range = req.headers.range;
+  if (range && buf.length > 0) {
+    const m = /^bytes=(\d*)-(\d*)$/.exec(range);
+    if (m) {
+      const total = buf.length;
+      let start = m[1] !== '' ? parseInt(m[1], 10) : 0;
+      let end = m[2] !== '' ? parseInt(m[2], 10) : total - 1;
+      if (Number.isNaN(start) || start < 0) start = 0;
+      if (Number.isNaN(end)) end = total - 1;
+      if (start >= total) {
+        res.setHeader('Content-Range', `bytes */${total}`);
+        res.status(416).end();
+        return;
+      }
+      end = Math.min(end, total - 1);
+      if (start > end) {
+        res.setHeader('Content-Range', `bytes */${total}`);
+        res.status(416).end();
+        return;
+      }
+      const slice = buf.subarray(start, end + 1);
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${start + slice.length - 1}/${total}`);
+      res.setHeader('Content-Length', slice.length);
+      res.end(slice);
+      return;
+    }
+  }
+
+  res.setHeader('Content-Length', buf.length);
+  res.send(buf);
 }
 
 /** Stream file for owner — DB buffer on serverless, else disk. */
@@ -117,17 +173,17 @@ export const downloadResumeFile = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, error: 'Invalid resume id' });
     }
 
-    const resume = await ResumeVersion.findOne({ _id: id, userId: req.user._id }).select(
-      '+fileData'
-    );
+    const resume = await ResumeVersion.findOne({ _id: id, userId: req.user._id })
+      .select('+fileData')
+      .lean();
     if (!resume) {
       return res.status(404).json({ success: false, error: 'Resume not found' });
     }
 
-    const buf = resume.fileData;
+    const buf = resume.fileData as Buffer | undefined;
     if (buf && buf.length > 0) {
-      setResumeFileHeaders(res, resume);
-      return res.send(buf);
+      sendResumeBufferFromMongo(req, res, buf, resume);
+      return;
     }
 
     const absolutePath = getResumeAbsolutePath(resume.fileUrl);
@@ -149,9 +205,9 @@ export const downloadResumeFile = async (req: AuthRequest, res: Response) => {
 
 export const getResumes = async (req: AuthRequest, res: Response) => {
   try {
-    const resumes = await ResumeVersion.find({ userId: req.user._id }).sort({
-      createdAt: -1,
-    });
+    const resumes = await ResumeVersion.find({ userId: req.user._id })
+      .sort({ createdAt: -1 })
+      .lean();
     res.json({ success: true, resumes });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });

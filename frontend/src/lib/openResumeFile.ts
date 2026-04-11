@@ -20,9 +20,6 @@ export class ResumeFileError extends Error {
   }
 }
 
-/**
- * Fetches the resume file from `GET /resumes/:id/file` with Bearer auth.
- */
 export async function fetchResumeBlob(resumeId: string): Promise<Blob> {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -33,7 +30,8 @@ export async function fetchResumeBlob(resumeId: string): Promise<Blob> {
   try {
     res = await fetch(resumeFileUrl(resumeId), {
       headers: { Authorization: `Bearer ${token}` },
-    });
+      priority: 'high',
+    } as RequestInit);
   } catch (e) {
     if (e instanceof TypeError) {
       throw new ResumeFileError('Could not reach the server.', 'CORS_OR_NETWORK');
@@ -51,7 +49,9 @@ export async function fetchResumeBlob(resumeId: string): Promise<Blob> {
     throw new ResumeFileError(`HTTP ${res.status}`, 'FETCH_FAILED', res.status);
   }
 
-  return res.blob();
+  const ct = res.headers.get('content-type') || 'application/octet-stream';
+  const ab = await res.arrayBuffer();
+  return new Blob([ab], { type: ct });
 }
 
 export function showResumeFetchErrorToast(err: unknown, context: 'view' | 'download'): void {
@@ -104,12 +104,6 @@ export async function downloadResumeFile(
   }
 }
 
-/**
- * Opens a blob URL in a new tab (PDF viewer, download, or system handler). Returns false if pop-ups are blocked.
- *
- * Note: Do not pass `noopener` in the window `features` string — the HTML spec requires `window.open` to
- * return `null` in that case, so we'd show a false "pop-up blocked" toast even when the tab opened.
- */
 export function openResumeBlobUrlInNewTab(blobUrl: string): boolean {
   const win = window.open(blobUrl, '_blank');
   if (win) {

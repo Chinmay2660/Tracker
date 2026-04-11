@@ -56,6 +56,19 @@ const sanitizeObject = (obj: any): any => {
 };
 
 /**
+ * Express 5 defines `req.query` as a getter-only accessor; assigning to it throws.
+ * Replace it with a data property holding the sanitized object.
+ */
+const setSanitizedQuery = (req: Request, sanitized: ReturnType<typeof sanitizeObject>) => {
+  Object.defineProperty(req, 'query', {
+    value: sanitized,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+};
+
+/**
  * Middleware to sanitize request body, query, and params to prevent XSS attacks
  */
 export const sanitizeInput = (
@@ -66,9 +79,7 @@ export const sanitizeInput = (
   if (req.body) {
     req.body = sanitizeObject(req.body);
   }
-  if (req.query) {
-    req.query = sanitizeObject(req.query);
-  }
+  setSanitizedQuery(req, sanitizeObject(req.query));
   if (req.params) {
     req.params = sanitizeObject(req.params);
   }

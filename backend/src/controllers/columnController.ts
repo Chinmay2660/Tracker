@@ -17,7 +17,7 @@ const updateColumnSchema = z.object({
 
 export const getColumns = async (req: AuthRequest, res: Response) => {
   try {
-    const columns = await Column.find({ userId: req.user._id }).sort({ order: 1 });
+    const columns = await Column.find({ userId: req.user._id }).sort({ order: 1 }).lean();
     res.json({ success: true, columns });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -41,7 +41,7 @@ export const createColumn = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, column });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      return res.status(400).json({ success: false, error: error.issues });
     }
     res.status(500).json({ success: false, error: error.message });
   }
@@ -65,7 +65,7 @@ export const updateColumn = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, column });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      return res.status(400).json({ success: false, error: error.issues });
     }
     res.status(500).json({ success: false, error: error.message });
   }
