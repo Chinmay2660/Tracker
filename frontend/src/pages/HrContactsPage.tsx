@@ -244,26 +244,44 @@ export default function HrContactsPage() {
           >
             <table
               ref={leftTableRef}
-              className="w-full min-w-[820px] text-sm text-left border-collapse"
+              className="w-full min-w-[820px] table-fixed text-sm border-collapse"
             >
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
-                  <th scope="col" className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">
+                  <th
+                    scope="col"
+                    className="w-[20%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
+                  >
                     Company
                   </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                  <th
+                    scope="col"
+                    className="w-[11%] px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap"
+                  >
                     Type
                   </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">
+                  <th
+                    scope="col"
+                    className="w-[15%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
+                  >
                     HR contact
                   </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">
+                  <th
+                    scope="col"
+                    className="w-[17%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
+                  >
                     Email
                   </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                  <th
+                    scope="col"
+                    className="w-[14%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap"
+                  >
                     Phone
                   </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 min-w-[180px] max-w-[280px]">
+                  <th
+                    scope="col"
+                    className="w-[23%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
+                  >
                     Notice / LWD
                   </th>
                 </tr>
@@ -281,39 +299,39 @@ export default function HrContactsPage() {
                       onMouseEnter={() => setHoveredRowId(row._id)}
                       onMouseLeave={() => setHoveredRowId(null)}
                     >
-                      <td className="px-4 py-3 align-top">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Building2 className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" aria-hidden />
-                          <span className="font-medium text-slate-900 dark:text-white truncate">
+                      <td className="px-4 py-3 align-top text-left">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <Building2 className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" aria-hidden />
+                          <span className="font-medium text-slate-900 dark:text-white break-words min-w-0">
                             {formatHrContactCompanyDisplay(row)}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 align-top whitespace-nowrap">
-                        <span className="inline-flex text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-3 align-top text-center whitespace-nowrap">
+                        <span className="inline-flex text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 max-w-full truncate">
                           {row.companyType
                             ? HR_COMPANY_TYPE_LABELS[row.companyType]
                             : '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 align-top text-slate-800 dark:text-slate-200">
-                        <span className="inline-flex items-center gap-1.5 min-w-0">
+                      <td className="px-4 py-3 align-top text-left text-slate-800 dark:text-slate-200">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <User className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" aria-hidden />
-                          {row.hrName?.trim() || '—'}
-                        </span>
+                          <span className="min-w-0 truncate">{row.hrName?.trim() || '—'}</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400 max-w-[200px]">
-                        <span className="truncate block" title={row.email ?? undefined}>
+                      <td className="px-4 py-3 align-top text-left text-slate-600 dark:text-slate-400">
+                        <span className="block truncate" title={row.email ?? undefined}>
                           {row.email ?? '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5">
+                      <td className="px-4 py-3 align-top text-left text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <Phone className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" aria-hidden />
-                          {row.phone?.trim() || '—'}
-                        </span>
+                          <span className="tabular-nums">{row.phone?.trim() || '—'}</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400 max-w-[280px]">
+                      <td className="px-4 py-3 align-top text-left text-slate-600 dark:text-slate-400">
                         {row.noticePeriodLwdNote ? (
                           <span
                             className="line-clamp-2 break-words"
@@ -357,8 +375,8 @@ export default function HrContactsPage() {
                       onMouseEnter={() => setHoveredRowId(row._id)}
                       onMouseLeave={() => setHoveredRowId(null)}
                     >
-                      <td className="px-2 py-3 align-middle text-center">
-                        <div className="inline-flex items-center justify-center gap-0.5">
+                      <td className="px-2 py-3 align-top text-center">
+                        <div className="inline-flex items-center justify-center gap-0.5 pt-0.5">
                           <Button
                             variant="ghost"
                             size="sm"
