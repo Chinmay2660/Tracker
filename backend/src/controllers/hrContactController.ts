@@ -144,12 +144,12 @@ export const createHrContact = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, hrContact });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      const first = error.errors[0];
+      const first = error.issues[0];
       const msg =
         first?.message === 'At least one field must be filled.'
           ? first.message
           : 'Invalid input';
-      return res.status(400).json({ success: false, error: msg, details: error.errors });
+      return res.status(400).json({ success: false, error: msg, details: error.issues });
     }
     if (error?.code === 11000) {
       return res.status(409).json({
@@ -268,7 +268,7 @@ export const updateHrContact = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, hrContact });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      return res.status(400).json({ success: false, error: error.issues });
     }
     if (error?.code === 11000) {
       return res.status(409).json({

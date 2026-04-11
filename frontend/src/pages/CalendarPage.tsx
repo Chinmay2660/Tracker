@@ -1,5 +1,6 @@
-import { Calendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { format, getDay, startOfWeek } from 'date-fns';
+import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useJobs } from '../hooks/useJobs';
 import { useQuery } from '@tanstack/react-query';
@@ -11,10 +12,14 @@ import InterviewFormDialog from '../components/InterviewFormDialog';
 import RescheduleDialog from '../components/RescheduleDialog';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
-import { format } from 'date-fns';
 import { Plus, CalendarClock, Pencil } from 'lucide-react';
 
-const localizer = momentLocalizer(moment);
+const localizer = dateFnsLocalizer({
+  format,
+  startOfWeek,
+  getDay,
+  locales: { 'en-US': enUS },
+});
 
 export default function CalendarPage() {
   const { jobs = [] } = useJobs();

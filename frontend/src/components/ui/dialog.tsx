@@ -83,7 +83,7 @@ const DialogContent = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "relative bg-background rounded-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto p-5 sm:p-6 border border-slate-200 dark:border-slate-700",
+      "relative bg-background rounded-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto overscroll-contain p-5 sm:p-6 border border-slate-200 dark:border-slate-700",
       className
     )}
     onClick={(e) => e.stopPropagation()}

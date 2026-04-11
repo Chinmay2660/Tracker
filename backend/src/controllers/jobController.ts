@@ -80,7 +80,8 @@ export const getJobs = async (req: AuthRequest, res: Response) => {
     // Don't populate columnId - return just the ID string for consistency
     const jobs = await Job.find({ userId: req.user._id })
       .select('-__v')
-      .sort({ order: 1, updatedAt: -1 });
+      .sort({ order: 1, updatedAt: -1 })
+      .lean();
     res.json({ success: true, jobs });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -155,7 +156,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, job });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      return res.status(400).json({ success: false, error: error.issues });
     }
     res.status(500).json({ success: false, error: error.message });
   }
@@ -259,7 +260,7 @@ export const updateJob = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, job: updatedJob });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: error.errors });
+      return res.status(400).json({ success: false, error: error.issues });
     }
     res.status(500).json({ success: false, error: error.message });
   }

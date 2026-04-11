@@ -9,18 +9,13 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <select
         className={cn(
-          // Base styles
           "block w-full rounded-lg border border-slate-300 dark:border-slate-700",
           "bg-white dark:bg-slate-900",
-          // Sizing - use min-height and padding for flexibility
           "min-h-[44px] px-3 py-2",
-          // Typography
-          "text-sm text-slate-900 dark:text-slate-100",
-          // Focus states
+          "text-base text-slate-900 dark:text-slate-100 md:text-sm",
+          "touch-manipulation",
           "focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500",
-          // Disabled state
           "disabled:cursor-not-allowed disabled:opacity-50",
-          // Transition
           "transition-colors",
           className
         )}
