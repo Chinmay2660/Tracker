@@ -8,6 +8,7 @@ import path from "path";
 // Load environment variables FIRST before importing anything that uses them
 dotenv.config();
 
+import { isOriginAllowedForBrowser } from "./config/allowedOrigins";
 import { errorHandler } from "./middleware/errorHandler";
 import { securityHeaders, additionalSecurityHeaders, validateRequestSize } from "./middleware/security";
 import { apiLimiter } from "./middleware/rateLimiter";
@@ -29,10 +30,18 @@ app.use(securityHeaders);
 app.use(additionalSecurityHeaders);
 app.use(validateRequestSize);
 
-// CORS Configuration
+// CORS — use ALLOWED_ORIGINS and/or FRONTEND_URL on the API host (see config/allowedOrigins.ts)
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (requestOrigin, callback) => {
+      if (!requestOrigin) {
+        return callback(null, true);
+      }
+      if (isOriginAllowedForBrowser(requestOrigin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
