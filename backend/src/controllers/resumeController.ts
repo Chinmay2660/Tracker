@@ -1,10 +1,37 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import { Binary } from 'bson';
 import { AuthRequest } from '../middleware/auth';
 import ResumeVersion from '../models/ResumeVersion';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+
+/** `.lean()` returns BSON Binary for Buffer fields; normalize for streaming. */
+function fileDataToBuffer(raw: unknown): Buffer | undefined {
+  if (raw == null) return undefined;
+  if (Buffer.isBuffer(raw)) {
+    return raw.length > 0 ? raw : undefined;
+  }
+  if (raw instanceof Binary) {
+    const buf = Buffer.from(raw.value());
+    return buf.length > 0 ? buf : undefined;
+  }
+  if (raw instanceof Uint8Array) {
+    const buf = Buffer.from(raw);
+    return buf.length > 0 ? buf : undefined;
+  }
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    (raw as { type?: string }).type === 'Buffer' &&
+    Array.isArray((raw as { data?: unknown }).data)
+  ) {
+    const buf = Buffer.from((raw as { data: number[] }).data);
+    return buf.length > 0 ? buf : undefined;
+  }
+  return undefined;
+}
 
 /** Ephemeral filesystem on Vercel — store bytes in MongoDB so any instance can serve the file. */
 const isVercelServerless = process.env.VERCEL === '1';
@@ -173,17 +200,25 @@ export const downloadResumeFile = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, error: 'Invalid resume id' });
     }
 
-    const resume = await ResumeVersion.findOne({ _id: id, userId: req.user._id })
-      .select('+fileData')
-      .lean();
+    // Do not use .lean() here — lean() can leave fileData as BSON Binary, which breaks Buffer checks.
+    const resume = await ResumeVersion.findOne({ _id: id, userId: req.user._id }).select('+fileData');
     if (!resume) {
       return res.status(404).json({ success: false, error: 'Resume not found' });
     }
 
-    const buf = resume.fileData as Buffer | undefined;
+    const buf = fileDataToBuffer(resume.fileData as unknown);
     if (buf && buf.length > 0) {
       sendResumeBufferFromMongo(req, res, buf, resume);
       return;
+    }
+
+    if (isVercelServerless) {
+      return res.status(404).json({
+        success: false,
+        error: 'Resume file is not available on this deployment',
+        hint:
+          'Upload this resume again from Resume Manager so the PDF is stored in the database (serverless has no persistent disk).',
+      });
     }
 
     const absolutePath = getResumeAbsolutePath(resume.fileUrl);
