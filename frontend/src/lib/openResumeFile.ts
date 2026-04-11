@@ -106,8 +106,18 @@ export async function downloadResumeFile(
 
 /**
  * Opens a blob URL in a new tab (PDF viewer, download, or system handler). Returns false if pop-ups are blocked.
+ *
+ * Note: Do not pass `noopener` in the window `features` string — the HTML spec requires `window.open` to
+ * return `null` in that case, so we'd show a false "pop-up blocked" toast even when the tab opened.
  */
 export function openResumeBlobUrlInNewTab(blobUrl: string): boolean {
-  const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+  const win = window.open(blobUrl, '_blank');
+  if (win) {
+    try {
+      win.opener = null;
+    } catch {
+      /* ignore */
+    }
+  }
   return win != null;
 }
