@@ -10,6 +10,7 @@ import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import InterviewFormDialog from '../components/InterviewFormDialog';
 import RescheduleDialog from '../components/RescheduleDialog';
+import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Plus, CalendarClock, Pencil } from 'lucide-react';
@@ -211,20 +212,23 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Interview Calendar</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">View and manage your interview schedule</p>
-        </div>
-        <Button 
-          onClick={() => { setSelectedEvent(null); setSelectedDate(new Date()); setIsFormOpen(true); }}
-          className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Interview
-        </Button>
-      </div>
+      <PageHeader
+        title="Interview Calendar"
+        description="View and manage your interview schedule"
+        actions={
+          <Button
+            onClick={() => {
+              setSelectedEvent(null);
+              setSelectedDate(new Date());
+              setIsFormOpen(true);
+            }}
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Interview
+          </Button>
+        }
+      />
 
       {/* Calendar */}
       <div className="bg-white dark:bg-slate-900 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-sm">

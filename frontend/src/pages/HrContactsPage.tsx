@@ -1,17 +1,31 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHrContacts, HrContactInput } from '../hooks/useHrContacts';
+import { useHrContactsColumnResize } from '../hooks/useHrContactsColumnResize';
+import { useHrContactsSplitTableSync } from '../hooks/useHrContactsSplitTableSync';
 import { HrContactRecord, HrCompanyType } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
-import { HR_COMPANY_TYPE_LABELS, HR_COMPANY_TYPE_OPTIONS } from '../lib/hrCompanyTypes';
-import { formatHrContactCompanyDisplay } from '../lib/hrContactDisplay';
+import { HR_COMPANY_TYPE_OPTIONS } from '../lib/hrCompanyTypes';
+import { HR_CONTACTS_DATA_COLUMNS } from '../lib/hrContactsDataColumns';
+import {
+  DEFAULT_HR_CONTACT_COL_WIDTHS,
+  HR_ACTIONS_COL_PX,
+  HR_ACTIONS_HEAD_CLASS,
+  HR_ACTIONS_PANEL_BORDER,
+  HR_CONTACTS_COL_WIDTHS_KEY,
+  HR_RESIZE_HANDLE_CLASS,
+  HR_TH_BASE,
+  hrActionsBodyCellBg,
+  loadStoredHrContactColWidths,
+} from '../lib/hrContactsTable';
 import { normalizePhoneDigits } from '../lib/phoneNormalize';
-import { Plus, Pencil, Trash2, Phone, Building2, User, StickyNote } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, StickyNote } from 'lucide-react';
 
 const emptyForm: HrContactInput = {
   companyName: '',
@@ -64,10 +78,7 @@ export default function HrContactsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
-
-  const leftTableRef = useRef<HTMLTableElement>(null);
-  const rightTableRef = useRef<HTMLTableElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [colWidths, setColWidths] = useState<number[]>(() => loadStoredHrContactColWidths());
 
   const sortedContacts = useMemo(() => {
     return [...hrContacts].sort(
@@ -75,37 +86,29 @@ export default function HrContactsPage() {
     );
   }, [hrContacts]);
 
-  const syncHrTableRowHeights = useCallback(() => {
-    const left = leftTableRef.current;
-    const right = rightTableRef.current;
-    if (!left || !right || sortedContacts.length === 0) return;
+  const dataTableWidthPx = useMemo(() => colWidths.reduce((s, w) => s + w, 0), [colWidths]);
+  const dataScrollWidthPx = useMemo(() => Math.max(820, dataTableWidthPx), [dataTableWidthPx]);
 
-    const leftRows = left.querySelectorAll(':scope > thead > tr, :scope > tbody > tr');
-    const rightRows = right.querySelectorAll(':scope > thead > tr, :scope > tbody > tr');
-    if (leftRows.length !== rightRows.length) return;
+  const tableSyncKey = `${sortedContacts.length}:${colWidths.join(',')}`;
+  const { scrollAreaRef, dataTableRef, actionsTableRef } = useHrContactsSplitTableSync(tableSyncKey);
+  const { beginResizeBetween, beginResizeLastRight } = useHrContactsColumnResize(colWidths, setColWidths);
 
-    leftRows.forEach((leftTr, i) => {
-      const rightTr = rightRows[i] as HTMLElement;
-      const h = Math.ceil((leftTr as HTMLElement).getBoundingClientRect().height);
-      rightTr.style.height = `${h}px`;
-      rightTr.style.minHeight = `${h}px`;
-    });
-  }, [sortedContacts]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(HR_CONTACTS_COL_WIDTHS_KEY, JSON.stringify(colWidths));
+    } catch {
+      /* ignore */
+    }
+  }, [colWidths]);
 
-  useLayoutEffect(() => {
-    syncHrTableRowHeights();
-    const scrollEl = scrollAreaRef.current;
-    const ro =
-      scrollEl && typeof ResizeObserver !== 'undefined'
-        ? new ResizeObserver(() => syncHrTableRowHeights())
-        : null;
-    ro?.observe(scrollEl!);
-    window.addEventListener('resize', syncHrTableRowHeights);
-    return () => {
-      ro?.disconnect();
-      window.removeEventListener('resize', syncHrTableRowHeights);
-    };
-  }, [syncHrTableRowHeights, sortedContacts]);
+  const resetColumnWidths = useCallback(() => {
+    setColWidths([...DEFAULT_HR_CONTACT_COL_WIDTHS]);
+    try {
+      localStorage.removeItem(HR_CONTACTS_COL_WIDTHS_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -182,6 +185,8 @@ export default function HrContactsPage() {
     }
   };
 
+  const lastColIndex = HR_CONTACTS_DATA_COLUMNS.length - 1;
+
   if (isLoading) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -205,21 +210,32 @@ export default function HrContactsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">HR Contacts</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Directory of recruiters and HR
-          </p>
-        </div>
-        <Button
-          onClick={openCreate}
-          className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add HR Contact
-        </Button>
-      </div>
+      <PageHeader
+        title="HR Contacts"
+        description="Directory of recruiters and HR"
+        actions={
+          <>
+            {sortedContacts.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 sm:flex-initial"
+                onClick={resetColumnWidths}
+                title="Restore default column widths"
+              >
+                Reset columns
+              </Button>
+            )}
+            <Button
+              onClick={openCreate}
+              className="flex-1 sm:flex-initial bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add HR Contact
+            </Button>
+          </>
+        }
+      />
 
       {sortedContacts.length === 0 ? (
         <Card className="border-dashed border-slate-200 dark:border-slate-800">
@@ -236,62 +252,29 @@ export default function HrContactsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          {/* Scrollbar only spans data columns — Actions stays outside the scroll area */}
+        <div className="flex items-start rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
           <div
-            ref={scrollAreaRef}
-            className="min-w-0 flex-1 overflow-x-auto touch-pan-x overscroll-x-contain"
+            className={`w-24 flex-shrink-0 overflow-x-hidden bg-white dark:bg-slate-900 ${HR_ACTIONS_PANEL_BORDER}`}
           >
             <table
-              ref={leftTableRef}
-              className="w-full min-w-[820px] table-fixed text-sm border-collapse"
+              ref={actionsTableRef}
+              className="w-full table-fixed border-collapse text-left text-sm"
+              style={{ width: HR_ACTIONS_COL_PX, minWidth: HR_ACTIONS_COL_PX }}
             >
+              <colgroup>
+                <col style={{ width: HR_ACTIONS_COL_PX, minWidth: HR_ACTIONS_COL_PX }} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
-                  <th
-                    scope="col"
-                    className="w-[20%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
-                  >
-                    Company
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[11%] px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap"
-                  >
-                    Type
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[15%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
-                  >
-                    HR contact
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[17%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
-                  >
-                    Email
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[14%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap"
-                  >
-                    Phone
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[23%] px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200"
-                  >
-                    Notice / LWD
+                  <th scope="col" className={HR_ACTIONS_HEAD_CLASS}>
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {sortedContacts.map((row) => {
-                  const rowHover =
-                    hoveredRowId === row._id
-                      ? 'bg-slate-50/80 dark:bg-slate-800/40'
-                      : '';
+                  const isHovered = hoveredRowId === row._id;
+                  const rowHover = isHovered ? 'bg-slate-50/80 dark:bg-slate-800/40' : '';
                   return (
                     <tr
                       key={row._id}
@@ -299,49 +282,33 @@ export default function HrContactsPage() {
                       onMouseEnter={() => setHoveredRowId(row._id)}
                       onMouseLeave={() => setHoveredRowId(null)}
                     >
-                      <td className="px-4 py-3 align-top text-left">
-                        <div className="flex items-start gap-2 min-w-0">
-                          <Building2 className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" aria-hidden />
-                          <span className="font-medium text-slate-900 dark:text-white break-words min-w-0">
-                            {formatHrContactCompanyDisplay(row)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top text-center whitespace-nowrap">
-                        <span className="inline-flex text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 max-w-full truncate">
-                          {row.companyType
-                            ? HR_COMPANY_TYPE_LABELS[row.companyType]
-                            : '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 align-top text-left text-slate-800 dark:text-slate-200">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <User className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" aria-hidden />
-                          <span className="min-w-0 truncate">{row.hrName?.trim() || '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top text-left text-slate-600 dark:text-slate-400">
-                        <span className="block truncate" title={row.email ?? undefined}>
-                          {row.email ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 align-top text-left text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <Phone className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" aria-hidden />
-                          <span className="tabular-nums">{row.phone?.trim() || '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top text-left text-slate-600 dark:text-slate-400">
-                        {row.noticePeriodLwdNote ? (
-                          <span
-                            className="line-clamp-2 break-words"
-                            title={row.noticePeriodLwdNote}
+                      <td
+                        className={`box-border px-1.5 py-1.5 text-center align-middle ${hrActionsBodyCellBg(
+                          isHovered
+                        )}`}
+                      >
+                        <div className="inline-flex items-center justify-center gap-px leading-none">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 touch-manipulation"
+                            onClick={() => openEdit(row)}
+                            title="Edit"
+                            type="button"
                           >
-                            {row.noticePeriodLwdNote}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500">—</span>
-                        )}
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-red-600 hover:text-red-700 dark:text-red-400 touch-manipulation"
+                            onClick={() => setDeleteId(row._id)}
+                            title="Delete"
+                            type="button"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -350,24 +317,46 @@ export default function HrContactsPage() {
             </table>
           </div>
 
-          <div className="w-[108px] flex-shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <table ref={rightTableRef} className="w-full text-sm text-left border-collapse table-fixed">
+          <div
+            ref={scrollAreaRef}
+            className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain bg-white dark:bg-slate-900"
+          >
+            <table
+              ref={dataTableRef}
+              className="table-fixed border-collapse text-left text-sm"
+              style={{
+                width: `${dataScrollWidthPx}px`,
+                minWidth: `${dataScrollWidthPx}px`,
+              }}
+            >
+              <colgroup>
+                {colWidths.map((w, i) => (
+                  <col key={i} style={{ width: w, minWidth: w }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
-                  <th
-                    scope="col"
-                    className="px-2 py-3 font-semibold text-slate-700 dark:text-slate-200 text-center whitespace-nowrap"
-                  >
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Actions</span>
-                  </th>
+                  {HR_CONTACTS_DATA_COLUMNS.map((col, i) => (
+                    <th key={col.title} scope="col" className={HR_TH_BASE}>
+                      <span className="block min-w-0 truncate" title={col.title}>
+                        {col.title}
+                      </span>
+                      <div
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-label={col.ariaResize}
+                        title={i === lastColIndex ? 'Drag to widen or narrow this column' : 'Drag to resize'}
+                        className={HR_RESIZE_HANDLE_CLASS}
+                        onPointerDown={i === lastColIndex ? beginResizeLastRight : (e) => beginResizeBetween(i, e)}
+                      />
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {sortedContacts.map((row) => {
-                  const rowHover =
-                    hoveredRowId === row._id
-                      ? 'bg-slate-50/80 dark:bg-slate-800/40'
-                      : '';
+                  const isHovered = hoveredRowId === row._id;
+                  const rowHover = isHovered ? 'bg-slate-50/80 dark:bg-slate-800/40' : '';
                   return (
                     <tr
                       key={row._id}
@@ -375,30 +364,11 @@ export default function HrContactsPage() {
                       onMouseEnter={() => setHoveredRowId(row._id)}
                       onMouseLeave={() => setHoveredRowId(null)}
                     >
-                      <td className="px-2 py-3 align-top text-center">
-                        <div className="inline-flex items-center justify-center gap-0.5 pt-0.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 w-9 p-0 touch-manipulation"
-                            onClick={() => openEdit(row)}
-                            title="Edit"
-                            type="button"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 w-9 p-0 text-red-600 hover:text-red-700 dark:text-red-400 touch-manipulation"
-                            onClick={() => setDeleteId(row._id)}
-                            title="Delete"
-                            type="button"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+                      {HR_CONTACTS_DATA_COLUMNS.map((col) => (
+                        <td key={col.title} className={col.tdClass}>
+                          {col.render(row)}
+                        </td>
+                      ))}
                     </tr>
                   );
                 })}

@@ -6,6 +6,7 @@ import { HrContactBrief, InterviewRound, Job } from '../types';
 import { formatHrContactCompanyDisplay } from '../lib/hrContactDisplay';
 import InterviewFormDialog from '../components/InterviewFormDialog';
 import RescheduleDialog from '../components/RescheduleDialog';
+import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Select } from '../components/ui/select';
@@ -187,22 +188,22 @@ export default function InterviewsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Interviews</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Manage and track all your interview rounds
-          </p>
-        </div>
-        <Button 
-          onClick={() => { setSelectedInterview(null); setIsFormOpen(true); }}
-          className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Interview
-        </Button>
-      </div>
+      <PageHeader
+        title="Interviews"
+        description="Manage and track all your interview rounds"
+        actions={
+          <Button
+            onClick={() => {
+              setSelectedInterview(null);
+              setIsFormOpen(true);
+            }}
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Interview
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex items-center justify-end gap-3">
