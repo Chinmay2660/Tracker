@@ -2,6 +2,7 @@ import { useEffect, useState, memo, lazy, Suspense } from 'react';
 import { useColumns } from '../hooks/useColumns';
 import KanbanBoard from '../components/KanbanBoard';
 import JobStageChartsLazy from '../components/JobStageChartsLazy';
+import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/button';
 import { Plus, Briefcase } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
@@ -42,30 +43,29 @@ function DashboardPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Job Board</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Track your applications across stages</p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={() => setIsJobFormOpen(true)} 
-            className="flex-1 sm:flex-none bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
-          >
-            <Briefcase className="w-4 h-4 mr-2" />
-            Add Job
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setIsColumnFormOpen(true)}
-            className="flex-1 sm:flex-none border-slate-300 dark:border-slate-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Stage
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Job Board"
+        description="Track your applications across stages"
+        actions={
+          <>
+            <Button
+              onClick={() => setIsJobFormOpen(true)}
+              className="flex-1 sm:flex-none bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+            >
+              <Briefcase className="w-4 h-4 mr-2" />
+              Add Job
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsColumnFormOpen(true)}
+              className="flex-1 sm:flex-none border-slate-300 dark:border-slate-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Stage
+            </Button>
+          </>
+        }
+      />
 
       {/* Charts - Lazy loaded for faster FCP */}
       <JobStageChartsLazy />

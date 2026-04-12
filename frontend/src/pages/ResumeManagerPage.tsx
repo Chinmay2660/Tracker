@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { useResumes } from '../hooks/useResumes';
+import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
@@ -130,30 +131,29 @@ export default function ResumeManagerPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Resume Manager</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Upload and manage your resume versions</p>
-        </div>
-        <div className="w-full sm:w-auto">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {uploading ? 'Uploading...' : 'Upload Resume'}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Resume Manager"
+        description="Upload and manage your resume versions"
+        actions={
+          <div className="w-full sm:w-auto">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {uploading ? 'Uploading...' : 'Upload Resume'}
+            </Button>
+          </div>
+        }
+      />
 
       {/* Empty State */}
       {resumes.length === 0 ? (
