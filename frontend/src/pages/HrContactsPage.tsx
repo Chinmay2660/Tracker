@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useHrContacts, HrContactInput } from '../hooks/useHrContacts';
-import { useHrContactsColumnResize } from '../hooks/useHrContactsColumnResize';
 import { useHrContactsSplitTableSync } from '../hooks/useHrContactsSplitTableSync';
 import { HrContactRecord, HrCompanyType } from '../types';
 import { Button } from '../components/ui/button';
@@ -11,21 +10,28 @@ import { Label } from '../components/ui/label';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
-import { HR_COMPANY_TYPE_OPTIONS } from '../lib/hrCompanyTypes';
-import { HR_CONTACTS_DATA_COLUMNS } from '../lib/hrContactsDataColumns';
 import {
-  DEFAULT_HR_CONTACT_COL_WIDTHS,
+  HR_CONSULTANCY_CLIENT_CHIP_CLASS,
+  HR_INTERMEDIARY_PLAIN_TEXT_CLASS,
+  HR_THIRD_PARTY_CLIENT_CHIP_CLASS,
+  HR_COMPANY_NAME_CHIP_CLASS,
+  HR_COMPANY_TYPE_BADGE_CLASS,
+  HR_COMPANY_TYPE_LABELS,
+  HR_COMPANY_TYPE_OPTIONS,
+  HR_COMPANY_TYPE_SHORT_LABEL,
+} from '../lib/hrCompanyTypes';
+import { cn } from '@/lib/utils';
+import { HrContactCompanyChips } from '../lib/hrContactCompanyChips';
+import { getHrContactsDataColumns } from '../lib/hrContactsDataColumns';
+import {
   HR_ACTIONS_COL_PX,
   HR_ACTIONS_HEAD_CLASS,
-  HR_ACTIONS_PANEL_BORDER,
-  HR_CONTACTS_COL_WIDTHS_KEY,
-  HR_RESIZE_HANDLE_CLASS,
+  HR_DATA_COL_WIDTH_PERCENT,
   HR_TH_BASE,
   hrActionsBodyCellBg,
-  loadStoredHrContactColWidths,
 } from '../lib/hrContactsTable';
-import { normalizePhoneDigits } from '../lib/phoneNormalize';
-import { Plus, Pencil, Trash2, Building2, StickyNote } from 'lucide-react';
+import { getNormalizedDigitsForHrContact, normalizePhoneDigits } from '../lib/phoneNormalize';
+import { Plus, Pencil, Trash2, Building2, StickyNote, Eye } from 'lucide-react';
 
 const emptyForm: HrContactInput = {
   companyName: '',
@@ -56,7 +62,7 @@ function isDuplicatePhoneForUser(
   if (!digits) return false;
   return contacts.some((c) => {
     if (excludeId && c._id === excludeId) return false;
-    const n = c.phoneNormalized ?? normalizePhoneDigits(c.phone ?? '');
+    const n = getNormalizedDigitsForHrContact(c);
     return n.length > 0 && n === digits;
   });
 }
@@ -78,7 +84,9 @@ export default function HrContactsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
-  const [colWidths, setColWidths] = useState<number[]>(() => loadStoredHrContactColWidths());
+  const [viewing, setViewing] = useState<HrContactRecord | null>(null);
+
+  const dataColumns = useMemo(() => getHrContactsDataColumns(), []);
 
   const sortedContacts = useMemo(() => {
     return [...hrContacts].sort(
@@ -86,29 +94,8 @@ export default function HrContactsPage() {
     );
   }, [hrContacts]);
 
-  const dataTableWidthPx = useMemo(() => colWidths.reduce((s, w) => s + w, 0), [colWidths]);
-  const dataScrollWidthPx = useMemo(() => Math.max(820, dataTableWidthPx), [dataTableWidthPx]);
-
-  const tableSyncKey = `${sortedContacts.length}:${colWidths.join(',')}`;
+  const tableSyncKey = String(sortedContacts.length);
   const { scrollAreaRef, dataTableRef, actionsTableRef } = useHrContactsSplitTableSync(tableSyncKey);
-  const { beginResizeBetween, beginResizeLastRight } = useHrContactsColumnResize(colWidths, setColWidths);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(HR_CONTACTS_COL_WIDTHS_KEY, JSON.stringify(colWidths));
-    } catch {
-      /* ignore */
-    }
-  }, [colWidths]);
-
-  const resetColumnWidths = useCallback(() => {
-    setColWidths([...DEFAULT_HR_CONTACT_COL_WIDTHS]);
-    try {
-      localStorage.removeItem(HR_CONTACTS_COL_WIDTHS_KEY);
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -185,8 +172,6 @@ export default function HrContactsPage() {
     }
   };
 
-  const lastColIndex = HR_CONTACTS_DATA_COLUMNS.length - 1;
-
   if (isLoading) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -215,17 +200,6 @@ export default function HrContactsPage() {
         description="Directory of recruiters and HR"
         actions={
           <>
-            {sortedContacts.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 sm:flex-initial"
-                onClick={resetColumnWidths}
-                title="Restore default column widths"
-              >
-                Reset columns
-              </Button>
-            )}
             <Button
               onClick={openCreate}
               className="flex-1 sm:flex-initial bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
@@ -236,6 +210,45 @@ export default function HrContactsPage() {
           </>
         }
       />
+
+      {sortedContacts.length > 0 && (
+        <div
+          className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300"
+          role="note"
+          aria-label="Company column color key"
+        >
+          <p className="font-medium text-slate-700 dark:text-slate-200 mb-2">Company column</p>
+          <p className="text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
+            Text before → is the agency or payroll company. The chip is the <span className="font-medium text-slate-800 dark:text-slate-200">client</span> you are hiring for.
+          </p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <span className="inline-flex items-center gap-2">
+              <span
+                className={cn(
+                  HR_CONSULTANCY_CLIENT_CHIP_CLASS,
+                  'h-6 min-w-[4.5rem] shrink-0 items-center justify-center !py-0 text-[11px]'
+                )}
+                aria-hidden
+              >
+                Client
+              </span>
+              <span>HR consultancy — client company</span>
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span
+                className={cn(
+                  HR_THIRD_PARTY_CLIENT_CHIP_CLASS,
+                  'h-6 min-w-[4.5rem] shrink-0 items-center justify-center !py-0 text-[11px]'
+                )}
+                aria-hidden
+              >
+                Client
+              </span>
+              <span>Third-party payroll — client company</span>
+            </span>
+          </div>
+        </div>
+      )}
 
       {sortedContacts.length === 0 ? (
         <Card className="border-dashed border-slate-200 dark:border-slate-800">
@@ -254,7 +267,53 @@ export default function HrContactsPage() {
       ) : (
         <div className="flex items-start rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
           <div
-            className={`w-24 flex-shrink-0 overflow-x-hidden bg-white dark:bg-slate-900 ${HR_ACTIONS_PANEL_BORDER}`}
+            ref={scrollAreaRef}
+            className="min-w-0 flex-1 overflow-x-auto bg-white dark:bg-slate-900"
+          >
+            <table
+              ref={dataTableRef}
+              className="w-full table-fixed border-collapse text-left text-sm"
+            >
+              <colgroup>
+                {HR_DATA_COL_WIDTH_PERCENT.map((pct, i) => (
+                  <col key={i} style={{ width: `${pct}%` }} />
+                ))}
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
+                  {dataColumns.map((col) => (
+                    <th key={col.title} scope="col" className={HR_TH_BASE}>
+                      <span className="block min-w-0">{col.title}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedContacts.map((row) => {
+                  const isHovered = hoveredRowId === row._id;
+                  const rowHover = isHovered ? 'bg-slate-50/80 dark:bg-slate-800/40' : '';
+                  return (
+                    <tr
+                      key={row._id}
+                      className={`border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors ${rowHover}`}
+                      onMouseEnter={() => setHoveredRowId(row._id)}
+                      onMouseLeave={() => setHoveredRowId(null)}
+                    >
+                      {dataColumns.map((col) => (
+                        <td key={col.title} className={col.tdClass}>
+                          {col.render(row)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            className="flex-shrink-0 overflow-x-hidden bg-white dark:bg-slate-900"
+            style={{ width: HR_ACTIONS_COL_PX, minWidth: HR_ACTIONS_COL_PX }}
           >
             <table
               ref={actionsTableRef}
@@ -287,7 +346,18 @@ export default function HrContactsPage() {
                           isHovered
                         )}`}
                       >
-                        <div className="inline-flex items-center justify-center gap-px leading-none">
+                        <div className="inline-flex items-center justify-center gap-0.5 leading-none">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 touch-manipulation"
+                            onClick={() => setViewing(row)}
+                            title="View details"
+                            type="button"
+                            aria-label="View details"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -310,65 +380,6 @@ export default function HrContactsPage() {
                           </Button>
                         </div>
                       </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div
-            ref={scrollAreaRef}
-            className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain bg-white dark:bg-slate-900"
-          >
-            <table
-              ref={dataTableRef}
-              className="table-fixed border-collapse text-left text-sm"
-              style={{
-                width: `${dataScrollWidthPx}px`,
-                minWidth: `${dataScrollWidthPx}px`,
-              }}
-            >
-              <colgroup>
-                {colWidths.map((w, i) => (
-                  <col key={i} style={{ width: w, minWidth: w }} />
-                ))}
-              </colgroup>
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
-                  {HR_CONTACTS_DATA_COLUMNS.map((col, i) => (
-                    <th key={col.title} scope="col" className={HR_TH_BASE}>
-                      <span className="block min-w-0 truncate" title={col.title}>
-                        {col.title}
-                      </span>
-                      <div
-                        role="separator"
-                        aria-orientation="vertical"
-                        aria-label={col.ariaResize}
-                        title={i === lastColIndex ? 'Drag to widen or narrow this column' : 'Drag to resize'}
-                        className={HR_RESIZE_HANDLE_CLASS}
-                        onPointerDown={i === lastColIndex ? beginResizeLastRight : (e) => beginResizeBetween(i, e)}
-                      />
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedContacts.map((row) => {
-                  const isHovered = hoveredRowId === row._id;
-                  const rowHover = isHovered ? 'bg-slate-50/80 dark:bg-slate-800/40' : '';
-                  return (
-                    <tr
-                      key={row._id}
-                      className={`border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors ${rowHover}`}
-                      onMouseEnter={() => setHoveredRowId(row._id)}
-                      onMouseLeave={() => setHoveredRowId(null)}
-                    >
-                      {HR_CONTACTS_DATA_COLUMNS.map((col) => (
-                        <td key={col.title} className={col.tdClass}>
-                          {col.render(row)}
-                        </td>
-                      ))}
                     </tr>
                   );
                 })}
@@ -529,6 +540,140 @@ export default function HrContactsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
+        <DialogContent
+          onClose={() => setViewing(null)}
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        >
+          <DialogHeader>
+            <DialogTitle>HR contact details</DialogTitle>
+            {viewing && (
+              <div className="text-sm text-muted-foreground pt-0.5">
+                <HrContactCompanyChips row={viewing} showBuildingIcon={false} />
+              </div>
+            )}
+          </DialogHeader>
+          {viewing && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 pt-2 text-sm">
+              <div className="space-y-1 min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Company type</p>
+                <div>
+                  {viewing.companyType ? (
+                    <span className={HR_COMPANY_TYPE_BADGE_CLASS[viewing.companyType]}>
+                      {HR_COMPANY_TYPE_SHORT_LABEL[viewing.companyType]}
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 dark:text-slate-400">—</span>
+                  )}
+                  {viewing.companyType && (
+                    <span className="sr-only">{HR_COMPANY_TYPE_LABELS[viewing.companyType]}</span>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1 min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">HR / recruiter name</p>
+                <p className="text-slate-900 dark:text-slate-100">{viewing.hrName?.trim() || '—'}</p>
+              </div>
+              {viewing.companyType === 'consultancy' && (
+                <>
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">HR consultancy name</p>
+                    <p>
+                      <span className={HR_INTERMEDIARY_PLAIN_TEXT_CLASS}>
+                        {viewing.intermediaryCompanyName?.trim() || '—'}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Client company</p>
+                    <p>
+                      <span className={HR_CONSULTANCY_CLIENT_CHIP_CLASS}>
+                        {viewing.companyName?.trim() || '—'}
+                      </span>
+                    </p>
+                  </div>
+                </>
+              )}
+              {viewing.companyType === 'third_party_payroll' && (
+                <>
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Third-party company</p>
+                    <p>
+                      <span className={HR_INTERMEDIARY_PLAIN_TEXT_CLASS}>
+                        {viewing.intermediaryCompanyName?.trim() || '—'}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Client name</p>
+                    <p>
+                      <span className={HR_THIRD_PARTY_CLIENT_CHIP_CLASS}>
+                        {viewing.companyName?.trim() || '—'}
+                      </span>
+                    </p>
+                  </div>
+                </>
+              )}
+              {viewing.companyType !== 'consultancy' && viewing.companyType !== 'third_party_payroll' && (
+                <div className="space-y-1 min-w-0 sm:col-span-2">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Company name</p>
+                  <p>
+                    {viewing.companyType ? (
+                      <span className={HR_COMPANY_NAME_CHIP_CLASS[viewing.companyType]}>
+                        {viewing.companyName?.trim() || '—'}
+                      </span>
+                    ) : (
+                      <span className="text-slate-900 dark:text-slate-100 break-words">
+                        {viewing.companyName?.trim() || '—'}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+              <div className="space-y-1 min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Phone</p>
+                <p className="text-slate-900 dark:text-slate-100 tabular-nums">{viewing.phone?.trim() || '—'}</p>
+              </div>
+              <div className="space-y-1 min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Email</p>
+                <p className="text-slate-900 dark:text-slate-100 break-all">{viewing.email?.trim() || '—'}</p>
+              </div>
+              <div className="space-y-1 min-w-0 sm:col-span-2">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                  <StickyNote className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                  Notice period &amp; LWD
+                </p>
+                {viewing.noticePeriodLwdNote?.trim() ? (
+                  <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">
+                    {viewing.noticePeriodLwdNote}
+                  </p>
+                ) : (
+                  <p className="text-slate-400 dark:text-slate-500">—</p>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setViewing(null)}>
+              Close
+            </Button>
+            {viewing && (
+              <Button
+                type="button"
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+                onClick={() => {
+                  const row = viewing;
+                  setViewing(null);
+                  openEdit(row);
+                }}
+              >
+                Edit
+              </Button>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

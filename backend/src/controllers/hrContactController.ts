@@ -4,6 +4,12 @@ import HrContact from '../models/HrContact';
 import InterviewRound from '../models/InterviewRound';
 import { z } from 'zod';
 import { normalizePhoneDigits } from '../utils/phoneNormalize';
+import type { Types } from 'mongoose';
+
+/** Legacy rows may have phoneNormalized: "" which breaks sparse uniqueness; remove so empty phones do not collide. */
+async function unsetEmptyPhoneNormalized(userId: Types.ObjectId | string): Promise<void> {
+  await HrContact.updateMany({ userId, phoneNormalized: '' }, { $unset: { phoneNormalized: 1 } });
+}
 
 const companyTypeEnum = z.enum([
   'consultancy',
@@ -99,6 +105,7 @@ export const listHrContacts = async (req: AuthRequest, res: Response) => {
 export const createHrContact = async (req: AuthRequest, res: Response) => {
   try {
     const data = createHrContactSchema.parse(req.body);
+    await unsetEmptyPhoneNormalized(req.user._id);
     const phoneNormalized = normalizePhoneDigits(trimOrEmpty(data.phone));
 
     if (phoneNormalized) {
@@ -165,6 +172,7 @@ export const updateHrContact = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const data = updateHrContactSchema.parse(req.body);
+    await unsetEmptyPhoneNormalized(req.user._id);
 
     const existing = await HrContact.findOne({ _id: id, userId: req.user._id });
     if (!existing) {
