@@ -11,7 +11,7 @@ export type HrContactsDataColumn = {
 };
 
 const td = (extra: string) =>
-  `min-w-0 break-words px-4 py-3 align-top text-left [overflow-wrap:anywhere] ${HR_DATA_CELL_BORDER} ${extra}`.trim();
+  `min-w-0 break-words px-4 py-3 align-middle text-left [overflow-wrap:anywhere] ${HR_DATA_CELL_BORDER} ${extra}`.trim();
 
 export function getHrContactsDataColumns(): readonly HrContactsDataColumn[] {
   return [
@@ -24,9 +24,9 @@ export function getHrContactsDataColumns(): readonly HrContactsDataColumn[] {
       title: 'HR name',
       tdClass: td('text-slate-800 dark:text-slate-200'),
       render: (row) => (
-        <div className="flex items-start gap-1.5 min-w-0">
-          <User className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 mt-0.5" aria-hidden />
-          <span className="min-w-0 break-words">{row.hrName?.trim() || '—'}</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <User className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+          <span className="min-w-0 break-words leading-snug">{row.hrName?.trim() || '—'}</span>
         </div>
       ),
     },
@@ -34,9 +34,9 @@ export function getHrContactsDataColumns(): readonly HrContactsDataColumn[] {
       title: 'Phone',
       tdClass: td('text-slate-700 dark:text-slate-300'),
       render: (row) => (
-        <div className="flex items-start gap-1.5 min-w-0">
-          <Phone className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5" aria-hidden />
-          <span className="min-w-0 break-words tabular-nums">{row.phone?.trim() || '—'}</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+          <span className="min-w-0 break-words tabular-nums leading-snug">{row.phone?.trim() || '—'}</span>
         </div>
       ),
     },
@@ -44,7 +44,7 @@ export function getHrContactsDataColumns(): readonly HrContactsDataColumn[] {
       title: 'Email',
       tdClass: td('text-slate-600 dark:text-slate-400'),
       render: (row) => (
-        <span className="block min-w-0 break-all">{row.email ?? '—'}</span>
+        <span className="block min-w-0 break-all leading-snug">{row.email ?? '—'}</span>
       ),
     },
   ];

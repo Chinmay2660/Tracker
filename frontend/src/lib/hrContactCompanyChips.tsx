@@ -14,7 +14,7 @@ type HrContactCompanyChipsProps = {
 };
 
 const plainCompanyClass =
-  'min-w-0 max-w-full break-words font-medium text-slate-900 dark:text-slate-100 [overflow-wrap:anywhere]';
+  'min-w-0 max-w-full break-words font-medium leading-snug text-slate-900 dark:text-slate-100 [overflow-wrap:anywhere]';
 
 /**
  * Company column: chip only on client name (orange for consultancy, blue for third-party payroll).
@@ -34,15 +34,23 @@ export function HrContactCompanyChips({
   );
 
   return (
-    <div className={cn('flex flex-wrap items-start gap-1.5 min-w-0 [overflow-wrap:anywhere]', className)}>
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 [overflow-wrap:anywhere]',
+        className
+      )}
+    >
       {showBuildingIcon && (
-        <Building2 className="h-4 w-4 flex-shrink-0 text-teal-600 dark:text-teal-400" aria-hidden />
+        <Building2 className="h-4 w-4 shrink-0 self-center text-teal-600 dark:text-teal-400" aria-hidden />
       )}
       {type === 'consultancy' || type === 'third_party_payroll' ? (
         mid && end ? (
           <>
             <span className={HR_INTERMEDIARY_PLAIN_TEXT_CLASS}>{mid}</span>
-            <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none" aria-hidden>
+            <span
+              className="shrink-0 select-none leading-none text-slate-400 dark:text-slate-500 self-center"
+              aria-hidden
+            >
               →
             </span>
             <span
