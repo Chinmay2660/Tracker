@@ -26,26 +26,27 @@ export const HR_COMPANY_TYPE_BADGE_CLASS: Record<HrCompanyType, string> = {
   consultancy: `${badgeBase} border-indigo-300/90 bg-indigo-100 text-indigo-950 dark:border-indigo-700 dark:bg-indigo-950/55 dark:text-indigo-100`,
 };
 
+/** Client chips: same text size as agency plain text for baseline/vertical alignment in tables */
 const segChipBase =
-  'inline-flex min-w-0 max-w-full items-center break-words rounded-md text-xs font-semibold shadow-sm [overflow-wrap:anywhere]';
+  'inline-flex min-w-0 max-w-full items-center justify-center break-words rounded-md text-sm font-semibold leading-snug shadow-sm [overflow-wrap:anywhere]';
 
 /** Plain line for agency / payroll company (no chip; client uses chip below) */
 export const HR_INTERMEDIARY_PLAIN_TEXT_CLASS =
-  'text-sm font-medium text-slate-800 dark:text-slate-200 break-words [overflow-wrap:anywhere]';
+  'text-sm font-medium leading-snug text-slate-800 dark:text-slate-200 break-words [overflow-wrap:anywhere]';
 
 /**
  * Client company chip — HR consultancy (orange).
  * Light: soft fill + dark text; dark: brighter fill + white text for contrast on slate UIs.
  */
 export const HR_CONSULTANCY_CLIENT_CHIP_CLASS =
-  `${segChipBase} px-2.5 py-1.5 border border-orange-300/90 bg-orange-100 text-orange-950 dark:border-orange-400/70 dark:bg-orange-500 dark:text-white`;
+  `${segChipBase} min-h-[1.75rem] px-2.5 py-1 border border-orange-300/90 bg-orange-100 text-orange-950 dark:border-orange-400/70 dark:bg-orange-500 dark:text-white`;
 
 /**
  * Client company chip — third-party payroll (blue).
  * Light: sky tint; dark: vivid sky with white label text.
  */
 export const HR_THIRD_PARTY_CLIENT_CHIP_CLASS =
-  `${segChipBase} px-2.5 py-1.5 border border-sky-300/90 bg-sky-100 text-sky-950 dark:border-sky-400/70 dark:bg-sky-500 dark:text-white`;
+  `${segChipBase} min-h-[1.75rem] px-2.5 py-1 border border-sky-300/90 bg-sky-100 text-sky-950 dark:border-sky-400/70 dark:bg-sky-500 dark:text-white`;
 
 /** Company name chip for product / service single-company rows (tinted by type) */
 export const HR_COMPANY_NAME_CHIP_CLASS: Record<HrCompanyType, string> = {
