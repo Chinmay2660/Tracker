@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useHrContacts, HrContactInput } from '../hooks/useHrContacts';
-import { useHrContactsSplitTableSync } from '../hooks/useHrContactsSplitTableSync';
 import { HrContactRecord, HrCompanyType } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -10,384 +9,238 @@ import { Label } from '../components/ui/label';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
-import {
-  HR_CONSULTANCY_CLIENT_CHIP_CLASS,
-  HR_INTERMEDIARY_PLAIN_TEXT_CLASS,
-  HR_THIRD_PARTY_CLIENT_CHIP_CLASS,
-  HR_COMPANY_NAME_CHIP_CLASS,
-  HR_COMPANY_TYPE_BADGE_CLASS,
-  HR_COMPANY_TYPE_LABELS,
-  HR_COMPANY_TYPE_OPTIONS,
-  HR_COMPANY_TYPE_SHORT_LABEL,
-} from '../lib/hrCompanyTypes';
+import { HR_COMPANY_TYPE_LABELS, HR_COMPANY_TYPE_OPTIONS, HR_COMPANY_TYPE_SHORT_LABEL, } from '../lib/hrCompanyTypes';
+import { HR_ACTIONS_TD_CLASS, HR_ACTIONS_TH_CLASS, HR_COMPANY_NAME_CHIP_CLASS, HR_COMPANY_TYPE_BADGE_CLASS, HR_CONSULTANCY_CLIENT_CHIP_CLASS, HR_INTERMEDIARY_PLAIN_TEXT_CLASS, HR_THIRD_PARTY_CLIENT_CHIP_CLASS, HR_TH_BASE, } from '../lib/hrContactsClasses';
 import { cn } from '@/lib/utils';
 import { HrContactCompanyChips } from '../lib/hrContactCompanyChips';
 import { getHrContactsDataColumns } from '../lib/hrContactsDataColumns';
-import {
-  HR_ACTIONS_COL_PX,
-  HR_ACTIONS_HEAD_CLASS,
-  HR_DATA_COL_WIDTH_PERCENT,
-  HR_TH_BASE,
-  hrActionsBodyCellBg,
-} from '../lib/hrContactsTable';
+import { HR_TABLE_COL_WIDTH_PERCENT } from '../lib/hrContactsTable';
 import { getNormalizedDigitsForHrContact, normalizePhoneDigits } from '../lib/phoneNormalize';
 import { Plus, Pencil, Trash2, Building2, StickyNote, Eye } from 'lucide-react';
-
 const emptyForm: HrContactInput = {
-  companyName: '',
-  intermediaryCompanyName: '',
-  hrName: '',
-  phone: '',
-  email: '',
-  noticePeriodLwdNote: '',
-  companyType: undefined,
+    companyName: '',
+    intermediaryCompanyName: '',
+    hrName: '',
+    phone: '',
+    email: '',
+    noticePeriodLwdNote: '',
+    companyType: undefined,
 };
-
 function hasAtLeastOneHrField(f: HrContactInput): boolean {
-  if (f.companyName.trim()) return true;
-  if (f.intermediaryCompanyName.trim()) return true;
-  if (f.hrName.trim()) return true;
-  if (normalizePhoneDigits(f.phone)) return true;
-  if (f.email?.trim()) return true;
-  if ((f.noticePeriodLwdNote ?? '').trim()) return true;
-  if (f.companyType) return true;
-  return false;
+    if (f.companyName.trim())
+        return true;
+    if (f.intermediaryCompanyName.trim())
+        return true;
+    if (f.hrName.trim())
+        return true;
+    if (normalizePhoneDigits(f.phone))
+        return true;
+    if (f.email?.trim())
+        return true;
+    if ((f.noticePeriodLwdNote ?? '').trim())
+        return true;
+    if (f.companyType)
+        return true;
+    return false;
 }
-
-function isDuplicatePhoneForUser(
-  digits: string,
-  contacts: HrContactRecord[],
-  excludeId?: string
-): boolean {
-  if (!digits) return false;
-  return contacts.some((c) => {
-    if (excludeId && c._id === excludeId) return false;
-    const n = getNormalizedDigitsForHrContact(c);
-    return n.length > 0 && n === digits;
-  });
-}
-
-export default function HrContactsPage() {
-  const {
-    hrContacts,
-    isLoading,
-    createHrContact,
-    updateHrContact,
-    deleteHrContact,
-    isSaving,
-    isDeleting,
-  } = useHrContacts();
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<HrContactRecord | null>(null);
-  const [form, setForm] = useState<HrContactInput>(emptyForm);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
-  const [viewing, setViewing] = useState<HrContactRecord | null>(null);
-
-  const dataColumns = useMemo(() => getHrContactsDataColumns(), []);
-
-  const sortedContacts = useMemo(() => {
-    return [...hrContacts].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [hrContacts]);
-
-  const tableSyncKey = String(sortedContacts.length);
-  const { scrollAreaRef, dataTableRef, actionsTableRef } = useHrContactsSplitTableSync(tableSyncKey);
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm);
-    setFormError(null);
-    setDialogOpen(true);
-  };
-
-  const openEdit = (row: HrContactRecord) => {
-    setEditing(row);
-    setForm({
-      companyName: row.companyName ?? '',
-      intermediaryCompanyName: row.intermediaryCompanyName ?? '',
-      hrName: row.hrName ?? '',
-      phone: row.phone ?? '',
-      email: row.email ?? '',
-      noticePeriodLwdNote: row.noticePeriodLwdNote ?? '',
-      companyType: row.companyType,
+function isDuplicatePhoneForUser(digits: string, contacts: HrContactRecord[], excludeId?: string): boolean {
+    if (!digits)
+        return false;
+    return contacts.some((c) => {
+        if (excludeId && c._id === excludeId)
+            return false;
+        const n = getNormalizedDigitsForHrContact(c);
+        return n.length > 0 && n === digits;
     });
-    setFormError(null);
-    setDialogOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-    if (!hasAtLeastOneHrField(form)) {
-      setFormError('Fill in at least one field before saving.');
-      return;
-    }
-    const phoneDigits = normalizePhoneDigits(form.phone);
-    if (phoneDigits && isDuplicatePhoneForUser(phoneDigits, sortedContacts, editing?._id)) {
-      setFormError('This phone number is already used for another HR contact.');
-      return;
-    }
-    try {
-      const payload: HrContactInput = {
-        companyName: form.companyName.trim(),
-        intermediaryCompanyName: form.intermediaryCompanyName.trim(),
-        hrName: form.hrName.trim(),
-        phone: form.phone.trim(),
-        email: form.email?.trim() || undefined,
-        noticePeriodLwdNote: form.noticePeriodLwdNote?.trim() ?? '',
-        companyType: form.companyType,
-      };
-      if (editing) {
-        await updateHrContact({ id: editing._id, ...payload });
-      } else {
-        await createHrContact(payload);
-      }
-      setDialogOpen(false);
-      setEditing(null);
-      setForm(emptyForm);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: unknown } } };
-      const raw = axiosErr?.response?.data?.error;
-      const msg =
-        typeof raw === 'string'
-          ? raw
-          : Array.isArray(raw)
-            ? 'Please check the form fields.'
-            : 'Could not save HR contact.';
-      setFormError(msg);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    try {
-      await deleteHrContact(deleteId);
-      setDeleteId(null);
-    } catch {
-      /* toast in hook */
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4 sm:space-y-6">
+}
+export default function HrContactsPage() {
+    const { hrContacts, isLoading, createHrContact, updateHrContact, deleteHrContact, isSaving, isDeleting, } = useHrContacts();
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editing, setEditing] = useState<HrContactRecord | null>(null);
+    const [form, setForm] = useState<HrContactInput>(emptyForm);
+    const [formError, setFormError] = useState<string | null>(null);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [viewing, setViewing] = useState<HrContactRecord | null>(null);
+    const dataColumns = useMemo(() => getHrContactsDataColumns(), []);
+    const sortedContacts = useMemo(() => {
+        return [...hrContacts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }, [hrContacts]);
+    const openCreate = () => {
+        setEditing(null);
+        setForm(emptyForm);
+        setFormError(null);
+        setDialogOpen(true);
+    };
+    const openEdit = (row: HrContactRecord) => {
+        setEditing(row);
+        setForm({
+            companyName: row.companyName ?? '',
+            intermediaryCompanyName: row.intermediaryCompanyName ?? '',
+            hrName: row.hrName ?? '',
+            phone: row.phone ?? '',
+            email: row.email ?? '',
+            noticePeriodLwdNote: row.noticePeriodLwdNote ?? '',
+            companyType: row.companyType,
+        });
+        setFormError(null);
+        setDialogOpen(true);
+    };
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormError(null);
+        if (!hasAtLeastOneHrField(form)) {
+            setFormError('Fill in at least one field before saving.');
+            return;
+        }
+        const phoneDigits = normalizePhoneDigits(form.phone);
+        if (phoneDigits && isDuplicatePhoneForUser(phoneDigits, sortedContacts, editing?._id)) {
+            setFormError('This phone number is already used for another HR contact.');
+            return;
+        }
+        try {
+            const payload: HrContactInput = {
+                companyName: form.companyName.trim(),
+                intermediaryCompanyName: form.intermediaryCompanyName.trim(),
+                hrName: form.hrName.trim(),
+                phone: form.phone.trim(),
+                email: form.email?.trim() || undefined,
+                noticePeriodLwdNote: form.noticePeriodLwdNote?.trim() ?? '',
+                companyType: form.companyType,
+            };
+            if (editing) {
+                await updateHrContact({ id: editing._id, ...payload });
+            }
+            else {
+                await createHrContact(payload);
+            }
+            setDialogOpen(false);
+            setEditing(null);
+            setForm(emptyForm);
+        }
+        catch (err: unknown) {
+            const axiosErr = err as {
+                response?: {
+                    data?: {
+                        error?: unknown;
+                    };
+                };
+            };
+            const raw = axiosErr?.response?.data?.error;
+            const msg = typeof raw === 'string'
+                ? raw
+                : Array.isArray(raw)
+                    ? 'Please check the form fields.'
+                    : 'Could not save HR contact.';
+            setFormError(msg);
+        }
+    };
+    const confirmDelete = async () => {
+        if (!deleteId)
+            return;
+        try {
+            await deleteHrContact(deleteId);
+            setDeleteId(null);
+        }
+        catch {
+            void 0;
+        }
+    };
+    if (isLoading) {
+        return (<div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <Skeleton className="h-7 w-48 mb-2" />
-            <Skeleton className="h-4 w-72" />
+            <Skeleton className="h-7 w-48 mb-2"/>
+            <Skeleton className="h-4 w-72"/>
           </div>
-          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-10 w-40"/>
         </div>
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="p-3 space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-md" />
-            ))}
+            {[1, 2, 3, 4, 5].map((i) => (<Skeleton key={i} className="h-12 w-full rounded-md"/>))}
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4 sm:space-y-6">
-      <PageHeader
-        title="HR Contacts"
-        description="Directory of recruiters and HR"
-        actions={
-          <>
-            <Button
-              onClick={openCreate}
-              className="flex-1 sm:flex-initial bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
+      </div>);
+    }
+    return (<div className="space-y-4 sm:space-y-6">
+      <PageHeader title="HR Contacts" description="Directory of recruiters and HR" actions={<>
+            <Button onClick={openCreate} className="flex-1 sm:flex-initial bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white">
+              <Plus className="h-4 w-4 mr-2"/>
               Add HR Contact
             </Button>
-          </>
-        }
-      />
+          </>}/>
 
-      {sortedContacts.length > 0 && (
-        <div
-          className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300"
-          role="note"
-          aria-label="Company column color key"
-        >
+      {sortedContacts.length > 0 && (<div className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300" role="note" aria-label="Company column color key">
           <p className="font-medium text-slate-700 dark:text-slate-200 mb-2">Company column</p>
           <p className="text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
             Text before → is the agency or payroll company. The chip is the <span className="font-medium text-slate-800 dark:text-slate-200">client</span> you are hiring for.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <span className="inline-flex items-center gap-2">
-              <span
-                className={cn(
-                  HR_CONSULTANCY_CLIENT_CHIP_CLASS,
-                  'h-6 min-w-[4.5rem] shrink-0 items-center justify-center !py-0 text-[11px]'
-                )}
-                aria-hidden
-              >
+              <span className={cn(HR_CONSULTANCY_CLIENT_CHIP_CLASS, 'h-6 min-w-[4.5rem] shrink-0 items-center justify-center !py-0 text-[11px]')} aria-hidden>
                 Client
               </span>
               <span>HR consultancy — client company</span>
             </span>
             <span className="inline-flex items-center gap-2">
-              <span
-                className={cn(
-                  HR_THIRD_PARTY_CLIENT_CHIP_CLASS,
-                  'h-6 min-w-[4.5rem] shrink-0 items-center justify-center !py-0 text-[11px]'
-                )}
-                aria-hidden
-              >
+              <span className={cn(HR_THIRD_PARTY_CLIENT_CHIP_CLASS, 'h-6 min-w-[4.5rem] shrink-0 items-center justify-center !py-0 text-[11px]')} aria-hidden>
                 Client
               </span>
               <span>Third-party payroll — client company</span>
             </span>
           </div>
-        </div>
-      )}
+        </div>)}
 
-      {sortedContacts.length === 0 ? (
-        <Card className="border-dashed border-slate-200 dark:border-slate-800">
+      {sortedContacts.length === 0 ? (<Card className="border-dashed border-slate-200 dark:border-slate-800">
           <CardContent className="py-16 text-center">
-            <Building2 className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+            <Building2 className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4"/>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No HR contacts yet</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-md mx-auto">
               Save company HR details here. When you schedule interviews, you can link one of these contacts.
             </p>
             <Button onClick={openCreate} variant="outline">
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2"/>
               Add your first contact
             </Button>
           </CardContent>
-        </Card>
-      ) : (
-        <div className="flex items-start rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <div
-            ref={scrollAreaRef}
-            className="min-w-0 flex-1 overflow-x-auto bg-white dark:bg-slate-900"
-          >
-            <table
-              ref={dataTableRef}
-              className="w-full table-fixed border-collapse text-left text-sm"
-            >
-              <colgroup>
-                {HR_DATA_COL_WIDTH_PERCENT.map((pct, i) => (
-                  <col key={i} style={{ width: `${pct}%` }} />
-                ))}
-              </colgroup>
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
-                  {dataColumns.map((col) => (
-                    <th key={col.title} scope="col" className={HR_TH_BASE}>
-                      <span className="block min-w-0">{col.title}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedContacts.map((row) => {
-                  const isHovered = hoveredRowId === row._id;
-                  const rowHover = isHovered ? 'bg-slate-50/80 dark:bg-slate-800/40' : '';
-                  return (
-                    <tr
-                      key={row._id}
-                      className={`border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors ${rowHover}`}
-                      onMouseEnter={() => setHoveredRowId(row._id)}
-                      onMouseLeave={() => setHoveredRowId(null)}
-                    >
-                      {dataColumns.map((col) => (
-                        <td key={col.title} className={col.tdClass}>
-                          {col.render(row)}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div
-            className="flex-shrink-0 overflow-x-hidden bg-white dark:bg-slate-900"
-            style={{ width: HR_ACTIONS_COL_PX, minWidth: HR_ACTIONS_COL_PX }}
-          >
-            <table
-              ref={actionsTableRef}
-              className="w-full table-fixed border-collapse text-left text-sm"
-              style={{ width: HR_ACTIONS_COL_PX, minWidth: HR_ACTIONS_COL_PX }}
-            >
-              <colgroup>
-                <col style={{ width: HR_ACTIONS_COL_PX, minWidth: HR_ACTIONS_COL_PX }} />
-              </colgroup>
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
-                  <th scope="col" className={HR_ACTIONS_HEAD_CLASS}>
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedContacts.map((row) => {
-                  const isHovered = hoveredRowId === row._id;
-                  const rowHover = isHovered ? 'bg-slate-50/80 dark:bg-slate-800/40' : '';
-                  return (
-                    <tr
-                      key={row._id}
-                      className={`border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors ${rowHover}`}
-                      onMouseEnter={() => setHoveredRowId(row._id)}
-                      onMouseLeave={() => setHoveredRowId(null)}
-                    >
-                      <td
-                        className={`box-border px-1.5 py-1.5 text-center align-middle ${hrActionsBodyCellBg(
-                          isHovered
-                        )}`}
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5 leading-none">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 touch-manipulation"
-                            onClick={() => setViewing(row)}
-                            title="View details"
-                            type="button"
-                            aria-label="View details"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 touch-manipulation"
-                            onClick={() => openEdit(row)}
-                            title="Edit"
-                            type="button"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-red-600 hover:text-red-700 dark:text-red-400 touch-manipulation"
-                            onClick={() => setDeleteId(row._id)}
-                            title="Delete"
-                            type="button"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        </Card>) : (<div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+          <table className="w-full min-w-[min(100%,720px)] table-fixed border-collapse text-left text-sm">
+            <colgroup>
+              {HR_TABLE_COL_WIDTH_PERCENT.map((pct, i) => (<col key={i} style={{ width: `${pct}%` }}/>))}
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
+                {dataColumns.map((col) => (<th key={col.title} scope="col" className={HR_TH_BASE}>
+                    <span className="block min-w-0">{col.title}</span>
+                  </th>))}
+                <th scope="col" className={HR_ACTIONS_TH_CLASS}>
+                  <span className="block min-w-0">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedContacts.map((row) => {
+                return (<tr key={row._id} className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
+                    {dataColumns.map((col) => (<td key={col.title} className={col.tdClass}>
+                        {col.render(row)}
+                      </td>))}
+                    <td className={HR_ACTIONS_TD_CLASS}>
+                      <div className="inline-flex items-center justify-center gap-0.5 leading-none">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => setViewing(row)} title="View details" type="button" aria-label="View details">
+                          <Eye className="h-3.5 w-3.5"/>
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => openEdit(row)} title="Edit" type="button">
+                          <Pencil className="h-3.5 w-3.5"/>
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none text-red-600 hover:bg-transparent hover:text-red-700 dark:text-red-400 dark:hover:bg-transparent dark:hover:text-red-300" onClick={() => setDeleteId(row._id)} title="Delete" type="button">
+                          <Trash2 className="h-3.5 w-3.5"/>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>);
+            })}
+            </tbody>
+          </table>
+        </div>)}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent onClose={() => setDialogOpen(false)} className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -398,135 +251,66 @@ export default function HrContactsPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-            {formError && (
-              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+            {formError && (<p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
                 {formError}
-              </p>
-            )}
+              </p>)}
             <div className="space-y-2">
               <Label htmlFor="companyType">Company Type</Label>
-              <Select
-                id="companyType"
-                value={form.companyType ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setForm((f) => ({
-                    ...f,
-                    companyType: v === '' ? undefined : (v as HrCompanyType),
-                  }));
-                }}
-              >
+              <Select id="companyType" value={form.companyType ?? ''} onChange={(e) => {
+            const v = e.target.value;
+            setForm((f) => ({
+                ...f,
+                companyType: v === '' ? undefined : (v as HrCompanyType),
+            }));
+        }}>
                 <option value="">Select Type (Optional)</option>
-                {HR_COMPANY_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
+                {HR_COMPANY_TYPE_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>
                     {opt.label}
-                  </option>
-                ))}
+                  </option>))}
               </Select>
             </div>
-            {form.companyType === 'consultancy' && (
-              <>
+            {form.companyType === 'consultancy' && (<>
                 <div className="space-y-2">
                   <Label htmlFor="intermediaryCompanyName">HR Consultancy Name</Label>
-                  <Input
-                    id="intermediaryCompanyName"
-                    value={form.intermediaryCompanyName}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))
-                    }
-                    placeholder="Agency or consultancy you deal with"
-                  />
+                  <Input id="intermediaryCompanyName" value={form.intermediaryCompanyName} onChange={(e) => setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))} placeholder="Agency or consultancy you deal with"/>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name</Label>
-                  <Input
-                    id="companyName"
-                    value={form.companyName}
-                    onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
-                    placeholder="Client company they are hiring for"
-                  />
+                  <Input id="companyName" value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Client company they are hiring for"/>
                 </div>
-              </>
-            )}
-            {form.companyType === 'third_party_payroll' && (
-              <>
+              </>)}
+            {form.companyType === 'third_party_payroll' && (<>
                 <div className="space-y-2">
                   <Label htmlFor="intermediaryCompanyNamePayroll">Third Party Company Name</Label>
-                  <Input
-                    id="intermediaryCompanyNamePayroll"
-                    value={form.intermediaryCompanyName}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))
-                    }
-                    placeholder="Payroll or staffing company"
-                  />
+                  <Input id="intermediaryCompanyNamePayroll" value={form.intermediaryCompanyName} onChange={(e) => setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))} placeholder="Payroll or staffing company"/>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="companyNamePayroll">Client Name</Label>
-                  <Input
-                    id="companyNamePayroll"
-                    value={form.companyName}
-                    onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
-                    placeholder="Where you work on paper / end client"
-                  />
+                  <Input id="companyNamePayroll" value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Where you work on paper / end client"/>
                 </div>
-              </>
-            )}
-            {form.companyType !== 'consultancy' && form.companyType !== 'third_party_payroll' && (
-              <div className="space-y-2">
+              </>)}
+            {form.companyType !== 'consultancy' && form.companyType !== 'third_party_payroll' && (<div className="space-y-2">
                 <Label htmlFor="companyNameSimple">Company Name</Label>
-                <Input
-                  id="companyNameSimple"
-                  value={form.companyName}
-                  onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
-                  placeholder="Acme Corp"
-                />
-              </div>
-            )}
+                <Input id="companyNameSimple" value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Acme Corp"/>
+              </div>)}
             <div className="space-y-2">
               <Label htmlFor="hrName">HR / Recruiter Name</Label>
-              <Input
-                id="hrName"
-                value={form.hrName}
-                onChange={(e) => setForm((f) => ({ ...f, hrName: e.target.value }))}
-                placeholder="Jane Doe"
-              />
+              <Input id="hrName" value={form.hrName} onChange={(e) => setForm((f) => ({ ...f, hrName: e.target.value }))} placeholder="Jane Doe"/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="+91 98765 43210"
-                inputMode="tel"
-                autoComplete="tel"
-              />
+              <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+91 98765 43210" inputMode="tel" autoComplete="tel"/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="hr@company.com"
-              />
+              <Input id="email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="hr@company.com"/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="noticePeriodLwdNote" className="flex items-center gap-2">
-                <StickyNote className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                <StickyNote className="h-4 w-4 text-teal-600 dark:text-teal-400"/>
                 Notice Period &amp; LWD (What you told this recruiter)
               </Label>
-              <textarea
-                id="noticePeriodLwdNote"
-                value={form.noticePeriodLwdNote ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, noticePeriodLwdNote: e.target.value }))}
-                placeholder="e.g. Told them I’m on 2 months NP, LWD 15 May; or immediate joiner; or serving notice…"
-                rows={4}
-                maxLength={5000}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-y min-h-[96px] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-              />
+              <textarea id="noticePeriodLwdNote" value={form.noticePeriodLwdNote ?? ''} onChange={(e) => setForm((f) => ({ ...f, noticePeriodLwdNote: e.target.value }))} placeholder="e.g. Told them I’m on 2 months NP, LWD 15 May; or immediate joiner; or serving notice…" rows={4} maxLength={5000} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-y min-h-[96px] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"/>
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 {(form.noticePeriodLwdNote ?? '').length}/5000
               </p>
@@ -544,41 +328,28 @@ export default function HrContactsPage() {
       </Dialog>
 
       <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
-        <DialogContent
-          onClose={() => setViewing(null)}
-          className="max-w-2xl max-h-[90vh] overflow-y-auto"
-        >
+        <DialogContent onClose={() => setViewing(null)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>HR contact details</DialogTitle>
-            {viewing && (
-              <div className="text-sm text-muted-foreground pt-0.5">
-                <HrContactCompanyChips row={viewing} showBuildingIcon={false} />
-              </div>
-            )}
+            {viewing && (<div className="text-sm text-muted-foreground pt-0.5">
+                <HrContactCompanyChips row={viewing} showBuildingIcon={false}/>
+              </div>)}
           </DialogHeader>
-          {viewing && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 pt-2 text-sm">
+          {viewing && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 pt-2 text-sm">
               <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Company type</p>
                 <div>
-                  {viewing.companyType ? (
-                    <span className={HR_COMPANY_TYPE_BADGE_CLASS[viewing.companyType]}>
+                  {viewing.companyType ? (<span className={HR_COMPANY_TYPE_BADGE_CLASS[viewing.companyType]}>
                       {HR_COMPANY_TYPE_SHORT_LABEL[viewing.companyType]}
-                    </span>
-                  ) : (
-                    <span className="text-slate-500 dark:text-slate-400">—</span>
-                  )}
-                  {viewing.companyType && (
-                    <span className="sr-only">{HR_COMPANY_TYPE_LABELS[viewing.companyType]}</span>
-                  )}
+                    </span>) : (<span className="text-slate-500 dark:text-slate-400">—</span>)}
+                  {viewing.companyType && (<span className="sr-only">{HR_COMPANY_TYPE_LABELS[viewing.companyType]}</span>)}
                 </div>
               </div>
               <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">HR / recruiter name</p>
                 <p className="text-slate-900 dark:text-slate-100">{viewing.hrName?.trim() || '—'}</p>
               </div>
-              {viewing.companyType === 'consultancy' && (
-                <>
+              {viewing.companyType === 'consultancy' && (<>
                   <div className="space-y-1 min-w-0">
                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400">HR consultancy name</p>
                     <p>
@@ -595,10 +366,8 @@ export default function HrContactsPage() {
                       </span>
                     </p>
                   </div>
-                </>
-              )}
-              {viewing.companyType === 'third_party_payroll' && (
-                <>
+                </>)}
+              {viewing.companyType === 'third_party_payroll' && (<>
                   <div className="space-y-1 min-w-0">
                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Third-party company</p>
                     <p>
@@ -615,24 +384,17 @@ export default function HrContactsPage() {
                       </span>
                     </p>
                   </div>
-                </>
-              )}
-              {viewing.companyType !== 'consultancy' && viewing.companyType !== 'third_party_payroll' && (
-                <div className="space-y-1 min-w-0 sm:col-span-2">
+                </>)}
+              {viewing.companyType !== 'consultancy' && viewing.companyType !== 'third_party_payroll' && (<div className="space-y-1 min-w-0 sm:col-span-2">
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Company name</p>
                   <p>
-                    {viewing.companyType ? (
-                      <span className={HR_COMPANY_NAME_CHIP_CLASS[viewing.companyType]}>
+                    {viewing.companyType ? (<span className={HR_COMPANY_NAME_CHIP_CLASS[viewing.companyType]}>
                         {viewing.companyName?.trim() || '—'}
-                      </span>
-                    ) : (
-                      <span className="text-slate-900 dark:text-slate-100 break-words">
+                      </span>) : (<span className="text-slate-900 dark:text-slate-100 break-words">
                         {viewing.companyName?.trim() || '—'}
-                      </span>
-                    )}
+                      </span>)}
                   </p>
-                </div>
-              )}
+                </div>)}
               <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Phone</p>
                 <p className="text-slate-900 dark:text-slate-100 tabular-nums">{viewing.phone?.trim() || '—'}</p>
@@ -643,36 +405,25 @@ export default function HrContactsPage() {
               </div>
               <div className="space-y-1 min-w-0 sm:col-span-2">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <StickyNote className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                  <StickyNote className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0"/>
                   Notice period &amp; LWD
                 </p>
-                {viewing.noticePeriodLwdNote?.trim() ? (
-                  <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">
+                {viewing.noticePeriodLwdNote?.trim() ? (<p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">
                     {viewing.noticePeriodLwdNote}
-                  </p>
-                ) : (
-                  <p className="text-slate-400 dark:text-slate-500">—</p>
-                )}
+                  </p>) : (<p className="text-slate-400 dark:text-slate-500">—</p>)}
               </div>
-            </div>
-          )}
+            </div>)}
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setViewing(null)}>
               Close
             </Button>
-            {viewing && (
-              <Button
-                type="button"
-                className="bg-teal-600 hover:bg-teal-700 text-white"
-                onClick={() => {
-                  const row = viewing;
-                  setViewing(null);
-                  openEdit(row);
-                }}
-              >
+            {viewing && (<Button type="button" className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => {
+                const row = viewing;
+                setViewing(null);
+                openEdit(row);
+            }}>
                 Edit
-              </Button>
-            )}
+              </Button>)}
           </div>
         </DialogContent>
       </Dialog>
@@ -695,6 +446,5 @@ export default function HrContactsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>);
 }

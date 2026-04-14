@@ -9,4 +9,3 @@ export { default as TestimonialsSection } from './TestimonialsSection';
 export { default as FAQSection } from './FAQSection';
 export { default as CTASection } from './CTASection';
 export { default as Footer } from './Footer';
-

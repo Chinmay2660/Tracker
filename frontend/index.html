@@ -7,26 +7,19 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- Preconnect to external resources - improves connection time -->
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link rel="dns-prefetch" href="https://api.fontshare.com" />
     
-    <!-- Preload critical font with display=swap for fast text rendering -->
     <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" /></noscript>
     
-    <!-- Resource hints for faster navigation -->
     <link rel="prefetch" href="/dashboard" as="document" />
     
-    <!-- Reduce Cumulative Layout Shift -->
     <style>
-      /* Prevent layout shift from loading content */
       #root { contain: layout style; }
     </style>
     
-    <!-- Critical inline CSS for instant first paint -->
     <style>
-      /* Critical CSS for instant rendering */
       :root{
         --bg-light:#fff;--bg-dark:#0B0F17;
         --skeleton-bg:#f1f5f9;--skeleton-shine:#e2e8f0;
@@ -47,7 +40,6 @@
       @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
     </style>
     
-    <!-- Primary Meta Tags -->
     <title>Job Tracker</title>
     <meta name="title" content="Job Tracker - Track Your Job Applications & Interviews | Free Forever" />
     <meta name="description" content="Organize and track your job applications across different stages with Job Tracker. Manage interviews, resumes, and application progress with a beautiful Kanban board. Free forever, no credit card required." />
@@ -58,7 +50,6 @@
     <meta name="revisit-after" content="7 days" />
     <meta name="theme-color" content="#14b8a6" />
     
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ui-tracker.vercel.app/" />
     <meta property="og:title" content="Job Tracker - Track Your Job Applications & Interviews" />
@@ -70,7 +61,6 @@
     <meta property="og:site_name" content="Job Tracker" />
     <meta property="og:locale" content="en_US" />
     
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://ui-tracker.vercel.app/" />
     <meta name="twitter:title" content="Job Tracker - Track Your Job Applications & Interviews" />
@@ -78,10 +68,8 @@
     <meta name="twitter:image" content="https://ui-tracker.vercel.app/og-image.png" />
     <meta name="twitter:image:alt" content="Job Tracker - Application Management Dashboard" />
     
-    <!-- Canonical URL -->
     <link rel="canonical" href="https://ui-tracker.vercel.app/" />
     
-    <!-- Additional SEO -->
     <meta name="application-name" content="Job Tracker" />
     <meta name="apple-mobile-web-app-title" content="Job Tracker" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -89,7 +77,6 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
     
-    <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -120,8 +107,6 @@
     }
     </script>
     <script>
-      // Logged-in users: skip marketing/login and open Job Board (PWA + same browser).
-      // Runs before React so the landing page never flashes when a valid session exists.
       (function () {
         try {
           var token = localStorage.getItem('token');
@@ -132,11 +117,10 @@
           if (path === '/' || path === '/login') {
             location.replace('/dashboard' + location.search + location.hash);
           }
-        } catch (e) { /* ignore */ }
+        } catch (e) { void e; }
       })();
     </script>
     <script>
-      // Prevent flash of white background by applying theme immediately
       (function() {
         const stored = localStorage.getItem('theme');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -148,7 +132,6 @@
           document.documentElement.classList.remove('dark');
         }
         
-        // Set background color immediately to prevent flash
         document.documentElement.style.backgroundColor = theme === 'dark' ? '#0B0F17' : '#ffffff';
       })();
     </script>
@@ -158,4 +141,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
