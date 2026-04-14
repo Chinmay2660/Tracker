@@ -13,3 +13,16 @@ export function getNormalizedDigitsForHrContact(contact: {
     }
     return normalizePhoneDigits(contact.phone ?? '');
 }
+export function telHrefFromPhone(phone: string | undefined | null): string | null {
+    const digits = normalizePhoneDigits(phone ?? '');
+    if (digits.length === 0)
+        return null;
+    return `tel:${digits}`;
+}
+const LOOSE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export function mailtoHrefFromEmail(email: string | undefined | null): string | null {
+    const t = (email ?? '').trim();
+    if (!t || !LOOSE_EMAIL.test(t))
+        return null;
+    return `mailto:${t}`;
+}

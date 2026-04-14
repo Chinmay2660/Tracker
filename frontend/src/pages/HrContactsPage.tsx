@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useHrContacts, HrContactInput } from '../hooks/useHrContacts';
+import { useEffect, useMemo, useState } from 'react';
+import { HR_CONTACTS_DEFAULT_PAGE_SIZE, HR_CONTACTS_PAGE_SIZES, useHrContacts, HrContactInput, type HrContactsPageSize, } from '../hooks/useHrContacts';
 import { HrContactRecord, HrCompanyType } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -15,8 +15,8 @@ import { cn } from '@/lib/utils';
 import { HrContactCompanyChips } from '../lib/hrContactCompanyChips';
 import { getHrContactsDataColumns } from '../lib/hrContactsDataColumns';
 import { HR_TABLE_COL_WIDTH_PERCENT } from '../lib/hrContactsTable';
-import { getNormalizedDigitsForHrContact, normalizePhoneDigits } from '../lib/phoneNormalize';
-import { Plus, Pencil, Trash2, Building2, StickyNote, Eye } from 'lucide-react';
+import { mailtoHrefFromEmail, normalizePhoneDigits, telHrefFromPhone } from '../lib/phoneNormalize';
+import { Plus, Pencil, Trash2, Building2, StickyNote, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 const emptyForm: HrContactInput = {
     companyName: '',
     intermediaryCompanyName: '',
@@ -43,18 +43,14 @@ function hasAtLeastOneHrField(f: HrContactInput): boolean {
         return true;
     return false;
 }
-function isDuplicatePhoneForUser(digits: string, contacts: HrContactRecord[], excludeId?: string): boolean {
-    if (!digits)
-        return false;
-    return contacts.some((c) => {
-        if (excludeId && c._id === excludeId)
-            return false;
-        const n = getNormalizedDigitsForHrContact(c);
-        return n.length > 0 && n === digits;
-    });
-}
 export default function HrContactsPage() {
-    const { hrContacts, isLoading, createHrContact, updateHrContact, deleteHrContact, isSaving, isDeleting, } = useHrContacts();
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState<HrContactsPageSize>(HR_CONTACTS_DEFAULT_PAGE_SIZE);
+    const { hrContacts, total = 0, totalPages = 1, isLoading, createHrContact, updateHrContact, deleteHrContact, isSaving, isDeleting, } = useHrContacts({
+        paginate: true,
+        page,
+        pageSize,
+    });
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<HrContactRecord | null>(null);
     const [form, setForm] = useState<HrContactInput>(emptyForm);
@@ -62,9 +58,15 @@ export default function HrContactsPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [viewing, setViewing] = useState<HrContactRecord | null>(null);
     const dataColumns = useMemo(() => getHrContactsDataColumns(), []);
-    const sortedContacts = useMemo(() => {
-        return [...hrContacts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }, [hrContacts]);
+    useEffect(() => {
+        if (total === 0) {
+            if (page !== 1)
+                setPage(1);
+            return;
+        }
+        if (page > totalPages)
+            setPage(totalPages);
+    }, [total, totalPages, page]);
     const openCreate = () => {
         setEditing(null);
         setForm(emptyForm);
@@ -90,11 +92,6 @@ export default function HrContactsPage() {
         setFormError(null);
         if (!hasAtLeastOneHrField(form)) {
             setFormError('Fill in at least one field before saving.');
-            return;
-        }
-        const phoneDigits = normalizePhoneDigits(form.phone);
-        if (phoneDigits && isDuplicatePhoneForUser(phoneDigits, sortedContacts, editing?._id)) {
-            setFormError('This phone number is already used for another HR contact.');
             return;
         }
         try {
@@ -169,7 +166,7 @@ export default function HrContactsPage() {
             </Button>
           </>}/>
 
-      {sortedContacts.length > 0 && (<div className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300" role="note" aria-label="Company column color key">
+      {total > 0 && (<div className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300" role="note" aria-label="Company column color key">
           <p className="font-medium text-slate-700 dark:text-slate-200 mb-2">Company column</p>
           <p className="text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
             Text before → is the agency or payroll company. The chip is the <span className="font-medium text-slate-800 dark:text-slate-200">client</span> you are hiring for.
@@ -190,7 +187,7 @@ export default function HrContactsPage() {
           </div>
         </div>)}
 
-      {sortedContacts.length === 0 ? (<Card className="border-dashed border-slate-200 dark:border-slate-800">
+      {total === 0 ? (<Card className="border-dashed border-slate-200 dark:border-slate-800">
           <CardContent className="py-16 text-center">
             <Building2 className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4"/>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No HR contacts yet</h3>
@@ -202,44 +199,104 @@ export default function HrContactsPage() {
               Add your first contact
             </Button>
           </CardContent>
-        </Card>) : (<div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-          <table className="w-full min-w-[min(100%,720px)] table-fixed border-collapse text-left text-sm">
-            <colgroup>
-              {HR_TABLE_COL_WIDTH_PERCENT.map((pct, i) => (<col key={i} style={{ width: `${pct}%` }}/>))}
-            </colgroup>
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
-                {dataColumns.map((col) => (<th key={col.title} scope="col" className={HR_TH_BASE}>
-                    <span className="block min-w-0">{col.title}</span>
-                  </th>))}
-                <th scope="col" className={HR_ACTIONS_TH_CLASS}>
-                  <span className="block min-w-0">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedContacts.map((row) => {
-                return (<tr key={row._id} className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
-                    {dataColumns.map((col) => (<td key={col.title} className={col.tdClass}>
-                        {col.render(row)}
-                      </td>))}
-                    <td className={HR_ACTIONS_TD_CLASS}>
-                      <div className="inline-flex items-center justify-center gap-0.5 leading-none">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => setViewing(row)} title="View details" type="button" aria-label="View details">
-                          <Eye className="h-3.5 w-3.5"/>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => openEdit(row)} title="Edit" type="button">
-                          <Pencil className="h-3.5 w-3.5"/>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none text-red-600 hover:bg-transparent hover:text-red-700 dark:text-red-400 dark:hover:bg-transparent dark:hover:text-red-300" onClick={() => setDeleteId(row._id)} title="Delete" type="button">
-                          <Trash2 className="h-3.5 w-3.5"/>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>);
-            })}
-            </tbody>
-          </table>
+        </Card>) : (<div className="space-y-3">
+          <div className="md:hidden flex flex-col gap-3">
+            {hrContacts.map((row) => (<Card key={row._id} className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div className="min-w-0">{dataColumns[0].render(row)}</div>
+                  {dataColumns.slice(1).map((col) => (<div key={col.title} className="space-y-1">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{col.title}</p>
+                      <div className="text-sm min-w-0 text-slate-800 dark:text-slate-200">{col.render(row)}</div>
+                    </div>))}
+                  <div className="flex justify-end gap-0.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <Button variant="ghost" size="sm" className="h-9 w-9 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => setViewing(row)} title="View details" type="button" aria-label="View details">
+                      <Eye className="h-4 w-4"/>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => openEdit(row)} title="Edit" type="button">
+                      <Pencil className="h-4 w-4"/>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 touch-manipulation p-0 transition-none text-red-600 hover:bg-transparent hover:text-red-700 dark:text-red-400 dark:hover:bg-transparent dark:hover:text-red-300" onClick={() => setDeleteId(row._id)} title="Delete" type="button">
+                      <Trash2 className="h-4 w-4"/>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>))}
+          </div>
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+            <table className="w-full min-w-[640px] table-fixed border-collapse text-left text-sm">
+              <colgroup>
+                {HR_TABLE_COL_WIDTH_PERCENT.map((pct, i) => (<col key={i} style={{ width: `${pct}%` }}/>))}
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
+                  {dataColumns.map((col) => (<th key={col.title} scope="col" className={HR_TH_BASE}>
+                      <span className="block min-w-0">{col.title}</span>
+                    </th>))}
+                  <th scope="col" className={HR_ACTIONS_TH_CLASS}>
+                    <span className="block min-w-0">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {hrContacts.map((row) => {
+                    return (<tr key={row._id} className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
+                        {dataColumns.map((col) => (<td key={col.title} className={col.tdClass}>
+                            {col.render(row)}
+                          </td>))}
+                        <td className={HR_ACTIONS_TD_CLASS}>
+                          <div className="inline-flex items-center justify-center gap-0.5 leading-none">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => setViewing(row)} title="View details" type="button" aria-label="View details">
+                              <Eye className="h-3.5 w-3.5"/>
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none hover:bg-transparent dark:hover:bg-transparent" onClick={() => openEdit(row)} title="Edit" type="button">
+                              <Pencil className="h-3.5 w-3.5"/>
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 touch-manipulation p-0 transition-none text-red-600 hover:bg-transparent hover:text-red-700 dark:text-red-400 dark:hover:bg-transparent dark:hover:text-red-300" onClick={() => setDeleteId(row._id)} title="Delete" type="button">
+                              <Trash2 className="h-3.5 w-3.5"/>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>);
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="rounded-xl border border-slate-200/90 bg-slate-50/90 px-3 py-3 sm:px-4 dark:border-slate-700 dark:bg-slate-800/50 md:border-0 md:bg-transparent md:px-3 md:py-2 lg:px-4">
+            <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-6">
+              <p className="text-center text-xs leading-snug text-slate-600 dark:text-slate-400 sm:text-sm md:text-left md:leading-normal">
+                Showing <span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{(page - 1) * pageSize + 1}</span>–<span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{Math.min(page * pageSize, total)}</span> of <span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{total}</span>
+              </p>
+              <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-4 md:justify-end md:gap-5">
+                <div className="flex min-w-0 shrink items-center gap-2">
+                  <Label htmlFor="hr-page-size" className="text-xs font-medium text-slate-700 dark:text-slate-300 sm:text-sm">
+                    Per page
+                  </Label>
+                  <Select id="hr-page-size" value={String(pageSize)} onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (HR_CONTACTS_PAGE_SIZES.includes(v as HrContactsPageSize)) {
+                    setPageSize(v as HrContactsPageSize);
+                    setPage(1);
+                }
+            }} className="h-10 w-[4.25rem] min-h-10 shrink-0 px-2 py-1.5 text-sm sm:w-[4.75rem]">
+                    {HR_CONTACTS_PAGE_SIZES.map((n) => (<option key={n} value={n}>
+                        {n}
+                      </option>))}
+                  </Select>
+                </div>
+                <nav className="flex shrink-0 items-center gap-1 sm:gap-1.5" aria-label="Pagination">
+                  <Button type="button" variant="outline" size="sm" className="h-10 w-10 min-h-10 min-w-10 p-0" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} aria-label="Previous page">
+                    <ChevronLeft className="h-4 w-4"/>
+                  </Button>
+                  <span className="min-w-[3.25rem] text-center text-xs tabular-nums font-medium text-slate-800 dark:text-slate-200 sm:min-w-[4.5rem] sm:text-sm">
+                    {page} / {totalPages}
+                  </span>
+                  <Button type="button" variant="outline" size="sm" className="h-10 w-10 min-h-10 min-w-10 p-0" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} aria-label="Next page">
+                    <ChevronRight className="h-4 w-4"/>
+                  </Button>
+                </nav>
+              </div>
+            </div>
+          </div>
         </div>)}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -397,11 +454,31 @@ export default function HrContactsPage() {
                 </div>)}
               <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Phone</p>
-                <p className="text-slate-900 dark:text-slate-100 tabular-nums">{viewing.phone?.trim() || '—'}</p>
+                {(() => {
+                    const line = viewing.phone?.trim() || '';
+                    const href = telHrefFromPhone(viewing.phone);
+                    if (!line)
+                        return <p className="text-slate-900 dark:text-slate-100">—</p>;
+                    if (!href)
+                        return <p className="text-slate-900 dark:text-slate-100 tabular-nums">{line}</p>;
+                    return (<a href={href} className="inline-flex text-teal-600 font-medium tabular-nums underline decoration-teal-600/40 underline-offset-2 hover:decoration-teal-600 dark:text-teal-400 py-1 -my-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40" aria-label={`Call ${line}`}>
+                        {line}
+                      </a>);
+                })()}
               </div>
               <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Email</p>
-                <p className="text-slate-900 dark:text-slate-100 break-all">{viewing.email?.trim() || '—'}</p>
+                {(() => {
+                    const line = viewing.email?.trim() || '';
+                    const href = mailtoHrefFromEmail(viewing.email);
+                    if (!line)
+                        return <p className="text-slate-900 dark:text-slate-100">—</p>;
+                    if (!href)
+                        return <p className="text-slate-900 dark:text-slate-100 break-all">{line}</p>;
+                    return (<a href={href} className="inline-flex text-teal-600 font-medium break-all underline decoration-teal-600/40 underline-offset-2 hover:decoration-teal-600 dark:text-teal-400 py-1 -my-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40" aria-label={`Email ${line}`}>
+                        {line}
+                      </a>);
+                })()}
               </div>
               <div className="space-y-1 min-w-0 sm:col-span-2">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">

@@ -78,12 +78,42 @@ async function assertUniquePhone(userId: string, phoneNormalized: string, exclud
     const existing = await HrContact.findOne(query).lean();
     return !existing;
 }
+const ALLOWED_PAGE_SIZES = [5, 10, 15, 20] as const;
+const DEFAULT_PAGE_SIZE = 10;
+const HR_CONTACT_LIST_SORT = { companyName: 1 as const, createdAt: -1 as const };
+function parseListHrContactsQuery(req: AuthRequest): { all: boolean; page: number; limit: number } {
+    const allRaw = req.query.all;
+    const all = allRaw === 'true' || allRaw === '1';
+    const pageRaw = parseInt(String(req.query.page ?? '1'), 10);
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const limitRaw = parseInt(String(req.query.limit ?? String(DEFAULT_PAGE_SIZE)), 10);
+    const limit = ALLOWED_PAGE_SIZES.includes(limitRaw as (typeof ALLOWED_PAGE_SIZES)[number])
+        ? limitRaw
+        : DEFAULT_PAGE_SIZE;
+    return { all, page, limit };
+}
 export const listHrContacts = async (req: AuthRequest, res: Response) => {
     try {
-        const contacts = await HrContact.find({ userId: req.user._id })
-            .sort({ createdAt: -1 })
-            .lean();
-        res.json({ success: true, hrContacts: contacts });
+        const { all, page, limit } = parseListHrContactsQuery(req);
+        const filter = { userId: req.user._id };
+        if (all) {
+            const contacts = await HrContact.find(filter).sort(HR_CONTACT_LIST_SORT).lean();
+            return res.json({ success: true, hrContacts: contacts });
+        }
+        const skip = (page - 1) * limit;
+        const [contacts, total] = await Promise.all([
+            HrContact.find(filter).sort(HR_CONTACT_LIST_SORT).skip(skip).limit(limit).lean(),
+            HrContact.countDocuments(filter),
+        ]);
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        return res.json({
+            success: true,
+            hrContacts: contacts,
+            total,
+            page,
+            limit,
+            totalPages,
+        });
     }
     catch (error: any) {
         res.status(500).json({ success: false, error: error.message });

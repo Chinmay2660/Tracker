@@ -99,7 +99,7 @@ export default function InterviewForm({ interview, defaultDate, defaultEndDate, 
     const isRecruiterCall = stage?.toLowerCase().includes('recruiter') || stage?.toLowerCase().includes('call');
     const isCompleted = status === 'completed';
     const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
-    const hrOptions = [...hrContacts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const hrOptions = hrContacts;
     const onSubmit = async (data: InterviewFormData) => {
         setFormError(null);
         let dateStr: string;
