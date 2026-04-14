@@ -4,10 +4,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import passport from "passport";
 import path from "path";
-
-// Load environment variables FIRST before importing anything that uses them
 dotenv.config();
-
 import { isOriginAllowedForBrowser } from "./config/allowedOrigins";
 import { errorHandler } from "./middleware/errorHandler";
 import { securityHeaders, additionalSecurityHeaders, validateRequestSize } from "./middleware/security";
@@ -21,146 +18,101 @@ import interviewRoutes from "./routes/interviews";
 import resumeRoutes from "./routes/resumes";
 import hrContactRoutes from "./routes/hrContacts";
 import "./config/passport";
-
 const app = express();
 const PORT = process.env.PORT || 8000;
-
 if (process.env.VERCEL || process.env.RAILWAY_ENVIRONMENT || process.env.TRUST_PROXY === "1") {
-  app.set("trust proxy", 1);
+    app.set("trust proxy", 1);
 }
-
-// Security Middleware (must be first)
 app.use(securityHeaders);
 app.use(additionalSecurityHeaders);
 app.use(validateRequestSize);
-
-// CORS — use ALLOWED_ORIGINS and/or FRONTEND_URL on the API host (see config/allowedOrigins.ts)
-app.use(
-  cors({
+app.use(cors({
     origin: (requestOrigin, callback) => {
-      if (!requestOrigin) {
-        return callback(null, true);
-      }
-      if (isOriginAllowedForBrowser(requestOrigin)) {
-        return callback(null, true);
-      }
-      return callback(null, false);
+        if (!requestOrigin) {
+            return callback(null, true);
+        }
+        if (isOriginAllowedForBrowser(requestOrigin)) {
+            return callback(null, true);
+        }
+        return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
-
-// Body parsing middleware (with size limits)
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Input sanitization (prevent XSS)
 app.use(sanitizeInput);
-
-// CSRF Protection
 app.use(csrfProtection);
-
-// Rate limiting (apply general rate limiting to all routes)
 app.use(apiLimiter);
-
-// Passport initialization
 app.use(passport.initialize());
-
-// Serve static files for uploads (only in non-serverless environments)
 if (process.env.VERCEL !== '1') {
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+    app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 }
-
-// Routes
 app.use("/auth", authRoutes);
 app.use("/columns", columnRoutes);
 app.use("/jobs", jobRoutes);
 app.use("/interviews", interviewRoutes);
 app.use("/resumes", resumeRoutes);
 app.use("/hr-contacts", hrContactRoutes);
-
-// Root route
 app.get("/", (req, res) => {
-  res.json({ 
-    message: "Job Tracker API",
-    status: "running",
-    version: "1.0.0"
-  });
+    res.json({
+        message: "Job Tracker API",
+        status: "running",
+        version: "1.0.0"
+    });
 });
-
-// Health check
 app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+    res.json({ status: "ok" });
 });
-
-// OAuth test endpoint
 app.get("/auth/test", (req, res) => {
-  res.json({ 
-    oauthConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-    clientId: process.env.GOOGLE_CLIENT_ID ? `${process.env.GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'Not set',
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL,
-    frontendUrl: process.env.FRONTEND_URL
-  });
+    res.json({
+        oauthConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+        clientId: process.env.GOOGLE_CLIENT_ID ? `${process.env.GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'Not set',
+        callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+        frontendUrl: process.env.FRONTEND_URL
+    });
 });
-
-// 404 handler (must be before error handler)
 app.use((req, res, next) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-    path: req.path,
-    method: req.method
-  });
+    res.status(404).json({
+        success: false,
+        error: 'Route not found',
+        path: req.path,
+        method: req.method
+    });
 });
-
-// Error handling middleware
 app.use(errorHandler);
-
-// Connect to MongoDB (with connection options for serverless)
 const connectMongoDB = async () => {
-  if (!process.env.MONGODB_URI) {
-    console.warn("⚠️  MONGODB_URI not set");
-    return;
-  }
-
-  // If already connected, return
-  if (mongoose.connection.readyState === 1) {
-    console.log("✅ MongoDB already connected");
-    return;
-  }
-
-  const mongooseOptions = {
-    serverSelectionTimeoutMS: 15000, // 15 seconds timeout
-    socketTimeoutMS: 45000, // 45 seconds socket timeout
-    connectTimeoutMS: 15000, // 15 seconds connection timeout
-    maxPoolSize: 10, // Maintain up to 10 socket connections
-    minPoolSize: 1, // Maintain at least 1 socket connection
-    retryWrites: true,
-  };
-  
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, mongooseOptions);
-    console.log("✅ Connected to MongoDB");
-  } catch (error: any) {
-    console.error("⚠️  MongoDB connection error:", error.message);
-    // Don't block serverless function initialization
-    // Connection will be retried on first database operation
-  }
+    if (!process.env.MONGODB_URI) {
+        console.warn("⚠️  MONGODB_URI not set");
+        return;
+    }
+    if (mongoose.connection.readyState === 1) {
+        console.log("✅ MongoDB already connected");
+        return;
+    }
+    const mongooseOptions = {
+        serverSelectionTimeoutMS: 15000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 15000,
+        maxPoolSize: 10,
+        minPoolSize: 1,
+        retryWrites: true,
+    };
+    try {
+        await mongoose.connect(process.env.MONGODB_URI, mongooseOptions);
+        console.log("✅ Connected to MongoDB");
+    }
+    catch (error: any) {
+        console.error("⚠️  MongoDB connection error:", error.message);
+    }
 };
-
-// Start connection (non-blocking)
 connectMongoDB();
-
-// Export for Vercel serverless (must be at the end)
 module.exports = app;
-
-// Start server only if not in Vercel environment
 if (process.env.VERCEL !== '1') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📡 Health check: http://localhost:${PORT}/health`);
-    console.log(`🔐 OAuth endpoint: http://localhost:${PORT}/auth/google`);
-  });
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📡 Health check: http://localhost:${PORT}/health`);
+        console.log(`🔐 OAuth endpoint: http://localhost:${PORT}/auth/google`);
+    });
 }

@@ -16,5 +16,4 @@ export { default as MagneticButton } from './MagneticButton';
 export { default as TextReveal } from './TextReveal';
 export { default as FloatingIcons } from './FloatingIcons';
 export { default as GlowingOrbs } from './GlowingOrbs';
-
 export type { Testimonial } from './TestimonialCarousel';

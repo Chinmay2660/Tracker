@@ -1,4 +1,4 @@
-/* Font loaded via preload in index.html for better performance */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -74,8 +74,7 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
-  
-  /* Touch device optimizations for iPad and mobile */
+
   button, 
   [role="button"],
   a,
@@ -87,10 +86,6 @@
     touch-action: manipulation;
   }
 }
-
-/* =============================================
-   KEYFRAME ANIMATIONS
-   ============================================= */
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -114,49 +109,41 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Shimmer effect */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-/* Border beam animation */
 @keyframes border-beam {
   0% { offset-distance: 0%; }
   100% { offset-distance: 100%; }
 }
 
-/* Shine effect */
 @keyframes shine {
   0% { transform: translateX(-100%) rotate(45deg); }
   100% { transform: translateX(200%) rotate(45deg); }
 }
 
-/* Gradient rotation */
 @keyframes gradient-rotate {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* Pulse glow */
 @keyframes pulse-glow {
   0%, 100% { opacity: 0.4; transform: scale(1); }
   50% { opacity: 0.8; transform: scale(1.05); }
 }
 
-/* Text gradient shift */
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
 
-/* Spotlight move */
 @keyframes spotlight {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
   100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* Particle float */
 @keyframes particle-float {
   0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
   10% { opacity: 1; }
@@ -164,35 +151,27 @@
   100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
 }
 
-/* Typewriter cursor */
 @keyframes blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
 }
 
-/* Marquee */
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 
-/* Dock bounce */
 @keyframes dock-bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
 
-/* Aurora */
 @keyframes aurora {
   0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
   25% { transform: translateY(-20px) translateX(10px) rotate(2deg); }
   50% { transform: translateY(0) translateX(20px) rotate(0deg); }
   75% { transform: translateY(20px) translateX(10px) rotate(-2deg); }
 }
-
-/* =============================================
-   ANIMATION CLASSES
-   ============================================= */
 
 .animate-float { animation: float 6s ease-in-out infinite; }
 .animate-fade-in { animation: fade-in 0.5s ease-out; }
@@ -207,10 +186,6 @@
 .animate-marquee { animation: marquee 30s linear infinite; }
 .animate-dock-bounce { animation: dock-bounce 0.5s ease-out; }
 .animate-aurora { animation: aurora 15s ease-in-out infinite; }
-
-/* =============================================
-   SCROLL REVEAL SYSTEM
-   ============================================= */
 
 .scroll-reveal {
   opacity: 0;
@@ -256,7 +231,6 @@
   transform: scale(1);
 }
 
-/* Stagger delays */
 .stagger-1 { transition-delay: 0ms; }
 .stagger-2 { transition-delay: 100ms; }
 .stagger-3 { transition-delay: 200ms; }
@@ -264,11 +238,6 @@
 .stagger-5 { transition-delay: 400ms; }
 .stagger-6 { transition-delay: 500ms; }
 
-/* =============================================
-   TEXT EFFECTS
-   ============================================= */
-
-/* Gradient text */
 .text-gradient {
   background: linear-gradient(135deg, hsl(162 72% 45%), hsl(84 81% 44%));
   -webkit-background-clip: text;
@@ -276,7 +245,6 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* Animated gradient text */
 .text-gradient-animated {
   background: linear-gradient(90deg, hsl(162 72% 45%), hsl(84 81% 44%), hsl(162 72% 55%), hsl(162 72% 45%));
   background-size: 300% 100%;
@@ -286,7 +254,6 @@
   animation: gradient-shift 4s ease infinite;
 }
 
-/* Shiny text */
 .text-shiny {
   background: linear-gradient(
     90deg,
@@ -303,7 +270,6 @@
   animation: shimmer 3s linear infinite;
 }
 
-/* Glow text */
 .text-glow {
   text-shadow: 
     0 0 20px hsl(162 72% 45% / 0.5),
@@ -311,11 +277,6 @@
     0 0 60px hsl(162 72% 45% / 0.2);
 }
 
-/* =============================================
-   BUTTON EFFECTS
-   ============================================= */
-
-/* Shimmer button */
 .btn-shimmer {
   position: relative;
   overflow: hidden;
@@ -337,7 +298,6 @@
   animation: shine 3s ease-in-out infinite;
 }
 
-/* Glow button */
 .btn-glow {
   position: relative;
 }
@@ -358,11 +318,6 @@
   opacity: 0.6;
 }
 
-/* =============================================
-   CARD EFFECTS
-   ============================================= */
-
-/* Magic card with spotlight */
 .magic-card {
   position: relative;
   overflow: hidden;
@@ -388,7 +343,6 @@
   opacity: 1;
 }
 
-/* Shine card */
 .shine-card {
   position: relative;
   overflow: hidden;
@@ -415,7 +369,6 @@
   transform: translateX(100%) rotate(45deg);
 }
 
-/* Border beam card */
 .border-beam {
   position: relative;
   overflow: hidden;
@@ -440,7 +393,6 @@
   animation: gradient-rotate 4s linear infinite;
 }
 
-/* Glow border */
 .glow-border {
   position: relative;
 }
@@ -461,11 +413,6 @@
   opacity: 1;
 }
 
-/* =============================================
-   BACKGROUND EFFECTS
-   ============================================= */
-
-/* Grid pattern */
 .bg-grid {
   background-image: 
     linear-gradient(hsl(var(--border)) 1px, transparent 1px),
@@ -481,13 +428,11 @@
   background-size: 20px 20px;
 }
 
-/* Dot pattern */
 .bg-dots {
   background-image: radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px);
   background-size: 16px 16px;
 }
 
-/* Gradient mesh */
 .bg-gradient-mesh {
   background: 
     radial-gradient(at 40% 20%, hsl(162 72% 45% / 0.15) 0px, transparent 50%),
@@ -497,7 +442,6 @@
     radial-gradient(at 0% 100%, hsl(162 72% 45% / 0.1) 0px, transparent 50%);
 }
 
-/* Aurora background */
 .bg-aurora {
   position: relative;
   overflow: hidden;
@@ -528,7 +472,6 @@
   animation-delay: -7.5s;
 }
 
-/* Noise overlay */
 .bg-noise::before {
   content: '';
   position: absolute;
@@ -541,10 +484,6 @@
 .dark .bg-noise::before {
   opacity: 0.04;
 }
-
-/* =============================================
-   NAVBAR EFFECTS
-   ============================================= */
 
 .navbar-blur {
   backdrop-filter: blur(12px);
@@ -560,10 +499,6 @@
   padding-bottom: 0.5rem;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
-
-/* =============================================
-   DOCK EFFECT
-   ============================================= */
 
 .dock {
   display: flex;
@@ -595,10 +530,6 @@
   transform: scale(1.05);
 }
 
-/* =============================================
-   PARTICLES
-   ============================================= */
-
 .particles {
   position: absolute;
   inset: 0;
@@ -615,10 +546,6 @@
   animation: particle-float 10s linear infinite;
 }
 
-/* =============================================
-   GLASSMORPHISM
-   ============================================= */
-
 .glass {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
@@ -631,10 +558,6 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* =============================================
-   CAROUSEL
-   ============================================= */
-
 .carousel-track {
   display: flex;
   animation: marquee 30s linear infinite;
@@ -643,10 +566,6 @@
 .carousel-track:hover {
   animation-play-state: paused;
 }
-
-/* =============================================
-   UTILITY CLASSES
-   ============================================= */
 
 .safe-area-inset {
   padding-left: env(safe-area-inset-left);
@@ -667,17 +586,12 @@
   display: none;
 }
 
-/* Custom scrollbar */
 @media (min-width: 768px) {
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.3); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
 }
-
-/* =============================================
-   REACT BIG CALENDAR
-   ============================================= */
 
 .rbc-calendar {
   color: hsl(var(--foreground));
@@ -701,12 +615,10 @@
   background: hsl(var(--card));
 }
 
-/* Dark mode - white borders */
 .dark .rbc-day-bg {
   border-color: white !important;
 }
 
-/* Hide off-range date numbers completely (like ZOHO) - hide all text content */
 .rbc-off-range,
 .rbc-off-range-bg {
   color: transparent !important;
@@ -734,7 +646,6 @@
   overflow: hidden !important;
 }
 
-/* Hide all text content in off-range date cells */
 .rbc-off-range .rbc-date-cell,
 .rbc-off-range-bg .rbc-date-cell {
   color: transparent !important;
@@ -743,7 +654,6 @@
   text-indent: -9999px !important;
 }
 
-/* Hide any span or div containing date numbers in off-range cells */
 .rbc-off-range .rbc-date-cell *,
 .rbc-off-range-bg .rbc-date-cell * {
   display: none !important;
@@ -752,7 +662,6 @@
   color: transparent !important;
 }
 
-/* Disable interaction with off-range cells but keep them visible and maintain structure */
 .rbc-off-range,
 .rbc-off-range-bg {
   pointer-events: none !important;
@@ -792,9 +701,8 @@
   font-weight: 500;
 }
 
-/* Calendar toolbar buttons - base styling matching navigation */
 .rbc-toolbar button {
-  color: rgb(71 85 105); /* slate-600 */
+  color: rgb(71 85 105); 
   background: transparent;
   border: none;
   padding: 0.5rem 1rem;
@@ -807,71 +715,65 @@
 }
 
 .dark .rbc-toolbar button {
-  color: rgb(203 213 225); /* slate-300 */
+  color: rgb(203 213 225); 
 }
 
-/* Navigation buttons (Today, Back, Next) - inactive state */
 .rbc-toolbar button:not(.rbc-btn-group button) {
-  color: rgb(71 85 105); /* slate-600 */
+  color: rgb(71 85 105); 
   background: transparent;
 }
 
 .dark .rbc-toolbar button:not(.rbc-btn-group button) {
-  color: rgb(203 213 225); /* slate-300 */
+  color: rgb(203 213 225); 
 }
 
-/* Navigation buttons (Today, Back, Next) - hover state */
 .rbc-toolbar button:not(.rbc-btn-group button):hover:not(:disabled) {
-  color: rgb(15 23 42); /* slate-900 */
+  color: rgb(15 23 42); 
   background: transparent;
 }
 
 .dark .rbc-toolbar button:not(.rbc-btn-group button):hover:not(:disabled) {
-  color: rgb(255 255 255); /* white */
+  color: rgb(255 255 255); 
 }
 
-/* View buttons (Month, Week, Day) - inactive state */
 .rbc-toolbar .rbc-btn-group button:not(.rbc-active) {
-  color: rgb(71 85 105); /* slate-600 */
+  color: rgb(71 85 105); 
   background: transparent;
 }
 
 .dark .rbc-toolbar .rbc-btn-group button:not(.rbc-active) {
-  color: rgb(203 213 225); /* slate-300 */
+  color: rgb(203 213 225); 
 }
 
-/* View buttons (Month, Week, Day) - active state matching navigation */
 .rbc-toolbar .rbc-btn-group button.rbc-active {
-  background: rgb(15 23 42); /* slate-900 */
-  color: rgb(255 255 255); /* white */
+  background: rgb(15 23 42); 
+  color: rgb(255 255 255); 
   border: none;
   font-weight: 500;
 }
 
 .dark .rbc-toolbar .rbc-btn-group button.rbc-active {
-  background: rgb(255 255 255); /* white */
-  color: rgb(15 23 42); /* slate-900 */
+  background: rgb(255 255 255); 
+  color: rgb(15 23 42); 
 }
 
-/* View buttons (Month, Week, Day) - hover state (inactive) */
 .rbc-toolbar .rbc-btn-group button:hover:not(:disabled):not(.rbc-active) {
-  color: rgb(15 23 42); /* slate-900 */
+  color: rgb(15 23 42); 
   background: transparent;
 }
 
 .dark .rbc-toolbar .rbc-btn-group button:hover:not(:disabled):not(.rbc-active) {
-  color: rgb(255 255 255); /* white */
+  color: rgb(255 255 255); 
 }
 
-/* View buttons (Month, Week, Day) - active hover state */
 .rbc-toolbar .rbc-btn-group button.rbc-active:hover:not(:disabled) {
-  background: rgb(15 23 42); /* slate-900 */
-  color: rgb(255 255 255); /* white */
+  background: rgb(15 23 42); 
+  color: rgb(255 255 255); 
 }
 
 .dark .rbc-toolbar .rbc-btn-group button.rbc-active:hover:not(:disabled) {
-  background: rgb(241 245 249); /* slate-100 - slightly lighter for hover */
-  color: rgb(15 23 42); /* slate-900 */
+  background: rgb(241 245 249); 
+  color: rgb(15 23 42); 
 }
 
 .rbc-toolbar button:disabled {
@@ -928,7 +830,6 @@
   visibility: hidden !important;
 }
 
-/* Override react-big-calendar default styles - keep boxes visible */
 .rbc-month-row .rbc-off-range,
 .rbc-month-row .rbc-off-range-bg {
   background: transparent !important;
@@ -944,13 +845,11 @@
   border-left: 1px solid hsl(var(--border)) !important;
 }
 
-/* Dark mode - white border for disabled cells */
 .dark .rbc-day-bg.rbc-off-range,
 .dark .rbc-day-bg.rbc-off-range-bg {
   border-left: 1px solid white !important;
 }
 
-/* Change border color for all calendar cells - light mode uses theme border, dark mode uses white */
 .rbc-month-row .rbc-day-bg {
   border-color: hsl(var(--border)) !important;
 }
@@ -967,24 +866,20 @@
   border-left-color: white !important;
 }
 
-/* Remove right border from last regular cell in row to prevent extra border */
 .rbc-month-row .rbc-day-bg:last-child:not(.rbc-off-range):not(.rbc-off-range-bg) {
   border-right: none !important;
 }
 
-/* Remove left border from first disabled cell in row */
 .rbc-month-row .rbc-day-bg.rbc-off-range:first-child,
 .rbc-month-row .rbc-day-bg.rbc-off-range-bg:first-child {
   border-left: none !important;
 }
 
-/* Remove right border from last disabled cell in row */
 .rbc-month-row .rbc-day-bg.rbc-off-range:last-child,
 .rbc-month-row .rbc-day-bg.rbc-off-range-bg:last-child {
   border-right: none !important;
 }
 
-/* Disabled cells - single left border only, fully non-clickable */
 .rbc-day-bg.rbc-off-range,
 .rbc-day-bg.rbc-off-range-bg {
   border: none !important;
@@ -994,13 +889,11 @@
   cursor: default !important;
 }
 
-/* Dark mode - white border for disabled cells */
 .dark .rbc-day-bg.rbc-off-range,
 .dark .rbc-day-bg.rbc-off-range-bg {
   border-left: 1px solid white !important;
 }
 
-/* Disable all interactions on off-range cells and their children */
 .rbc-off-range,
 .rbc-off-range-bg,
 .rbc-off-range *,
@@ -1015,7 +908,6 @@
   -ms-user-select: none !important;
 }
 
-/* Prevent any click events on off-range cells with overlay */
 .rbc-month-row .rbc-off-range,
 .rbc-month-row .rbc-off-range-bg {
   position: relative;
@@ -1034,7 +926,6 @@
   cursor: default !important;
 }
 
-/* Ensure table cells have borders - light mode uses theme border, dark mode uses white */
 .rbc-month-row > td {
   border-color: hsl(var(--border)) !important;
 }
@@ -1050,7 +941,6 @@
   border: 1px solid hsl(162 72% 45% / 0.3);
 }
 
-/* Time picker icon color - white in dark mode, black in light mode, positioned on extreme right */
 input[type="time"] {
   padding-right: 2.5rem !important;
   text-align: left !important;
@@ -1072,13 +962,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   transform: translateY(-50%);
 }
 
-/* Dark mode - white icon */
 .dark input[type="time"]::-webkit-calendar-picker-indicator {
   filter: brightness(0) invert(1);
   opacity: 1;
 }
 
-/* Light mode - black icon */
 input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.8;
 }
@@ -1087,17 +975,14 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.9;
 }
 
-/* For Firefox - dark mode */
 .dark input[type="time"] {
   color-scheme: dark;
 }
 
-/* For Firefox - light mode */
 input[type="time"] {
   color-scheme: light;
 }
 
-/* Date picker icon color - white in dark mode, black in light mode, positioned on extreme right */
 input[type="date"] {
   padding-right: 2.5rem !important;
   text-align: left !important;
@@ -1119,13 +1004,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: translateY(-50%);
 }
 
-/* Dark mode - white icon */
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: brightness(0) invert(1);
   opacity: 1;
 }
 
-/* Light mode - black icon */
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.8;
 }
@@ -1134,24 +1017,20 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.9;
 }
 
-/* For Firefox - dark mode */
 .dark input[type="date"] {
   color-scheme: dark;
 }
 
-/* For Firefox - light mode */
 input[type="date"] {
   color-scheme: light;
 }
 
-/* Ensure the icon is visible and properly sized */
 input[type="date"]::-webkit-calendar-picker-indicator {
   width: 20px;
   height: 20px;
   padding: 2px;
 }
 
-/* Remove Recharts focus indicators */
 .recharts-wrapper:focus,
 .recharts-wrapper *:focus,
 .recharts-surface:focus,
@@ -1170,7 +1049,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   outline: none !important;
 }
 
-/* Remove blue focus ring from chart elements */
 .recharts-wrapper svg *:focus {
   outline: none !important;
 }

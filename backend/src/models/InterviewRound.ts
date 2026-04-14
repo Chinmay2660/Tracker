@@ -1,19 +1,16 @@
 import mongoose, { Schema, Document } from 'mongoose';
-
 export interface IInterviewRound extends Document {
-  jobId: mongoose.Types.ObjectId;
-  hrContactId?: mongoose.Types.ObjectId;
-  stage: string;
-  date: Date;
-  time?: string;
-  endTime?: string;
-  notesMarkdown?: string;
-  status: 'pending' | 'completed' | 'cancelled';
-  createdAt: Date;
+    jobId: mongoose.Types.ObjectId;
+    hrContactId?: mongoose.Types.ObjectId;
+    stage: string;
+    date: Date;
+    time?: string;
+    endTime?: string;
+    notesMarkdown?: string;
+    status: 'pending' | 'completed' | 'cancelled';
+    createdAt: Date;
 }
-
-const InterviewRoundSchema = new Schema<IInterviewRound>(
-  {
+const InterviewRoundSchema = new Schema<IInterviewRound>({
     jobId: { type: Schema.Types.ObjectId, ref: 'Job', required: true },
     hrContactId: { type: Schema.Types.ObjectId, ref: 'HrContact' },
     stage: { type: String, required: true },
@@ -22,15 +19,10 @@ const InterviewRoundSchema = new Schema<IInterviewRound>(
     endTime: { type: String },
     notesMarkdown: { type: String },
     status: {
-      type: String,
-      enum: ['pending', 'completed', 'cancelled'],
-      default: 'pending',
+        type: String,
+        enum: ['pending', 'completed', 'cancelled'],
+        default: 'pending',
     },
-  },
-  { timestamps: true }
-);
-
+}, { timestamps: true });
 InterviewRoundSchema.index({ jobId: 1, date: 1 });
-
 export default mongoose.model<IInterviewRound>('InterviewRound', InterviewRoundSchema);
-

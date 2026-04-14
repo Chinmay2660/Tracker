@@ -1,36 +1,33 @@
 import { memo } from 'react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../ui/accordion';
-
 const faqs = [
-  {
-    question: 'Is Job Tracker really free?',
-    answer: 'Yes! Job Tracker is completely free forever. No credit card required, no hidden fees, no premium plans. We believe everyone should have access to great job search tools.',
-  },
-  {
-    question: 'How do I get started?',
-    answer: 'Simply click "Get Started Free" and sign in with your Google account. You can start adding jobs immediately - it takes less than a minute to set up.',
-  },
-  {
-    question: 'Is my data secure?',
-    answer: 'Absolutely. We use Google OAuth for secure authentication, and your data is encrypted and stored safely. We never share your information with third parties.',
-  },
-  {
-    question: 'Can I use it on mobile?',
-    answer: 'Yes! Job Tracker is fully responsive and works great on desktop, tablet, and mobile devices. Manage your interviews and applications from anywhere.',
-  },
-  {
-    question: 'What features are included?',
-    answer: 'All features are included: Kanban board, interview management with calendar view, stage-based progress tracking, resume manager, smart analytics, filtering, rescheduling, and more. Everything is free!',
-  },
-  {
-    question: 'How does interview tracking work?',
-    answer: 'Define custom interview stages for each job (Applied, OA, Phone Screen, Onsite, etc.). Schedule interviews with date and time, add notes for completed rounds, and filter by status - upcoming, completed, cancelled, or overdue.',
-  },
+    {
+        question: 'Is Job Tracker really free?',
+        answer: 'Yes! Job Tracker is completely free forever. No credit card required, no hidden fees, no premium plans. We believe everyone should have access to great job search tools.',
+    },
+    {
+        question: 'How do I get started?',
+        answer: 'Simply click "Get Started Free" and sign in with your Google account. You can start adding jobs immediately - it takes less than a minute to set up.',
+    },
+    {
+        question: 'Is my data secure?',
+        answer: 'Absolutely. We use Google OAuth for secure authentication, and your data is encrypted and stored safely. We never share your information with third parties.',
+    },
+    {
+        question: 'Can I use it on mobile?',
+        answer: 'Yes! Job Tracker is fully responsive and works great on desktop, tablet, and mobile devices. Manage your interviews and applications from anywhere.',
+    },
+    {
+        question: 'What features are included?',
+        answer: 'All features are included: Kanban board, interview management with calendar view, stage-based progress tracking, resume manager, smart analytics, filtering, rescheduling, and more. Everything is free!',
+    },
+    {
+        question: 'How does interview tracking work?',
+        answer: 'Define custom interview stages for each job (Applied, OA, Phone Screen, Onsite, etc.). Schedule interviews with date and time, add notes for completed rounds, and filter by status - upcoming, completed, cancelled, or overdue.',
+    },
 ];
-
 function FAQSection() {
-  return (
-    <section className="py-10 sm:py-16 px-4 sm:px-6">
+    return (<section className="py-10 sm:py-16 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8 sm:mb-12 scroll-reveal">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">
@@ -42,21 +39,16 @@ function FAQSection() {
         </div>
 
         <Accordion type="single" defaultValue="item-0" className="space-y-2">
-          {faqs.map((faq, i) => (
-            <AccordionItem key={i} value={`item-${i}`} className="scroll-reveal bg-white dark:bg-slate-900">
+          {faqs.map((faq, i) => (<AccordionItem key={i} value={`item-${i}`} className="scroll-reveal bg-white dark:bg-slate-900">
               <AccordionTrigger>
                 <span className="text-base sm:text-lg">{faq.question}</span>
               </AccordionTrigger>
               <AccordionContent>
                 <p className="text-sm leading-relaxed">{faq.answer}</p>
               </AccordionContent>
-            </AccordionItem>
-          ))}
+            </AccordionItem>))}
         </Accordion>
       </div>
-    </section>
-  );
+    </section>);
 }
-
 export default memo(FAQSection);
-
