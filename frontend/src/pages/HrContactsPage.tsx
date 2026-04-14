@@ -46,11 +46,13 @@ function hasAtLeastOneHrField(f: HrContactInput): boolean {
 export default function HrContactsPage() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<HrContactsPageSize>(HR_CONTACTS_DEFAULT_PAGE_SIZE);
-    const { hrContacts, total = 0, totalPages = 1, isLoading, createHrContact, updateHrContact, deleteHrContact, isSaving, isDeleting, } = useHrContacts({
+    const { hrContacts, total, totalPages, isLoading, createHrContact, updateHrContact, deleteHrContact, isSaving, isDeleting, } = useHrContacts({
         paginate: true,
         page,
         pageSize,
     });
+    const listTotal = typeof total === 'number' ? total : undefined;
+    const listTotalPages = typeof totalPages === 'number' ? totalPages : undefined;
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<HrContactRecord | null>(null);
     const [form, setForm] = useState<HrContactInput>(emptyForm);
@@ -59,14 +61,16 @@ export default function HrContactsPage() {
     const [viewing, setViewing] = useState<HrContactRecord | null>(null);
     const dataColumns = useMemo(() => getHrContactsDataColumns(), []);
     useEffect(() => {
-        if (total === 0) {
+        if (listTotal === undefined || listTotalPages === undefined)
+            return;
+        if (listTotal === 0) {
             if (page !== 1)
                 setPage(1);
             return;
         }
-        if (page > totalPages)
-            setPage(totalPages);
-    }, [total, totalPages, page]);
+        if (page > listTotalPages)
+            setPage(listTotalPages);
+    }, [listTotal, listTotalPages, page]);
     const openCreate = () => {
         setEditing(null);
         setForm(emptyForm);
@@ -166,7 +170,7 @@ export default function HrContactsPage() {
             </Button>
           </>}/>
 
-      {total > 0 && (<div className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300" role="note" aria-label="Company column color key">
+      {listTotal !== undefined && listTotal > 0 && (<div className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300" role="note" aria-label="Company column color key">
           <p className="font-medium text-slate-700 dark:text-slate-200 mb-2">Company column</p>
           <p className="text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
             Text before → is the agency or payroll company. The chip is the <span className="font-medium text-slate-800 dark:text-slate-200">client</span> you are hiring for.
@@ -187,7 +191,7 @@ export default function HrContactsPage() {
           </div>
         </div>)}
 
-      {total === 0 ? (<Card className="border-dashed border-slate-200 dark:border-slate-800">
+      {listTotal === 0 ? (<Card className="border-dashed border-slate-200 dark:border-slate-800">
           <CardContent className="py-16 text-center">
             <Building2 className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4"/>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No HR contacts yet</h3>
@@ -199,7 +203,7 @@ export default function HrContactsPage() {
               Add your first contact
             </Button>
           </CardContent>
-        </Card>) : (<div className="space-y-3">
+        </Card>) : listTotal !== undefined && listTotal > 0 ? (<div className="space-y-3">
           <div className="md:hidden flex flex-col gap-3">
             {hrContacts.map((row) => (<Card key={row._id} className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                 <CardContent className="p-4 space-y-3">
@@ -264,7 +268,7 @@ export default function HrContactsPage() {
           <div className="rounded-xl border border-slate-200/90 bg-slate-50/90 px-3 py-3 sm:px-4 dark:border-slate-700 dark:bg-slate-800/50 md:border-0 md:bg-transparent md:px-3 md:py-2 lg:px-4">
             <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-6">
               <p className="text-center text-xs leading-snug text-slate-600 dark:text-slate-400 sm:text-sm md:text-left md:leading-normal">
-                Showing <span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{(page - 1) * pageSize + 1}</span>–<span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{Math.min(page * pageSize, total)}</span> of <span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{total}</span>
+                Showing <span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{(page - 1) * pageSize + 1}</span>–<span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{Math.min(page * pageSize, listTotal ?? 0)}</span> of <span className="font-medium tabular-nums text-slate-800 dark:text-slate-200">{listTotal ?? 0}</span>
               </p>
               <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-4 md:justify-end md:gap-5">
                 <div className="flex min-w-0 shrink items-center gap-2">
@@ -288,16 +292,16 @@ export default function HrContactsPage() {
                     <ChevronLeft className="h-4 w-4"/>
                   </Button>
                   <span className="min-w-[3.25rem] text-center text-xs tabular-nums font-medium text-slate-800 dark:text-slate-200 sm:min-w-[4.5rem] sm:text-sm">
-                    {page} / {totalPages}
+                    {page} / {listTotalPages ?? 1}
                   </span>
-                  <Button type="button" variant="outline" size="sm" className="h-10 w-10 min-h-10 min-w-10 p-0" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} aria-label="Next page">
+                  <Button type="button" variant="outline" size="sm" className="h-10 w-10 min-h-10 min-w-10 p-0" disabled={listTotalPages !== undefined ? page >= listTotalPages : true} onClick={() => setPage((p) => Math.min(listTotalPages ?? 1, p + 1))} aria-label="Next page">
                     <ChevronRight className="h-4 w-4"/>
                   </Button>
                 </nav>
               </div>
             </div>
           </div>
-        </div>)}
+        </div>) : null}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent onClose={() => setDialogOpen(false)} className="max-w-lg max-h-[90vh] overflow-y-auto">
