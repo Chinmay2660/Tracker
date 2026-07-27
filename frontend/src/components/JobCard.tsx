@@ -4,15 +4,13 @@ import { MapPin, ExternalLink, Calendar } from 'lucide-react';
 import { Job, Column } from '../types';
 import { Card } from './ui/card';
 import { format } from 'date-fns';
-import { useState, memo, useMemo, useRef, lazy, Suspense } from 'react';
+import { useState, memo, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Skeleton } from './ui/skeleton';
 import { useColumns } from '../hooks/useColumns';
-const Dialog = lazy(() => import('./ui/dialog').then(m => ({ default: m.Dialog })));
-const DialogContent = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogContent })));
-const DialogHeader = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogHeader })));
-const DialogTitle = lazy(() => import('./ui/dialog').then(m => ({ default: m.DialogTitle })));
-const JobForm = lazy(() => import('./JobForm'));
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import StageTimeline from './StageTimeline';
+import JobForm from './JobForm';
+import { getJobSourceLabel } from '../lib/jobSources';
 const TAG_COLORS: Record<string, {
     bg: string;
     text: string;
@@ -141,6 +139,21 @@ function JobCard({ job, isDragging }: JobCardProps) {
                 </div>))}
             </div>)}
 
+          <StageTimeline job={job} compact />
+
+          {job.jobSource && (
+            <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              via {getJobSourceLabel(job.jobSource)}
+            </span>
+          )}
+
+          {job.nextActionDate && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+              <Calendar className="w-3 h-3 flex-shrink-0" />
+              <span>Follow up {format(new Date(job.nextActionDate), 'MMM d')}</span>
+            </div>
+          )}
+
           
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <MapPin className="w-3 h-3 flex-shrink-0"/>
@@ -179,9 +192,7 @@ function JobCard({ job, isDragging }: JobCardProps) {
         </div>
       </Card>
 
-      {isFormOpen && (<Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Skeleton className="w-96 h-64 rounded-xl"/>
-          </div>}>
+      {isFormOpen && (
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogContent onClose={() => setIsFormOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -190,7 +201,7 @@ function JobCard({ job, isDragging }: JobCardProps) {
               <JobForm job={job} onSuccess={() => setIsFormOpen(false)}/>
             </DialogContent>
           </Dialog>
-        </Suspense>)}
+      )}
     </>);
 }
 export default memo(JobCard);

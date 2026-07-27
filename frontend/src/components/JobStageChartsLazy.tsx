@@ -2,6 +2,7 @@ import { lazy, Suspense, memo } from 'react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 const JobStageCharts = lazy(() => import('./JobStageCharts'));
+const JobAnalyticsPanels = lazy(() => import('./JobAnalyticsPanels'));
 function ChartsSkeleton() {
     return (<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <Card>
@@ -37,6 +38,7 @@ function ChartsSkeleton() {
 function JobStageChartsLazy() {
     return (<Suspense fallback={<ChartsSkeleton />}>
       <JobStageCharts />
+      <JobAnalyticsPanels />
     </Suspense>);
 }
 export default memo(JobStageChartsLazy);

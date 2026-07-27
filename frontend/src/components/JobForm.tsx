@@ -20,6 +20,9 @@ import TagSelect from './TagSelect';
 import AddStageDialog from './AddStageDialog';
 import { HrContactRecord, Job } from '../types';
 import { formatHrContactCompanyDisplay } from '../lib/hrContactDisplay';
+import { filterHrDirectoryContacts } from '../lib/hrContactFilter';
+import { JOB_SOURCE_OPTIONS } from '../lib/jobSources';
+import StageTimeline from './StageTimeline';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import { Trash2, ChevronLeft, ChevronRight, Plus, X, Search } from 'lucide-react';
@@ -30,6 +33,7 @@ const optionalNumber = z.preprocess((val) => {
     return val;
 }, z.number().optional());
 const hrContactSchema = z.object({
+    hrContactId: z.string().optional(),
     name: z.string().optional(),
     phone: z.string().optional(),
     email: z.string().email().optional().or(z.literal('')),
@@ -78,6 +82,8 @@ const jobSchema = z.object({
     notesMarkdown: z.string().optional(),
     appliedDate: z.string().min(1, 'Applied date is required'),
     lastWorkingDay: z.string().optional(),
+    nextActionDate: z.string().optional(),
+    jobSource: z.enum(['linkedin', 'referral', 'recruiter', 'company_site', 'job_board', 'other']).optional(),
     interviewStages: z.array(interviewStageSchema).min(1, 'At least one interview stage is required'),
     hrContacts: z.array(hrContactSchema).default([]),
 }).refine((data) => {
@@ -92,15 +98,6 @@ const jobSchema = z.object({
     path: ['ctcMin'],
 });
 type JobFormData = z.infer<typeof jobSchema>;
-function filterHrDirectoryContacts(contacts: HrContactRecord[], query: string): HrContactRecord[] {
-    const q = query.trim().toLowerCase();
-    if (!q)
-        return contacts;
-    return contacts.filter((c) => {
-        const hay = `${c.companyName ?? ''} ${c.intermediaryCompanyName ?? ''} ${c.hrName} ${c.phone} ${c.email ?? ''}`.toLowerCase();
-        return hay.includes(q);
-    });
-}
 interface JobFormProps {
     job?: Job;
     defaultColumnId?: string;
@@ -170,6 +167,10 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                 lastWorkingDay: job.lastWorkingDay
                     ? format(new Date(job.lastWorkingDay), 'yyyy-MM-dd')
                     : '',
+                nextActionDate: job.nextActionDate
+                    ? format(new Date(job.nextActionDate), 'yyyy-MM-dd')
+                    : '',
+                jobSource: job.jobSource,
                 interviewStages: getDefaultInterviewStages(),
                 hrContacts: job.hrContacts || [],
             }
@@ -333,6 +334,8 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
             offeredCompensationRSU: safeNumber(data.offeredCompensationRSU),
             appliedDate: data.appliedDate ? new Date(data.appliedDate).toISOString() : undefined,
             lastWorkingDay: data.lastWorkingDay ? new Date(data.lastWorkingDay).toISOString() : undefined,
+            nextActionDate: data.nextActionDate ? new Date(data.nextActionDate).toISOString() : undefined,
+            jobSource: data.jobSource,
             hrContacts: filteredHRContacts,
         };
         try {
@@ -422,6 +425,16 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
           <div>
             <Label htmlFor="tags">Tags</Label>
             <Controller name="tags" control={control} render={({ field }) => (<TagSelect value={field.value || []} onChange={field.onChange} placeholder="Click to select tags"/>)}/>
+          </div>
+
+          <div>
+            <Label htmlFor="jobSource">Job Source</Label>
+            <Select id="jobSource" {...register('jobSource')}>
+              <option value="">Not specified</option>
+              {JOB_SOURCE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </Select>
           </div>
 
         </div>)}
@@ -515,7 +528,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                 to fill name, phone, and email, or type them manually.
               </p>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => appendHRContact({ name: '', phone: '', email: '' })} className="gap-1">
+            <Button type="button" variant="outline" size="sm" onClick={() => appendHRContact({ hrContactId: '', name: '', phone: '', email: '' })} className="gap-1">
               <Plus className="w-3 h-3"/>
               Add HR
             </Button>
@@ -528,6 +541,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                 const searchQ = hrDirectorySearch[index] ?? '';
                 const filteredDirectory = filterHrDirectoryContacts(hrContacts, searchQ);
                 const applyHrFromDirectory = (c: HrContactRecord) => {
+                    setValue(`hrContacts.${index}.hrContactId`, c._id);
                     setValue(`hrContacts.${index}.name`, c.hrName);
                     setValue(`hrContacts.${index}.phone`, c.phone);
                     setValue(`hrContacts.${index}.email`, c.email ?? '');
@@ -675,10 +689,22 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                 </p>)}
             </div>
             {isRecruiterCall && (<div className="min-w-0">
-                <Label htmlFor="lastWorkingDay">Last Working Day</Label>
-                <Input id="lastWorkingDay" {...register('lastWorkingDay')} type="date"/>
-              </div>)}
+              <Label htmlFor="lastWorkingDay">Last Working Day</Label>
+              <Input id="lastWorkingDay" {...register('lastWorkingDay')} type="date"/>
+            </div>)}
+            <div className="min-w-0">
+              <Label htmlFor="nextActionDate">Next Action Date</Label>
+              <Input id="nextActionDate" {...register('nextActionDate')} type="date"/>
+              <p className="text-xs text-muted-foreground mt-1">When to follow up with the recruiter</p>
+            </div>
           </div>
+
+          {job && job.stageHistory && job.stageHistory.length > 1 && (
+            <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
+              <p className="text-sm font-medium mb-2">Stage Timeline</p>
+              <StageTimeline job={job} />
+            </div>
+          )}
 
           
           {interviewStages && interviewStages.length > 0 && (<div>

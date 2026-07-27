@@ -52,6 +52,7 @@ const optionalHrFields = {
     email: z.union([z.string().email(), z.literal('')]).optional(),
     noticePeriodLwdNote: z.string().max(5000).optional(),
     companyType: optionalCompanyType,
+    shareable: z.boolean().optional(),
 };
 const createHrContactSchema = z
     .object(optionalHrFields)
@@ -147,6 +148,7 @@ export const createHrContact = async (req: AuthRequest, res: Response) => {
             email: data.email !== undefined ? trimOrEmpty(data.email) || undefined : undefined,
             noticePeriodLwdNote: noticeNote,
             companyType: data.companyType,
+            shareable: data.shareable ?? false,
         };
         if (data.intermediaryCompanyName !== undefined) {
             doc.intermediaryCompanyName = intermediary === '' ? undefined : intermediary;
@@ -214,6 +216,9 @@ export const updateHrContact = async (req: AuthRequest, res: Response) => {
         }
         if (data.companyType !== undefined) {
             updatePayload.companyType = data.companyType;
+        }
+        if (data.shareable !== undefined) {
+            updatePayload.shareable = data.shareable;
         }
         if (data.noticePeriodLwdNote !== undefined) {
             updatePayload.noticePeriodLwdNote =

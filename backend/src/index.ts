@@ -17,6 +17,7 @@ import jobRoutes from "./routes/jobs";
 import interviewRoutes from "./routes/interviews";
 import resumeRoutes from "./routes/resumes";
 import hrContactRoutes from "./routes/hrContacts";
+import publicRoutes from "./routes/publicHrContacts";
 import "./config/passport";
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -55,6 +56,7 @@ app.use("/jobs", jobRoutes);
 app.use("/interviews", interviewRoutes);
 app.use("/resumes", resumeRoutes);
 app.use("/hr-contacts", hrContactRoutes);
+app.use("/public", publicRoutes);
 app.get("/", (req, res) => {
     res.json({
         message: "Job Tracker API",

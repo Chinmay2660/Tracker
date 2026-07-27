@@ -44,9 +44,6 @@ export default function RescheduleDialog({ open, onOpenChange, interview, job, o
             onOpenChange(false);
             onSuccess?.();
         }
-        catch (error) {
-            console.error('Failed to reschedule:', error);
-        }
         finally {
             setIsRescheduling(false);
         }

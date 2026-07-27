@@ -1,48 +1,22 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import api from '../lib/api';
-import { Column, Job, ResumeVersion } from '../types';
 import { useAuthStore } from '../store/useAuthStore';
+import { allInterviewsQueryOptions } from './useAllInterviews';
+import { columnsQueryOptions } from './useColumns';
+import { jobsQueryOptions } from './useJobs';
+import { resumesQueryOptions } from './useResumes';
+
 export const usePrefetchDashboard = () => {
     const queryClient = useQueryClient();
     const { token } = useAuthStore();
     useEffect(() => {
         if (!token)
             return;
-        const prefetch = async () => {
-            await Promise.allSettled([
-                queryClient.prefetchQuery({
-                    queryKey: ['columns'],
-                    queryFn: async (): Promise<Column[]> => {
-                        const response = await api.get('/columns');
-                        return response?.data?.columns ?? [];
-                    },
-                    staleTime: 5 * 60 * 1000,
-                }),
-                queryClient.prefetchQuery({
-                    queryKey: ['jobs'],
-                    queryFn: async (): Promise<Job[]> => {
-                        const response = await api.get('/jobs');
-                        const jobsData = response?.data?.jobs ?? [];
-                        return Array.isArray(jobsData) ? jobsData.map((job: any) => ({
-                            ...job,
-                            columnId: typeof job?.columnId === 'object' && job?.columnId?._id
-                                ? job.columnId._id
-                                : job?.columnId,
-                        })) : [];
-                    },
-                    staleTime: 5 * 60 * 1000,
-                }),
-                queryClient.prefetchQuery({
-                    queryKey: ['resumes'],
-                    queryFn: async (): Promise<ResumeVersion[]> => {
-                        const response = await api.get('/resumes');
-                        return response?.data?.resumes ?? [];
-                    },
-                    staleTime: 5 * 60 * 1000,
-                }),
-            ]);
-        };
-        prefetch();
+        void Promise.allSettled([
+            queryClient.prefetchQuery(columnsQueryOptions),
+            queryClient.prefetchQuery(jobsQueryOptions),
+            queryClient.prefetchQuery(resumesQueryOptions),
+            queryClient.prefetchQuery(allInterviewsQueryOptions),
+        ]);
     }, [token, queryClient]);
 };

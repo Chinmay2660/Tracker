@@ -1,9 +1,23 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import { QUERY_CACHE_OPTIONS } from '../lib/queryCache';
 import { InterviewRound } from '../types';
-export const useJobInterviews = (jobId: string) => {
-    return useQuery<InterviewRound[]>({
+import { ALL_INTERVIEWS_QUERY_KEY } from './useAllInterviews';
+
+function patchInterviewCaches(
+    queryClient: QueryClient,
+    jobId: string | undefined,
+    patch: (list: InterviewRound[]) => InterviewRound[],
+): void {
+    queryClient.setQueryData<InterviewRound[]>(ALL_INTERVIEWS_QUERY_KEY, (old = []) => patch(old));
+    if (jobId) {
+        queryClient.setQueryData<InterviewRound[]>(['interviews', jobId], (old = []) => patch(old));
+    }
+}
+
+export function jobInterviewsQueryOptions(jobId: string) {
+    return queryOptions({
         queryKey: ['interviews', jobId],
         queryFn: async () => {
             if (!jobId) {
@@ -13,17 +27,20 @@ export const useJobInterviews = (jobId: string) => {
                 const response = await api.get(`/interviews/jobs/${jobId}`);
                 return response?.data?.interviews ?? [];
             }
-            catch (error: any) {
-                const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch interviews';
-                toast.error('Error loading interviews', {
-                    description: errorMessage,
-                });
+            catch (error: unknown) {
+                const err = error as { response?: { data?: { message?: string } }; message?: string };
+                const errorMessage = err?.response?.data?.message ?? err?.message ?? 'Failed to fetch interviews';
+                toast.error('Error loading interviews', { description: errorMessage });
                 return [];
             }
         },
         enabled: !!jobId,
+        ...QUERY_CACHE_OPTIONS,
     });
-};
+}
+
+export const useJobInterviews = (jobId: string) => useQuery(jobInterviewsQueryOptions(jobId));
+
 export const useInterviews = () => {
     const queryClient = useQueryClient();
     const createMutation = useMutation({
@@ -38,11 +55,8 @@ export const useInterviews = () => {
             }
             return interview;
         },
-        onSuccess: (newInterview, variables) => {
-            if (variables.jobId) {
-                queryClient.setQueryData<InterviewRound[]>(['interviews', variables.jobId], (old = []) => [...old, newInterview]);
-            }
-            queryClient.setQueryData<InterviewRound[]>(['interviews'], (old = []) => [...old, newInterview]);
+        onSuccess: (interview, variables) => {
+            patchInterviewCaches(queryClient, interview.jobId ?? variables.jobId, (old) => [...old, interview]);
             toast.success('Interview scheduled successfully!', {
                 description: variables.stage,
             });
@@ -68,10 +82,9 @@ export const useInterviews = () => {
             return interview;
         },
         onSuccess: (updatedInterview) => {
-            queryClient.invalidateQueries({ queryKey: ['interviews'] });
-            if (updatedInterview.jobId) {
-                queryClient.invalidateQueries({ queryKey: ['interviews', updatedInterview.jobId] });
-            }
+            patchInterviewCaches(queryClient, updatedInterview.jobId, (old) =>
+                old.map((interview) => (interview._id === updatedInterview._id ? updatedInterview : interview)),
+            );
             toast.success('Interview updated successfully!', {
                 description: updatedInterview.stage,
             });
@@ -95,11 +108,8 @@ export const useInterviews = () => {
             }
             await api.delete(`/interviews/${id}`);
         },
-        onSuccess: (_, variables) => {
-            if (variables.jobId) {
-                queryClient.setQueryData<InterviewRound[]>(['interviews', variables.jobId], (old = []) => old.filter((interview) => interview._id !== variables.id));
-            }
-            queryClient.setQueryData<InterviewRound[]>(['interviews'], (old = []) => old.filter((interview) => interview._id !== variables.id));
+        onSuccess: (_, { id, jobId }) => {
+            patchInterviewCaches(queryClient, jobId, (old) => old.filter((interview) => interview._id !== id));
             toast.success('Interview deleted successfully!');
         },
         onError: () => {

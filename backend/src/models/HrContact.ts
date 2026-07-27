@@ -10,6 +10,7 @@ export interface IHrContact extends Document {
     email?: string;
     noticePeriodLwdNote?: string;
     companyType?: HrCompanyType;
+    shareable: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -27,6 +28,7 @@ const HrContactSchema = new Schema<IHrContact>({
         required: false,
         enum: ['consultancy', 'third_party_payroll', 'service_based', 'product_based'],
     },
+    shareable: { type: Boolean, default: false },
 }, { timestamps: true });
 HrContactSchema.index({ userId: 1, companyName: 1 });
 HrContactSchema.index({ userId: 1, phoneNormalized: 1 }, { unique: true, sparse: true });

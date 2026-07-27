@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { useResumes } from '../hooks/useResumes';
 import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/button';
@@ -6,9 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Skeleton } from '../components/ui/skeleton';
 import { Upload, Trash2, FileText, Eye, Download } from 'lucide-react';
-import { useRef, useState } from 'react';
-import { format } from 'date-fns';
-import { fetchResumeBlob, downloadResumeFile, showResumeFetchErrorToast, openResumeBlobUrlInNewTab, } from '../lib/openResumeFile';
+import { fetchResumeBlob, downloadResumeFile, showResumeFetchErrorToast, openResumeBlobUrlInNewTab } from '../lib/openResumeFile';
 const formatDate = (dateString: string | undefined): string => {
     if (!dateString)
         return 'Unknown date';
@@ -23,29 +23,21 @@ const formatDate = (dateString: string | undefined): string => {
     }
 };
 export default function ResumeManagerPage() {
-    const { resumes, uploadResume, deleteResume, isLoading } = useResumes();
+    const { resumes, uploadResumeAsync, deleteResume, isLoading, isUploading } = useResumes();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [uploading, setUploading] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [resumeToDelete, setResumeToDelete] = useState<string | null>(null);
     const [viewLoadingId, setViewLoadingId] = useState<string | null>(null);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file)
+        if (!file) {
             return;
-        setUploading(true);
-        try {
-            uploadResume(file);
         }
-        catch (error: any) {
-            const errorMessage = error?.response?.data?.message ?? error?.message ?? 'An unexpected error occurred';
-            toast.error('Failed to upload resume', {
-                description: errorMessage,
-            });
+        try {
+            await uploadResumeAsync(file);
         }
         finally {
-            setUploading(false);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -122,9 +114,9 @@ export default function ResumeManagerPage() {
     return (<div className="space-y-4 sm:space-y-6">
       <PageHeader title="Resume Manager" description="Upload and manage your resume versions" actions={<div className="w-full sm:w-auto">
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" onChange={handleFileSelect} className="hidden"/>
-            <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white">
+            <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white">
               <Upload className="h-4 w-4 mr-2"/>
-              {uploading ? 'Uploading...' : 'Upload Resume'}
+              {isUploading ? 'Uploading...' : 'Upload Resume'}
             </Button>
           </div>}/>
 

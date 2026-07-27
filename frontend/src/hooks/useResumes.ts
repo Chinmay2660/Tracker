@@ -1,27 +1,33 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import { QUERY_CACHE_OPTIONS } from '../lib/queryCache';
 import { ResumeVersion } from '../types';
+
+export const RESUMES_QUERY_KEY = ['resumes'] as const;
+
+async function fetchResumes(): Promise<ResumeVersion[]> {
+    try {
+        const response = await api.get('/resumes');
+        return response?.data?.resumes ?? [];
+    }
+    catch (error: unknown) {
+        const err = error as { response?: { data?: { message?: string } }; message?: string };
+        const errorMessage = err?.response?.data?.message ?? err?.message ?? 'Failed to fetch resumes';
+        toast.error('Error loading resumes', { description: errorMessage });
+        return [];
+    }
+}
+
+export const resumesQueryOptions = queryOptions({
+    queryKey: RESUMES_QUERY_KEY,
+    queryFn: fetchResumes,
+    ...QUERY_CACHE_OPTIONS,
+});
+
 export const useResumes = () => {
     const queryClient = useQueryClient();
-    const { data: resumes = [], isLoading } = useQuery<ResumeVersion[]>({
-        queryKey: ['resumes'],
-        queryFn: async () => {
-            try {
-                const response = await api.get('/resumes');
-                return response?.data?.resumes ?? [];
-            }
-            catch (error: any) {
-                const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch resumes';
-                toast.error('Error loading resumes', {
-                    description: errorMessage,
-                });
-                return [];
-            }
-        },
-        staleTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false,
-    });
+    const { data: resumes = [], isLoading } = useQuery(resumesQueryOptions);
     const uploadMutation = useMutation({
         mutationFn: async (file: File) => {
             if (!file) {
@@ -40,7 +46,7 @@ export const useResumes = () => {
             return resume;
         },
         onSuccess: (resume) => {
-            queryClient.invalidateQueries({ queryKey: ['resumes'] });
+            queryClient.setQueryData<ResumeVersion[]>(RESUMES_QUERY_KEY, (old = []) => [...old, resume]);
             toast.success('Resume uploaded successfully!', {
                 description: resume.name,
             });
@@ -58,8 +64,10 @@ export const useResumes = () => {
             }
             await api.delete(`/resumes/${id}`);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['resumes'] });
+        onSuccess: (_, deletedId) => {
+            queryClient.setQueryData<ResumeVersion[]>(RESUMES_QUERY_KEY, (old = []) =>
+                old.filter((resume) => resume._id !== deletedId),
+            );
             toast.success('Resume deleted successfully!');
         },
         onError: () => {
@@ -71,7 +79,9 @@ export const useResumes = () => {
     return {
         resumes,
         isLoading,
+        isUploading: uploadMutation.isPending,
         uploadResume: uploadMutation.mutate,
+        uploadResumeAsync: uploadMutation.mutateAsync,
         deleteResume: deleteMutation.mutate,
     };
 };

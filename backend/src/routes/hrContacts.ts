@@ -1,8 +1,12 @@
 import express from 'express';
 import { listHrContacts, createHrContact, updateHrContact, deleteHrContact, } from '../controllers/hrContactController';
+import { getHrContactShare, enableHrContactShare, revokeHrContactShare, } from '../controllers/hrContactShareController';
 import { authenticate } from '../middleware/auth';
 const router = express.Router();
 router.use(authenticate);
+router.get('/share', getHrContactShare);
+router.post('/share', enableHrContactShare);
+router.delete('/share', revokeHrContactShare);
 router.get('/', listHrContacts);
 router.post('/', createHrContact);
 router.put('/:id', updateHrContact);
