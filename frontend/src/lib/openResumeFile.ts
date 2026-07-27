@@ -76,6 +76,24 @@ export async function downloadResumeFile(resumeId: string, displayName: string, 
         showResumeFetchErrorToast(err, 'download');
     }
 }
+export async function viewResumeFile(resumeId: string): Promise<void> {
+    try {
+        const blob = await fetchResumeBlob(resumeId);
+        const blobUrl = URL.createObjectURL(blob);
+        const opened = openResumeBlobUrlInNewTab(blobUrl);
+        if (!opened) {
+            URL.revokeObjectURL(blobUrl);
+            toast.error('Could not open resume', {
+                description: 'Allow pop-ups for this site, or use Download.',
+            });
+            return;
+        }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    }
+    catch (err) {
+        showResumeFetchErrorToast(err, 'view');
+    }
+}
 export function openResumeBlobUrlInNewTab(blobUrl: string): boolean {
     const win = window.open(blobUrl, '_blank');
     if (win) {

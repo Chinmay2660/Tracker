@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { HrContactCompanyChips } from '../lib/hrContactCompanyChips';
 import { getHrContactsDataColumns } from '../lib/hrContactsDataColumns';
 import { HR_TABLE_COL_WIDTH_PERCENT } from '../lib/hrContactsTable';
-import { mailtoHrefFromEmail, normalizePhoneDigits, telHrefFromPhone } from '../lib/phoneNormalize';
+import { mailtoHrefFromEmail, normalizePhoneDigits, telHrefFromPhone, validatePhoneInput } from '../lib/phoneNormalize';
 import { Plus, Pencil, Trash2, Building2, StickyNote, Eye, ChevronLeft, ChevronRight, Share2, Copy, Link2Off, Search } from 'lucide-react';
 import { useHrContactShare } from '../hooks/useHrContactShare';
 const emptyForm: HrContactInput = {
@@ -108,6 +108,11 @@ export default function HrContactsPage() {
         setFormError(null);
         if (!hasAtLeastOneHrField(form)) {
             setFormError('Fill in at least one field before saving.');
+            return;
+        }
+        const phoneError = validatePhoneInput(form.phone);
+        if (phoneError) {
+            setFormError(phoneError);
             return;
         }
         try {
@@ -360,7 +365,7 @@ export default function HrContactsPage() {
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit HR contact' : 'Add HR contact'}</DialogTitle>
             <DialogDescription>
-              All fields are optional, but at least one must be filled. The same phone number cannot be saved twice.
+              All fields are optional, but at least one must be filled. Phone must be exactly 10 digits. The same phone number cannot be saved twice.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -413,7 +418,7 @@ export default function HrContactsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+91 98765 43210" inputMode="tel" autoComplete="tel"/>
+                <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: normalizePhoneDigits(e.target.value).slice(0, 10) }))} placeholder="9876543210" inputMode="numeric" autoComplete="tel" maxLength={10}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

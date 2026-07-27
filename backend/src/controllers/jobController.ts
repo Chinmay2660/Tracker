@@ -3,10 +3,16 @@ import { AuthRequest } from '../middleware/auth';
 import Job from '../models/Job';
 import Column from '../models/Column';
 import { z } from 'zod';
+import { isValidPhoneInput } from '../utils/phoneNormalize';
 const hrContactSchema = z.object({
     hrContactId: z.string().optional(),
     name: z.string().optional(),
-    phone: z.string().optional(),
+    phone: z
+        .string()
+        .optional()
+        .refine((val) => isValidPhoneInput(val), {
+            message: 'Phone number must be exactly 10 digits.',
+        }),
     email: z.string().optional(),
 });
 const jobSourceSchema = z.enum(['linkedin', 'referral', 'recruiter', 'company_site', 'job_board', 'other']).optional();
