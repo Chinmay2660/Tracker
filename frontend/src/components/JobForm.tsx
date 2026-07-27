@@ -26,6 +26,7 @@ import StageTimeline from './StageTimeline';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import { Trash2, ChevronLeft, ChevronRight, Plus, X, Search } from 'lucide-react';
+import { isValidPhoneInput, normalizePhoneDigits } from '../lib/phoneNormalize';
 const optionalNumber = z.preprocess((val) => {
     if (val === undefined || val === null || val === '' || (typeof val === 'number' && isNaN(val))) {
         return undefined;
@@ -35,7 +36,12 @@ const optionalNumber = z.preprocess((val) => {
 const hrContactSchema = z.object({
     hrContactId: z.string().optional(),
     name: z.string().optional(),
-    phone: z.string().optional(),
+    phone: z
+        .string()
+        .optional()
+        .refine((val) => isValidPhoneInput(val), {
+            message: 'Phone number must be exactly 10 digits.',
+        }),
     email: z.string().email().optional().or(z.literal('')),
 });
 const INTERVIEW_STAGE_STATUSES = [
@@ -543,7 +549,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                 const applyHrFromDirectory = (c: HrContactRecord) => {
                     setValue(`hrContacts.${index}.hrContactId`, c._id);
                     setValue(`hrContacts.${index}.name`, c.hrName);
-                    setValue(`hrContacts.${index}.phone`, c.phone);
+                    setValue(`hrContacts.${index}.phone`, normalizePhoneDigits(c.phone ?? '').slice(0, 10));
                     setValue(`hrContacts.${index}.email`, c.email ?? '');
                     void trigger([
                         `hrContacts.${index}.name`,
@@ -599,7 +605,7 @@ export default function JobForm({ job, defaultColumnId, onSuccess }: JobFormProp
                 </div>
                 <div className="flex items-center gap-3">
                   <Label htmlFor={`hrContacts.${index}.phone`} className="text-sm w-16 flex-shrink-0">Phone</Label>
-                  <Input id={`hrContacts.${index}.phone`} {...register(`hrContacts.${index}.phone`)} placeholder="+91 9876543210"/>
+                  <Input id={`hrContacts.${index}.phone`} {...register(`hrContacts.${index}.phone`, { setValueAs: (v) => normalizePhoneDigits(String(v ?? '')).slice(0, 10) })} placeholder="9876543210" inputMode="numeric" maxLength={10}/>
                 </div>
                 <div className="flex items-center gap-3">
                   <Label htmlFor={`hrContacts.${index}.email`} className="text-sm w-16 flex-shrink-0">Email</Label>

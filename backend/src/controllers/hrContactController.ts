@@ -3,7 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import HrContact from '../models/HrContact';
 import InterviewRound from '../models/InterviewRound';
 import { z } from 'zod';
-import { normalizePhoneDigits } from '../utils/phoneNormalize';
+import { normalizePhoneDigits, isValidPhoneInput } from '../utils/phoneNormalize';
 import type { Types } from 'mongoose';
 async function unsetEmptyPhoneNormalized(userId: Types.ObjectId | string): Promise<void> {
     await HrContact.updateMany({ userId, phoneNormalized: '' }, { $unset: { phoneNormalized: 1 } });
@@ -44,11 +44,17 @@ export function hrContactHasAtLeastOneField(input: HrBody): boolean {
     return false;
 }
 const optionalCompanyType = z.preprocess((v) => (v === '' || v === null || v === undefined ? undefined : v), companyTypeEnum.optional());
+const optionalPhone = z
+    .string()
+    .optional()
+    .refine((val) => isValidPhoneInput(val), {
+        message: 'Phone number must be exactly 10 digits.',
+    });
 const optionalHrFields = {
     companyName: z.string().optional(),
     intermediaryCompanyName: z.string().optional(),
     hrName: z.string().optional(),
-    phone: z.string().optional(),
+    phone: optionalPhone,
     email: z.union([z.string().email(), z.literal('')]).optional(),
     noticePeriodLwdNote: z.string().max(5000).optional(),
     companyType: optionalCompanyType,
@@ -162,9 +168,7 @@ export const createHrContact = async (req: AuthRequest, res: Response) => {
     catch (error: any) {
         if (error instanceof z.ZodError) {
             const first = error.issues[0];
-            const msg = first?.message === 'At least one field must be filled.'
-                ? first.message
-                : 'Invalid input';
+            const msg = first?.message ?? 'Invalid input';
             return res.status(400).json({ success: false, error: msg, details: error.issues });
         }
         if (error?.code === 11000) {

@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useResumes } from '../hooks/useResumes';
 import { PageHeader } from '../components/PageHeader';
@@ -8,83 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Skeleton } from '../components/ui/skeleton';
 import { Upload, Trash2, FileText, Eye, Download } from 'lucide-react';
-import { fetchResumeBlob, downloadResumeFile, showResumeFetchErrorToast, openResumeBlobUrlInNewTab } from '../lib/openResumeFile';
-const formatDate = (dateString: string | undefined): string => {
-    if (!dateString)
-        return 'Unknown date';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime()))
-            return 'Invalid date';
-        return format(date, 'MMM d, yyyy');
-    }
-    catch {
-        return 'Invalid date';
-    }
-};
+import { downloadResumeFile, viewResumeFile } from '../lib/openResumeFile';
+
 export default function ResumeManagerPage() {
     const { resumes, uploadResumeAsync, deleteResume, isLoading, isUploading } = useResumes();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [resumeToDelete, setResumeToDelete] = useState<string | null>(null);
     const [viewLoadingId, setViewLoadingId] = useState<string | null>(null);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) {
-            return;
-        }
-        try {
-            await uploadResumeAsync(file);
-        }
-        finally {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
-    const handleViewResume = async (resumeId: string) => {
-        setViewLoadingId(resumeId);
-        try {
-            const blob = await fetchResumeBlob(resumeId);
-            const blobUrl = URL.createObjectURL(blob);
-            const opened = openResumeBlobUrlInNewTab(blobUrl);
-            if (!opened) {
-                URL.revokeObjectURL(blobUrl);
-                toast.error('Could not open resume', {
-                    description: 'Allow pop-ups for this site, or use Download.',
-                });
-                return;
-            }
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-        }
-        catch (err) {
-            showResumeFetchErrorToast(err, 'view');
-        }
-        finally {
-            setViewLoadingId(null);
-        }
-    };
-    const handleDownloadResume = async (resumeId: string, name: string, fileUrl: string) => {
-        setDownloadingId(resumeId);
-        try {
-            await downloadResumeFile(resumeId, name, fileUrl);
-        }
-        finally {
-            setDownloadingId(null);
-        }
-    };
-    const handleDeleteClick = (id: string) => {
-        setResumeToDelete(id);
-        setDeleteDialogOpen(true);
-    };
-    const handleDeleteConfirm = () => {
-        if (resumeToDelete) {
-            deleteResume(resumeToDelete);
-            setDeleteDialogOpen(false);
-            setResumeToDelete(null);
-        }
-    };
+
     if (isLoading) {
         return (<div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -111,9 +42,21 @@ export default function ResumeManagerPage() {
         </div>
       </div>);
     }
+
     return (<div className="space-y-4 sm:space-y-6">
       <PageHeader title="Resume Manager" description="Upload and manage your resume versions" actions={<div className="w-full sm:w-auto">
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" onChange={handleFileSelect} className="hidden"/>
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file)
+                return;
+            try {
+                await uploadResumeAsync(file);
+            }
+            finally {
+                if (fileInputRef.current)
+                    fileInputRef.current.value = '';
+            }
+        }} className="hidden"/>
             <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white">
               <Upload className="h-4 w-4 mr-2"/>
               {isUploading ? 'Uploading...' : 'Upload Resume'}
@@ -145,22 +88,38 @@ export default function ResumeManagerPage() {
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base truncate">{resume.name}</CardTitle>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {formatDate(resume.createdAt)}
+                      {format(new Date(resume.createdAt), 'MMM d, yyyy')}
                     </p>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-2">
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleViewResume(resume._id)} disabled={viewLoadingId === resume._id} className="flex-1 min-w-[5rem]">
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    setViewLoadingId(resume._id);
+                    try {
+                        await viewResumeFile(resume._id);
+                    }
+                    finally {
+                        setViewLoadingId(null);
+                    }
+                }} disabled={viewLoadingId === resume._id} className="flex-1 min-w-[5rem]">
                     <Eye className="h-4 w-4 mr-1.5 shrink-0"/>
                     {viewLoadingId === resume._id ? 'Loading…' : 'View'}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDownloadResume(resume._id, resume.name, resume.fileUrl)} disabled={downloadingId === resume._id} className="flex-1 min-w-[5rem]">
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    setDownloadingId(resume._id);
+                    try {
+                        await downloadResumeFile(resume._id, resume.name, resume.fileUrl);
+                    }
+                    finally {
+                        setDownloadingId(null);
+                    }
+                }} disabled={downloadingId === resume._id} className="flex-1 min-w-[5rem]">
                     <Download className="h-4 w-4 mr-1.5 shrink-0"/>
                     {downloadingId === resume._id ? '…' : 'Download'}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDeleteClick(resume._id)} className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 shrink-0" aria-label="Delete resume">
+                  <Button variant="outline" size="sm" onClick={() => setResumeToDelete(resume._id)} className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 shrink-0" aria-label="Delete resume">
                     <Trash2 className="h-4 w-4"/>
                   </Button>
                 </div>
@@ -169,8 +128,8 @@ export default function ResumeManagerPage() {
         </div>)}
 
       
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog open={resumeToDelete !== null} onOpenChange={(open) => !open && setResumeToDelete(null)}>
+        <DialogContent onClose={() => setResumeToDelete(null)}>
           <DialogHeader>
             <DialogTitle>Delete Resume</DialogTitle>
             <DialogDescription>
@@ -178,13 +137,15 @@ export default function ResumeManagerPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => {
-            setDeleteDialogOpen(false);
-            setResumeToDelete(null);
-        }}>
+            <Button variant="outline" onClick={() => setResumeToDelete(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
+            <Button variant="destructive" onClick={() => {
+            if (resumeToDelete) {
+                deleteResume(resumeToDelete);
+                setResumeToDelete(null);
+            }
+        }}>
               Delete
             </Button>
           </div>
