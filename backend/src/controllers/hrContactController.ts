@@ -154,7 +154,7 @@ export const createHrContact = async (req: AuthRequest, res: Response) => {
             email: data.email !== undefined ? trimOrEmpty(data.email) || undefined : undefined,
             noticePeriodLwdNote: noticeNote,
             companyType: data.companyType,
-            shareable: data.shareable ?? false,
+            shareable: data.shareable ?? true,
         };
         if (data.intermediaryCompanyName !== undefined) {
             doc.intermediaryCompanyName = intermediary === '' ? undefined : intermediary;
