@@ -5,8 +5,10 @@ import { Calendar, Briefcase, FileText, LogOut, User as UserIcon, Menu, X, Chevr
 import ThemeToggle from './ThemeToggle';
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { usePrefetchDashboard } from '../hooks/usePrefetchDashboard';
+import { useInterviewReminders } from '../hooks/useInterviewReminders';
 function Layout() {
     usePrefetchDashboard();
+    useInterviewReminders();
     const { user, logout } = useAuth();
     const location = useLocation();
     const [avatarError, setAvatarError] = useState(false);

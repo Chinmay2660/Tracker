@@ -4,10 +4,12 @@ import Job from '../models/Job';
 import Column from '../models/Column';
 import { z } from 'zod';
 const hrContactSchema = z.object({
+    hrContactId: z.string().optional(),
     name: z.string().optional(),
     phone: z.string().optional(),
     email: z.string().optional(),
 });
+const jobSourceSchema = z.enum(['linkedin', 'referral', 'recruiter', 'company_site', 'job_board', 'other']).optional();
 const interviewStageSchema = z.object({
     stageId: z.string(),
     stageName: z.string().optional(),
@@ -41,6 +43,8 @@ const createJobSchema = z.object({
     notesMarkdown: z.string().optional(),
     appliedDate: z.string().optional(),
     lastWorkingDay: z.string().optional(),
+    nextActionDate: z.string().optional(),
+    jobSource: jobSourceSchema,
     hrContacts: z.array(hrContactSchema).optional(),
 });
 const updateJobSchema = z.object({
@@ -64,6 +68,8 @@ const updateJobSchema = z.object({
     notesMarkdown: z.string().optional(),
     appliedDate: z.string().optional(),
     lastWorkingDay: z.string().optional(),
+    nextActionDate: z.string().optional(),
+    jobSource: jobSourceSchema,
     hrContacts: z.array(hrContactSchema).optional(),
 });
 export const getJobs = async (req: AuthRequest, res: Response) => {
@@ -124,6 +130,8 @@ export const createJob = async (req: AuthRequest, res: Response) => {
             resumeVersion: data.resumeVersion,
             notesMarkdown: data.notesMarkdown,
             appliedDate: appliedDate,
+            nextActionDate: data.nextActionDate ? new Date(data.nextActionDate) : undefined,
+            jobSource: data.jobSource,
             order: newOrder,
             stageHistory: [{
                     columnId: data.columnId,
@@ -165,6 +173,14 @@ export const updateJob = async (req: AuthRequest, res: Response) => {
             }
             else {
                 updateData.lastWorkingDay = undefined;
+            }
+        }
+        if (data.nextActionDate !== undefined) {
+            if (data.nextActionDate) {
+                updateData.nextActionDate = new Date(data.nextActionDate);
+            }
+            else {
+                updateData.nextActionDate = undefined;
             }
         }
         if (updateData.jobUrl === '') {

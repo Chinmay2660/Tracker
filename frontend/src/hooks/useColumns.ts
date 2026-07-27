@@ -1,38 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import { QUERY_CACHE_OPTIONS } from '../lib/queryCache';
 import { Column } from '../types';
-import { useBoardStore } from '../store/useBoardStore';
+
+export const COLUMNS_QUERY_KEY = ['columns'] as const;
+
+async function fetchColumns(): Promise<Column[]> {
+    const response = await api.get('/columns');
+    return response.data?.columns ?? [];
+}
+
+export const columnsQueryOptions = queryOptions({
+    queryKey: COLUMNS_QUERY_KEY,
+    queryFn: fetchColumns,
+    ...QUERY_CACHE_OPTIONS,
+});
+
 export const useColumns = () => {
     const queryClient = useQueryClient();
-    const { setColumns } = useBoardStore();
-    const { data: columns = [], isLoading } = useQuery<Column[]>({
-        queryKey: ['columns'],
-        queryFn: async () => {
-            try {
-                const response = await api.get('/columns');
-                return response?.data?.columns ?? [];
-            }
-            catch (error: any) {
-                const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch columns';
-                toast.error('Error loading columns', {
-                    description: errorMessage,
-                });
-                return [];
-            }
-        },
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: false,
-    });
-    useEffect(() => {
-        if (columns.length > 0 || !isLoading) {
-            setColumns(columns);
-        }
-    }, [columns, setColumns, isLoading]);
+    const { data: columns = [], isLoading } = useQuery(columnsQueryOptions);
     const createMutation = useMutation({
         mutationFn: async (data: {
             title: string;
@@ -52,7 +39,7 @@ export const useColumns = () => {
             return { column, silent };
         },
         onSuccess: ({ column: newColumn, silent }) => {
-            queryClient.setQueryData<Column[]>(['columns'], (old = []) => [...old, newColumn]);
+            queryClient.setQueryData<Column[]>(COLUMNS_QUERY_KEY, (old = []) => [...old, newColumn]);
             if (!silent) {
                 toast.success('Stage added successfully!', {
                     description: newColumn.title,
@@ -85,7 +72,9 @@ export const useColumns = () => {
             return column;
         },
         onSuccess: (updatedColumn) => {
-            queryClient.setQueryData<Column[]>(['columns'], (old = []) => old.map((col) => (col._id === updatedColumn._id ? updatedColumn : col)));
+            queryClient.setQueryData<Column[]>(COLUMNS_QUERY_KEY, (old = []) =>
+                old.map((col) => (col._id === updatedColumn._id ? updatedColumn : col)),
+            );
             toast.success('Stage updated successfully!', {
                 description: updatedColumn.title,
             });
@@ -104,7 +93,9 @@ export const useColumns = () => {
             await api.delete(`/columns/${id}`);
         },
         onSuccess: (_, deletedId) => {
-            queryClient.setQueryData<Column[]>(['columns'], (old = []) => old.filter((col) => col._id !== deletedId));
+            queryClient.setQueryData<Column[]>(COLUMNS_QUERY_KEY, (old = []) =>
+                old.filter((col) => col._id !== deletedId),
+            );
             queryClient.invalidateQueries({ queryKey: ['jobs'] });
             toast.success('Stage deleted successfully!');
         },

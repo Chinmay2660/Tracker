@@ -58,6 +58,22 @@ export const createInterview = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+export const getAllInterviews = async (req: AuthRequest, res: Response) => {
+    try {
+        const jobIds = await Job.find({ userId: req.user._id }).distinct('_id');
+        if (jobIds.length === 0) {
+            return res.json({ success: true, interviews: [] });
+        }
+        const interviews = await InterviewRound.find({ jobId: { $in: jobIds } })
+            .populate('hrContactId', 'companyName intermediaryCompanyName hrName phone email companyType noticePeriodLwdNote')
+            .sort({ date: 1 })
+            .lean();
+        res.json({ success: true, interviews });
+    }
+    catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
 export const getJobInterviews = async (req: AuthRequest, res: Response) => {
     try {
         const { jobId } = req.params;

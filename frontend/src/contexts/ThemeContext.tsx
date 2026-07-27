@@ -29,17 +29,6 @@ export function ThemeProvider({ children }: {
         }
         localStorage.setItem('theme', theme);
     }, [theme]);
-    useEffect(() => {
-        const root = window.document.documentElement;
-        const stored = localStorage.getItem('theme') as Theme;
-        const initialTheme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        if (initialTheme === 'dark') {
-            root.classList.add('dark');
-        }
-        else {
-            root.classList.remove('dark');
-        }
-    }, []);
     const toggleTheme = () => {
         setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
     };

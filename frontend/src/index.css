@@ -595,12 +595,20 @@
 
 .rbc-calendar {
   color: hsl(var(--foreground));
-  background: hsl(var(--card));
+  background: transparent;
   font-family: inherit;
+  min-height: 0;
+}
+
+/* ponytail: rbc-month-view height:100% overflows the flex toolbar; keep toolbar clickable */
+.rbc-toolbar {
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 .rbc-header {
-  border-bottom: 2px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
   padding: 0.75rem 0.5rem;
   font-weight: 600;
   font-size: 0.875rem;
@@ -610,13 +618,21 @@
   background: hsl(var(--muted) / 0.3);
 }
 
+.rbc-header + .rbc-header {
+  border-left: 1px solid hsl(var(--border));
+}
+
 .rbc-day-bg {
   border-color: hsl(var(--border)) !important;
   background: hsl(var(--card));
 }
 
-.dark .rbc-day-bg {
-  border-color: white !important;
+.rbc-row-bg {
+  right: 0 !important;
+}
+
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid hsl(var(--border)) !important;
 }
 
 .rbc-off-range,
@@ -782,10 +798,34 @@
   background: transparent;
 }
 
-.rbc-month-view {
+.rbc-month-view,
+.rbc-time-view {
   border: 1px solid hsl(var(--border));
   border-radius: 0.75rem;
   overflow: hidden;
+  flex: 1 1 0%;
+  min-height: 0;
+  height: auto !important;
+  background: hsl(var(--card));
+}
+
+.rbc-time-header,
+.rbc-time-content,
+.rbc-timeslot-group,
+.rbc-time-gutter,
+.rbc-day-slot,
+.rbc-month-row,
+.rbc-day-bg,
+.rbc-row-bg,
+.rbc-row-content,
+.rbc-date-cell,
+.rbc-time-header-content,
+.rbc-allday-cell {
+  border-color: hsl(var(--border)) !important;
+}
+
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid hsl(var(--border)) !important;
 }
 
 .rbc-toolbar-label {
@@ -845,25 +885,12 @@
   border-left: 1px solid hsl(var(--border)) !important;
 }
 
-.dark .rbc-day-bg.rbc-off-range,
-.dark .rbc-day-bg.rbc-off-range-bg {
-  border-left: 1px solid white !important;
-}
-
 .rbc-month-row .rbc-day-bg {
   border-color: hsl(var(--border)) !important;
 }
 
-.dark .rbc-month-row .rbc-day-bg {
-  border-color: white !important;
-}
-
 .rbc-month-row .rbc-day-bg + .rbc-day-bg {
   border-left-color: hsl(var(--border)) !important;
-}
-
-.dark .rbc-month-row .rbc-day-bg + .rbc-day-bg {
-  border-left-color: white !important;
 }
 
 .rbc-month-row .rbc-day-bg:last-child:not(.rbc-off-range):not(.rbc-off-range-bg) {
@@ -889,11 +916,6 @@
   cursor: default !important;
 }
 
-.dark .rbc-day-bg.rbc-off-range,
-.dark .rbc-day-bg.rbc-off-range-bg {
-  border-left: 1px solid white !important;
-}
-
 .rbc-off-range,
 .rbc-off-range-bg,
 .rbc-off-range *,
@@ -913,25 +935,28 @@
   position: relative;
 }
 
-.rbc-month-row .rbc-off-range::before,
-.rbc-month-row .rbc-off-range-bg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-  pointer-events: auto !important;
-  cursor: default !important;
-}
-
 .rbc-month-row > td {
   border-color: hsl(var(--border)) !important;
 }
 
-.dark .rbc-month-row > td {
-  border-color: white !important;
+.dark .rbc-off-range-bg {
+  background-color: hsl(var(--muted) / 0.35) !important;
+}
+
+.dark .rbc-today {
+  background-color: hsl(var(--primary) / 0.08) !important;
+}
+
+.dark .rbc-current-time-indicator {
+  background-color: hsl(162 72% 45%);
+}
+
+.dark .rbc-label {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .rbc-show-more {
+  color: hsl(162 72% 45%);
 }
 
 .rbc-today .rbc-date-cell > a {

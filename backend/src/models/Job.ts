@@ -4,7 +4,9 @@ export interface IStageHistory {
     columnTitle?: string;
     enteredDate: Date;
 }
+export type JobSource = 'linkedin' | 'referral' | 'recruiter' | 'company_site' | 'job_board' | 'other';
 export interface IHRContact {
+    hrContactId?: mongoose.Types.ObjectId;
     name?: string;
     phone?: string;
     email?: string;
@@ -39,6 +41,8 @@ export interface IJob extends Document {
     notesMarkdown?: string;
     appliedDate?: Date;
     lastWorkingDay?: Date;
+    nextActionDate?: Date;
+    jobSource?: JobSource;
     order?: number;
     stageHistory: IStageHistory[];
     hrContacts: IHRContact[];
@@ -51,6 +55,7 @@ const StageHistorySchema = new Schema<IStageHistory>({
     enteredDate: { type: Date, required: true, default: Date.now },
 }, { _id: false });
 const HRContactSchema = new Schema<IHRContact>({
+    hrContactId: { type: Schema.Types.ObjectId, ref: 'HrContact' },
     name: { type: String },
     phone: { type: String },
     email: { type: String },
@@ -93,6 +98,11 @@ const JobSchema = new Schema<IJob>({
     notesMarkdown: { type: String },
     appliedDate: { type: Date },
     lastWorkingDay: { type: Date },
+    nextActionDate: { type: Date },
+    jobSource: {
+        type: String,
+        enum: ['linkedin', 'referral', 'recruiter', 'company_site', 'job_board', 'other'],
+    },
     order: { type: Number, default: 0 },
     stageHistory: { type: [StageHistorySchema], default: [] },
     hrContacts: { type: [HRContactSchema], default: [] },

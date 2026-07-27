@@ -1,30 +1,26 @@
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
-import { InterviewRound, Job } from '../types';
-export const useAllInterviews = (jobs: Job[]) => {
-    return useQuery<InterviewRound[]>({
-        queryKey: ['interviews', 'all', jobs.map(j => j._id).join(',')],
-        queryFn: async () => {
-            if (!Array.isArray(jobs) || jobs.length === 0) {
-                return [];
-            }
-            const interviewPromises = jobs
-                .filter(job => job?._id)
-                .map(job => api.get(`/interviews/jobs/${job._id}`)
-                .then(response => response?.data?.interviews ?? [])
-                .catch(error => {
-                if (error?.response?.status !== 404) {
-                    console.warn(`Failed to fetch interviews for job ${job._id}`);
-                }
-                return [];
-            }));
-            const results = await Promise.all(interviewPromises);
-            return results.flat().filter(Boolean);
-        },
-        enabled: jobs.length > 0,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-    });
-};
+import { QUERY_CACHE_OPTIONS } from '../lib/queryCache';
+import { InterviewRound } from '../types';
+
+export const ALL_INTERVIEWS_QUERY_KEY = ['interviews', 'all'] as const;
+
+async function fetchAllInterviews(): Promise<InterviewRound[]> {
+    const response = await api.get('/interviews');
+    return response.data?.interviews ?? [];
+}
+
+export const allInterviewsQueryOptions = queryOptions({
+    queryKey: ALL_INTERVIEWS_QUERY_KEY,
+    queryFn: fetchAllInterviews,
+    ...QUERY_CACHE_OPTIONS,
+    retry: (failureCount, error) => {
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if (status !== undefined && status >= 400 && status < 500) {
+            return false;
+        }
+        return failureCount < 1;
+    },
+});
+
+export const useAllInterviews = () => useQuery(allInterviewsQueryOptions);

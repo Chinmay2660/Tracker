@@ -1,4 +1,4 @@
-import { DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, TouchSensor, useSensor, useSensors, pointerWithin, rectIntersection, getFirstCollision, CollisionDetection, } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, TouchSensor, useSensor, useSensors, pointerWithin, rectIntersection, CollisionDetection, } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { useState, memo, useMemo, useCallback } from 'react';
 import { useColumns } from '../hooks/useColumns';
@@ -8,9 +8,15 @@ import KanbanColumn from './KanbanColumn';
 import JobCard from './JobCard';
 import { Job, Column } from '../types';
 import { Skeleton } from './ui/skeleton';
-function KanbanBoard() {
+
+interface KanbanBoardProps {
+    filteredJobs?: Job[];
+}
+
+function KanbanBoard({ filteredJobs }: KanbanBoardProps) {
     const { columns = [], isLoading: columnsLoading, updateColumn } = useColumns();
-    const { jobs = [], moveJob, reorderJobs, isLoading: jobsLoading } = useJobs();
+    const { jobs: allJobs = [], moveJob, reorderJobs, isLoading: jobsLoading } = useJobs();
+    const jobs = filteredJobs ?? allJobs;
     useResumes();
     const [activeJob, setActiveJob] = useState<Job | null>(null);
     const [activeColumn, setActiveColumn] = useState<Column | null>(null);
@@ -73,20 +79,6 @@ function KanbanBoard() {
             }
         }
     }, [jobs, columns]);
-    const handleDragOver = useCallback((event: DragOverEvent) => {
-        const { active, over } = event;
-        if (!over)
-            return;
-        const activeId = active.id as string;
-        const overId = over.id as string;
-        if (!activeId.startsWith('column-') && !overId.startsWith('column-')) {
-            const activeJobObj = jobs.find((j: Job) => j._id === activeId);
-            const overJobObj = jobs.find((j: Job) => j._id === overId);
-            if (activeJobObj && overJobObj && activeJobObj.columnId === overJobObj.columnId) {
-                void 0;
-            }
-        }
-    }, [jobs]);
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event;
         setActiveJob(null);
@@ -163,7 +155,7 @@ function KanbanBoard() {
         </div>
       </div>);
     }
-    return (<DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    return (<DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <SortableContext items={sortedColumns.map((c: Column) => `column-${c._id}`)} strategy={verticalListSortingStrategy}>
         
         <div className="overflow-x-auto pb-4 -mx-4 px-4">

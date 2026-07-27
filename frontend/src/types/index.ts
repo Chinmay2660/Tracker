@@ -26,10 +26,12 @@ export interface InterviewStage {
     order: number;
 }
 export interface HRContact {
+    hrContactId?: string;
     name?: string;
     phone?: string;
     email?: string;
 }
+export type JobSource = 'linkedin' | 'referral' | 'recruiter' | 'company_site' | 'job_board' | 'other';
 export interface Job {
     _id: string;
     userId: string;
@@ -53,6 +55,8 @@ export interface Job {
     notesMarkdown?: string;
     appliedDate?: string;
     lastWorkingDay?: string;
+    nextActionDate?: string;
+    jobSource?: JobSource;
     order?: number;
     stageHistory?: StageHistory[];
     hrContacts?: HRContact[];
@@ -71,6 +75,7 @@ export interface HrContactRecord {
     noticePeriodLwdNote?: string;
     companyType?: HrCompanyType;
     intermediaryCompanyName?: string;
+    shareable?: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -84,6 +89,18 @@ export interface HrContactBrief {
     noticePeriodLwdNote?: string;
     companyType?: HrCompanyType;
 }
+export interface PublicHrContactRecord {
+    companyName?: string;
+    intermediaryCompanyName?: string;
+    hrName?: string;
+    phone?: string;
+    email?: string;
+    noticePeriodLwdNote?: string;
+    companyType?: HrCompanyType;
+}
+export type HrContactShareStatus =
+    | { enabled: false }
+    | { enabled: true; token: string; shareUrl: string };
 export interface InterviewRound {
     _id: string;
     jobId: string;

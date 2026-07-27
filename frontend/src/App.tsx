@@ -12,6 +12,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const InterviewsPage = lazy(() => import('./pages/InterviewsPage'));
 const HrContactsPage = lazy(() => import('./pages/HrContactsPage'));
+const PublicHrContactsPage = lazy(() => import('./pages/PublicHrContactsPage'));
 const ResumeManagerPage = lazy(() => import('./pages/ResumeManagerPage'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const Layout = lazy(() => import('./components/Layout'));
@@ -232,6 +233,9 @@ function App() {
               </AuthenticatedRedirect>}/>
           <Route path="/auth/callback" element={<Suspense fallback={<MinimalSkeleton />}>
                 <AuthCallback />
+              </Suspense>}/>
+          <Route path="/share/hr-contacts/:token" element={<Suspense fallback={<HrContactsSkeleton />}>
+                <PublicHrContactsPage />
               </Suspense>}/>
           <Route path="/dashboard" element={<ProtectedRoute>
                 <Suspense fallback={<DashboardSkeleton />}>

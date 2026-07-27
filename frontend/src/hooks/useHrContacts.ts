@@ -17,6 +17,7 @@ export type HrContactInput = {
     email?: string;
     noticePeriodLwdNote?: string;
     companyType?: HrCompanyType;
+    shareable?: boolean;
 };
 
 export type UseHrContactsOptions =
@@ -59,6 +60,8 @@ export const useHrContacts = (options?: UseHrContactsOptions) => {
             return response?.data?.hrContacts ?? [];
         },
         staleTime: 2 * 60 * 1000,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
     });
 
     const data = query.data;

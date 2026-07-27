@@ -1,45 +1,53 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { queryOptions, useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import { Job } from '../types';
-import { useBoardStore } from '../store/useBoardStore';
+import { QUERY_CACHE_OPTIONS } from '../lib/queryCache';
+import { Job, InterviewRound } from '../types';
+import { ALL_INTERVIEWS_QUERY_KEY } from './useAllInterviews';
+
+export const JOBS_QUERY_KEY = ['jobs'] as const;
+
+export function normalizeJob(job: Record<string, unknown>): Job {
+    return {
+        ...job,
+        columnId: typeof job?.columnId === 'object' && job?.columnId !== null && '_id' in (job.columnId as object)
+            ? (job.columnId as { _id: string })._id
+            : (job?.columnId as string),
+    } as Job;
+}
+
+async function fetchJobs(): Promise<Job[]> {
+    const response = await api.get('/jobs');
+    const jobsData = response?.data?.jobs ?? [];
+    return Array.isArray(jobsData) ? jobsData.map((job) => normalizeJob(job)) : [];
+}
+
+export const jobsQueryOptions = queryOptions({
+    queryKey: JOBS_QUERY_KEY,
+    queryFn: async () => {
+        try {
+            return await fetchJobs();
+        }
+        catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            const errorMessage = err?.response?.data?.message ?? err?.message ?? 'Failed to fetch jobs';
+            toast.error('Error loading jobs', { description: errorMessage });
+            throw error;
+        }
+    },
+    ...QUERY_CACHE_OPTIONS,
+});
+
+function removeInterviewsForJob(queryClient: QueryClient, jobId: string): void {
+    queryClient.setQueryData<InterviewRound[]>(ALL_INTERVIEWS_QUERY_KEY, (old = []) =>
+        old.filter((interview) => interview.jobId !== jobId),
+    );
+    queryClient.removeQueries({ queryKey: ['interviews', jobId] });
+}
+
 export const useJobs = () => {
     const queryClient = useQueryClient();
-    const { setJobs } = useBoardStore();
-    const { data: jobs = [], isLoading } = useQuery<Job[]>({
-        queryKey: ['jobs'],
-        queryFn: async () => {
-            try {
-                const response = await api.get('/jobs');
-                const jobsData = response?.data?.jobs ?? [];
-                const normalizedJobs = Array.isArray(jobsData) ? jobsData.map((job: any) => ({
-                    ...job,
-                    columnId: typeof job?.columnId === 'object' && job?.columnId?._id
-                        ? job.columnId._id
-                        : job?.columnId,
-                })) : [];
-                return normalizedJobs;
-            }
-            catch (error: any) {
-                const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch jobs';
-                toast.error('Error loading jobs', {
-                    description: errorMessage,
-                });
-                throw error;
-            }
-        },
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: false,
-    });
-    useEffect(() => {
-        if (jobs.length > 0 || !isLoading) {
-            setJobs(jobs);
-        }
-    }, [jobs, setJobs, isLoading]);
+    const { data: jobs = [], isLoading } = useQuery(jobsQueryOptions);
     const createMutation = useMutation({
         mutationFn: async (data: Partial<Job>) => {
             const response = await api.post('/jobs', data);
@@ -47,15 +55,10 @@ export const useJobs = () => {
             if (!job) {
                 throw new Error('Invalid response from server');
             }
-            return {
-                ...job,
-                columnId: typeof job?.columnId === 'object' && job?.columnId?._id
-                    ? job.columnId._id
-                    : job?.columnId,
-            };
+            return normalizeJob(job);
         },
         onSuccess: (newJob) => {
-            queryClient.setQueryData<Job[]>(['jobs'], (old = []) => [...old, newJob]);
+            queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, (old = []) => [...old, newJob]);
             toast.success('Job added successfully!', {
                 description: `${newJob.companyName} - ${newJob.role}`,
             });
@@ -78,15 +81,12 @@ export const useJobs = () => {
             if (!job) {
                 throw new Error('Invalid response from server');
             }
-            return {
-                ...job,
-                columnId: typeof job?.columnId === 'object' && job?.columnId?._id
-                    ? job.columnId._id
-                    : job?.columnId,
-            };
+            return normalizeJob(job);
         },
         onSuccess: (updatedJob) => {
-            queryClient.setQueryData<Job[]>(['jobs'], (old = []) => old.map((job) => (job._id === updatedJob._id ? updatedJob : job)));
+            queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, (old = []) =>
+                old.map((job) => (job._id === updatedJob._id ? updatedJob : job)),
+            );
             toast.success('Job updated successfully!', {
                 description: `${updatedJob.companyName} - ${updatedJob.role}`,
             });
@@ -105,8 +105,8 @@ export const useJobs = () => {
             await api.delete(`/jobs/${id}`);
         },
         onSuccess: (_, deletedId) => {
-            queryClient.setQueryData<Job[]>(['jobs'], (old = []) => old.filter((job) => job._id !== deletedId));
-            queryClient.invalidateQueries({ queryKey: ['interviews'] });
+            queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, (old = []) => old.filter((job) => job._id !== deletedId));
+            removeInterviewsForJob(queryClient, deletedId);
             toast.success('Job deleted successfully!');
         },
         onError: () => {
@@ -128,32 +128,28 @@ export const useJobs = () => {
             if (!job) {
                 throw new Error('Invalid response from server');
             }
-            return {
-                ...job,
-                columnId: typeof job?.columnId === 'object' && job?.columnId?._id
-                    ? job.columnId._id
-                    : job?.columnId,
-            };
+            return normalizeJob(job);
         },
         onMutate: async ({ id, columnId }) => {
-            await queryClient.cancelQueries({ queryKey: ['jobs'] });
-            const previousJobs = queryClient.getQueryData<Job[]>(['jobs']);
-            queryClient.setQueryData<Job[]>(['jobs'], (old = []) => old.map((job) => job._id === id ? { ...job, columnId } : job));
+            await queryClient.cancelQueries({ queryKey: JOBS_QUERY_KEY });
+            const previousJobs = queryClient.getQueryData<Job[]>(JOBS_QUERY_KEY);
+            queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, (old = []) =>
+                old.map((job) => job._id === id ? { ...job, columnId } : job),
+            );
             return { previousJobs };
         },
-        onError: (err, variables, context) => {
+        onError: (_err, _variables, context) => {
             if (context?.previousJobs) {
-                queryClient.setQueryData<Job[]>(['jobs'], context.previousJobs);
+                queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, context.previousJobs);
             }
             toast.error('Failed to move job', {
                 description: 'Please try again.',
             });
         },
         onSuccess: (updatedJob) => {
-            queryClient.setQueryData<Job[]>(['jobs'], (old = []) => old.map((job) => (job._id === updatedJob._id ? updatedJob : job)));
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, (old = []) =>
+                old.map((job) => (job._id === updatedJob._id ? updatedJob : job)),
+            );
         },
     });
     const reorderMutation = useMutation({
@@ -164,9 +160,9 @@ export const useJobs = () => {
             await api.patch('/jobs/reorder', { jobIds });
         },
         onMutate: async (jobIds) => {
-            await queryClient.cancelQueries({ queryKey: ['jobs'] });
-            const previousJobs = queryClient.getQueryData<Job[]>(['jobs']);
-            queryClient.setQueryData<Job[]>(['jobs'], (old = []) => {
+            await queryClient.cancelQueries({ queryKey: JOBS_QUERY_KEY });
+            const previousJobs = queryClient.getQueryData<Job[]>(JOBS_QUERY_KEY);
+            queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, (old = []) => {
                 const jobMap = new Map(old.map(job => [job._id, job]));
                 return jobIds.map((id, index) => {
                     const job = jobMap.get(id);
@@ -175,16 +171,13 @@ export const useJobs = () => {
             });
             return { previousJobs };
         },
-        onError: (err, variables, context) => {
+        onError: (_err, _variables, context) => {
             if (context?.previousJobs) {
-                queryClient.setQueryData<Job[]>(['jobs'], context.previousJobs);
+                queryClient.setQueryData<Job[]>(JOBS_QUERY_KEY, context.previousJobs);
             }
             toast.error('Failed to reorder jobs', {
                 description: 'Please try again.',
             });
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['jobs'] });
         },
     });
     return {

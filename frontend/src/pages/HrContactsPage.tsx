@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HR_CONTACTS_DEFAULT_PAGE_SIZE, HR_CONTACTS_PAGE_SIZES, useHrContacts, HrContactInput, type HrContactsPageSize, } from '../hooks/useHrContacts';
 import { HrContactRecord, HrCompanyType } from '../types';
+import { filterHrContactsList } from '../lib/hrContactFilter';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
@@ -12,11 +13,13 @@ import { Skeleton } from '../components/ui/skeleton';
 import { HR_COMPANY_TYPE_LABELS, HR_COMPANY_TYPE_OPTIONS, HR_COMPANY_TYPE_SHORT_LABEL, } from '../lib/hrCompanyTypes';
 import { HR_ACTIONS_TD_CLASS, HR_ACTIONS_TH_CLASS, HR_COMPANY_NAME_CHIP_CLASS, HR_COMPANY_TYPE_BADGE_CLASS, HR_CONSULTANCY_CLIENT_CHIP_CLASS, HR_INTERMEDIARY_PLAIN_TEXT_CLASS, HR_THIRD_PARTY_CLIENT_CHIP_CLASS, HR_TH_BASE, } from '../lib/hrContactsClasses';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { HrContactCompanyChips } from '../lib/hrContactCompanyChips';
 import { getHrContactsDataColumns } from '../lib/hrContactsDataColumns';
 import { HR_TABLE_COL_WIDTH_PERCENT } from '../lib/hrContactsTable';
 import { mailtoHrefFromEmail, normalizePhoneDigits, telHrefFromPhone } from '../lib/phoneNormalize';
-import { Plus, Pencil, Trash2, Building2, StickyNote, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, StickyNote, Eye, ChevronLeft, ChevronRight, Share2, Copy, Link2Off, Search } from 'lucide-react';
+import { useHrContactShare } from '../hooks/useHrContactShare';
 const emptyForm: HrContactInput = {
     companyName: '',
     intermediaryCompanyName: '',
@@ -25,6 +28,7 @@ const emptyForm: HrContactInput = {
     email: '',
     noticePeriodLwdNote: '',
     companyType: undefined,
+    shareable: false,
 };
 function hasAtLeastOneHrField(f: HrContactInput): boolean {
     if (f.companyName.trim())
@@ -46,31 +50,38 @@ function hasAtLeastOneHrField(f: HrContactInput): boolean {
 export default function HrContactsPage() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<HrContactsPageSize>(HR_CONTACTS_DEFAULT_PAGE_SIZE);
-    const { hrContacts, total, totalPages, isLoading, createHrContact, updateHrContact, deleteHrContact, isSaving, isDeleting, } = useHrContacts({
-        paginate: true,
-        page,
-        pageSize,
+    const [searchQuery, setSearchQuery] = useState('');
+    const [companyTypeFilter, setCompanyTypeFilter] = useState('all');
+    const [shareableFilter, setShareableFilter] = useState<'all' | 'shareable' | 'private'>('all');
+    const { hrContacts: allContacts, isLoading, createHrContact, updateHrContact, deleteHrContact, isSaving, isDeleting, } = useHrContacts({
+        paginate: false,
     });
-    const listTotal = typeof total === 'number' ? total : undefined;
-    const listTotalPages = typeof totalPages === 'number' ? totalPages : undefined;
+    const filteredContacts = useMemo(
+        () => filterHrContactsList(allContacts, searchQuery, companyTypeFilter, shareableFilter),
+        [allContacts, searchQuery, companyTypeFilter, shareableFilter],
+    );
+    const listTotal = filteredContacts.length;
+    const listTotalPages = Math.max(1, Math.ceil(listTotal / pageSize));
+    const hrContacts = filteredContacts.slice((page - 1) * pageSize, page * pageSize);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<HrContactRecord | null>(null);
     const [form, setForm] = useState<HrContactInput>(emptyForm);
     const [formError, setFormError] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [viewing, setViewing] = useState<HrContactRecord | null>(null);
+    const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const { share, isLoading: isShareLoading, enableShare, revokeShare, isEnabling, isRevoking } = useHrContactShare();
     const dataColumns = useMemo(() => getHrContactsDataColumns(), []);
     useEffect(() => {
-        if (listTotal === undefined || listTotalPages === undefined)
-            return;
         if (listTotal === 0) {
-            if (page !== 1)
-                setPage(1);
+            if (page !== 1) setPage(1);
             return;
         }
-        if (page > listTotalPages)
-            setPage(listTotalPages);
+        if (page > listTotalPages) setPage(listTotalPages);
     }, [listTotal, listTotalPages, page]);
+    useEffect(() => {
+        setPage(1);
+    }, [searchQuery, companyTypeFilter, shareableFilter, pageSize]);
     const openCreate = () => {
         setEditing(null);
         setForm(emptyForm);
@@ -87,6 +98,7 @@ export default function HrContactsPage() {
             email: row.email ?? '',
             noticePeriodLwdNote: row.noticePeriodLwdNote ?? '',
             companyType: row.companyType,
+            shareable: row.shareable ?? false,
         });
         setFormError(null);
         setDialogOpen(true);
@@ -107,6 +119,7 @@ export default function HrContactsPage() {
                 email: form.email?.trim() || undefined,
                 noticePeriodLwdNote: form.noticePeriodLwdNote?.trim() ?? '',
                 companyType: form.companyType,
+                shareable: form.shareable ?? false,
             };
             if (editing) {
                 await updateHrContact({ id: editing._id, ...payload });
@@ -136,14 +149,19 @@ export default function HrContactsPage() {
         }
     };
     const confirmDelete = async () => {
-        if (!deleteId)
+        if (!deleteId) {
             return;
+        }
+        await deleteHrContact(deleteId);
+        setDeleteId(null);
+    };
+    const copyShareUrl = async (url: string) => {
         try {
-            await deleteHrContact(deleteId);
-            setDeleteId(null);
+            await navigator.clipboard.writeText(url);
+            toast.success('Link copied to clipboard');
         }
         catch {
-            void 0;
+            toast.error('Could not copy link');
         }
     };
     if (isLoading) {
@@ -164,11 +182,39 @@ export default function HrContactsPage() {
     }
     return (<div className="space-y-4 sm:space-y-6">
       <PageHeader title="HR Contacts" description="Directory of recruiters and HR" actions={<>
+            <Button variant="outline" onClick={() => setShareDialogOpen(true)} className="flex-1 sm:flex-initial">
+              <Share2 className="h-4 w-4 mr-2"/>
+              Share list
+            </Button>
             <Button onClick={openCreate} className="flex-1 sm:flex-initial bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white">
               <Plus className="h-4 w-4 mr-2"/>
               Add HR Contact
             </Button>
           </>}/>
+
+      <div className="flex flex-col sm:flex-row gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+          <Input
+            type="search"
+            placeholder="Search by company, name, phone, or email…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={companyTypeFilter} onChange={(e) => setCompanyTypeFilter(e.target.value)} className="sm:w-44">
+          <option value="all">All company types</option>
+          {HR_COMPANY_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </Select>
+        <Select value={shareableFilter} onChange={(e) => setShareableFilter(e.target.value as 'all' | 'shareable' | 'private')} className="sm:w-36">
+          <option value="all">All contacts</option>
+          <option value="shareable">Shareable</option>
+          <option value="private">Private</option>
+        </Select>
+      </div>
 
       {listTotal !== undefined && listTotal > 0 && (<div className="rounded-lg border border-slate-200/90 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300" role="note" aria-label="Company column color key">
           <p className="font-medium text-slate-700 dark:text-slate-200 mb-2">Company column</p>
@@ -191,7 +237,7 @@ export default function HrContactsPage() {
           </div>
         </div>)}
 
-      {listTotal === 0 ? (<Card className="border-dashed border-slate-200 dark:border-slate-800">
+      {allContacts.length === 0 ? (<Card className="border-dashed border-slate-200 dark:border-slate-800">
           <CardContent className="py-16 text-center">
             <Building2 className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4"/>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No HR contacts yet</h3>
@@ -203,7 +249,13 @@ export default function HrContactsPage() {
               Add your first contact
             </Button>
           </CardContent>
-        </Card>) : listTotal !== undefined && listTotal > 0 ? (<div className="space-y-3">
+        </Card>) : listTotal === 0 ? (
+        <Card className="border-dashed border-slate-200 dark:border-slate-800">
+          <CardContent className="py-12 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">No contacts match your search or filters.</p>
+          </CardContent>
+        </Card>
+      ) : listTotal > 0 ? (<div className="space-y-3">
           <div className="md:hidden flex flex-col gap-3">
             {hrContacts.map((row) => (<Card key={row._id} className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                 <CardContent className="p-4 space-y-3">
@@ -304,7 +356,7 @@ export default function HrContactsPage() {
         </div>) : null}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent onClose={() => setDialogOpen(false)} className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent onClose={() => setDialogOpen(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit HR contact' : 'Add HR contact'}</DialogTitle>
             <DialogDescription>
@@ -315,6 +367,7 @@ export default function HrContactsPage() {
             {formError && (<p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
                 {formError}
               </p>)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="companyType">Company Type</Label>
               <Select id="companyType" value={form.companyType ?? ''} onChange={(e) => {
@@ -335,7 +388,7 @@ export default function HrContactsPage() {
                   <Label htmlFor="intermediaryCompanyName">HR Consultancy Name</Label>
                   <Input id="intermediaryCompanyName" value={form.intermediaryCompanyName} onChange={(e) => setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))} placeholder="Agency or consultancy you deal with"/>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="companyName">Company Name</Label>
                   <Input id="companyName" value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Client company they are hiring for"/>
                 </div>
@@ -345,7 +398,7 @@ export default function HrContactsPage() {
                   <Label htmlFor="intermediaryCompanyNamePayroll">Third Party Company Name</Label>
                   <Input id="intermediaryCompanyNamePayroll" value={form.intermediaryCompanyName} onChange={(e) => setForm((f) => ({ ...f, intermediaryCompanyName: e.target.value }))} placeholder="Payroll or staffing company"/>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="companyNamePayroll">Client Name</Label>
                   <Input id="companyNamePayroll" value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Where you work on paper / end client"/>
                 </div>
@@ -354,19 +407,19 @@ export default function HrContactsPage() {
                 <Label htmlFor="companyNameSimple">Company Name</Label>
                 <Input id="companyNameSimple" value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Acme Corp"/>
               </div>)}
-            <div className="space-y-2">
-              <Label htmlFor="hrName">HR / Recruiter Name</Label>
-              <Input id="hrName" value={form.hrName} onChange={(e) => setForm((f) => ({ ...f, hrName: e.target.value }))} placeholder="Jane Doe"/>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+91 98765 43210" inputMode="tel" autoComplete="tel"/>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="hr@company.com"/>
-            </div>
-            <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="hrName">HR / Recruiter Name</Label>
+                <Input id="hrName" value={form.hrName} onChange={(e) => setForm((f) => ({ ...f, hrName: e.target.value }))} placeholder="Jane Doe"/>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+91 98765 43210" inputMode="tel" autoComplete="tel"/>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="hr@company.com"/>
+              </div>
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="noticePeriodLwdNote" className="flex items-center gap-2">
                 <StickyNote className="h-4 w-4 text-teal-600 dark:text-teal-400"/>
                 Notice Period &amp; LWD (What you told this recruiter)
@@ -375,6 +428,36 @@ export default function HrContactsPage() {
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 {(form.noticePeriodLwdNote ?? '').length}/5000
               </p>
+            </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-3">
+              <div className="space-y-0.5 min-w-0">
+                <Label htmlFor="shareable" className="text-sm font-medium">
+                  Include in shared list
+                </Label>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  When your public link is enabled, only contacts with this on are visible.
+                </p>
+              </div>
+              <button
+                id="shareable"
+                type="button"
+                role="switch"
+                aria-checked={form.shareable ?? false}
+                onClick={() => setForm((f) => ({ ...f, shareable: !(f.shareable ?? false) }))}
+                className={cn(
+                  'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40',
+                  form.shareable ? 'bg-teal-600' : 'bg-slate-200 dark:bg-slate-700',
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform',
+                    form.shareable ? 'translate-x-5' : 'translate-x-0',
+                  )}
+                />
+              </button>
             </div>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
@@ -505,6 +588,65 @@ export default function HrContactsPage() {
             }}>
                 Edit
               </Button>)}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent onClose={() => setShareDialogOpen(false)} className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Share HR contacts</DialogTitle>
+            <DialogDescription>
+              Anyone with the link can view contacts marked as shareable, without signing in. You can disable the link anytime.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {isShareLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : share.enabled ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="share-url">Public link</Label>
+                  <div className="flex gap-2">
+                    <Input id="share-url" readOnly value={share.shareUrl} className="font-mono text-xs sm:text-sm" />
+                    <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => copyShareUrl(share.shareUrl)} aria-label="Copy link">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
+                  Only contacts with &quot;Include in shared list&quot; enabled are visible. Phone numbers and emails are shown to anyone with the link.
+                </p>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShareDialogOpen(false)}>
+                    Close
+                  </Button>
+                  <Button type="button" variant="destructive" disabled={isRevoking} onClick={async () => {
+                    await revokeShare();
+                  }}>
+                    <Link2Off className="h-4 w-4 mr-2" />
+                    {isRevoking ? 'Disabling…' : 'Disable link'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Create a public link to share contacts you have marked as shareable.
+                </p>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShareDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="button" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={isEnabling} onClick={async () => {
+                    await enableShare();
+                  }}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    {isEnabling ? 'Creating…' : 'Create public link'}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
