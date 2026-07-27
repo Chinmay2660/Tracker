@@ -28,7 +28,7 @@ const emptyForm: HrContactInput = {
     email: '',
     noticePeriodLwdNote: '',
     companyType: undefined,
-    shareable: false,
+    shareable: true,
 };
 function hasAtLeastOneHrField(f: HrContactInput): boolean {
     if (f.companyName.trim())
@@ -98,7 +98,7 @@ export default function HrContactsPage() {
             email: row.email ?? '',
             noticePeriodLwdNote: row.noticePeriodLwdNote ?? '',
             companyType: row.companyType,
-            shareable: row.shareable ?? false,
+            shareable: row.shareable ?? true,
         });
         setFormError(null);
         setDialogOpen(true);
@@ -124,7 +124,7 @@ export default function HrContactsPage() {
                 email: form.email?.trim() || undefined,
                 noticePeriodLwdNote: form.noticePeriodLwdNote?.trim() ?? '',
                 companyType: form.companyType,
-                shareable: form.shareable ?? false,
+                shareable: form.shareable ?? true,
             };
             if (editing) {
                 await updateHrContact({ id: editing._id, ...payload });
@@ -448,18 +448,18 @@ export default function HrContactsPage() {
                 id="shareable"
                 type="button"
                 role="switch"
-                aria-checked={form.shareable ?? false}
-                onClick={() => setForm((f) => ({ ...f, shareable: !(f.shareable ?? false) }))}
+                aria-checked={form.shareable ?? true}
+                onClick={() => setForm((f) => ({ ...f, shareable: !(f.shareable ?? true) }))}
                 className={cn(
                   'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40',
-                  form.shareable ? 'bg-teal-600' : 'bg-slate-200 dark:bg-slate-700',
+                  (form.shareable ?? true) ? 'bg-teal-600' : 'bg-slate-200 dark:bg-slate-700',
                 )}
               >
                 <span
                   aria-hidden
                   className={cn(
                     'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform',
-                    form.shareable ? 'translate-x-5' : 'translate-x-0',
+                    (form.shareable ?? true) ? 'translate-x-5' : 'translate-x-0',
                   )}
                 />
               </button>
