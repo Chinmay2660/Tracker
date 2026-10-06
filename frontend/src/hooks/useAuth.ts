@@ -6,6 +6,7 @@ import api from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { User } from '../types';
 import { getApiBaseUrl } from '../lib/apiBase';
+import { clearPersistedSession, commitLoggedInUser } from '../lib/sessionStorage';
 
 export const useAuth = () => {
     const { setUser } = useAuthStore();
@@ -40,24 +41,21 @@ export const useAuth = () => {
     const loginWithCode = async (username: string, code: string) => {
         const response = await api.post('/auth/login', { username, code });
         const loggedInUser = response.data.user as User;
-        queryClient.setQueryData(['auth', 'me'], loggedInUser);
-        setUser(loggedInUser);
+        await commitLoggedInUser(queryClient, loggedInUser, response.data.session);
         return loggedInUser;
     };
 
     const registerWithCode = async (payload: { username: string; name: string; code: string }) => {
         const response = await api.post('/auth/register', payload);
         const registeredUser = response.data.user as User;
-        queryClient.setQueryData(['auth', 'me'], registeredUser);
-        setUser(registeredUser);
+        await commitLoggedInUser(queryClient, registeredUser, response.data.session);
         return registeredUser;
     };
 
     const loginAsGuest = async () => {
         const response = await api.post('/auth/guest');
         const guestUser = response.data.user as User;
-        queryClient.setQueryData(['auth', 'me'], guestUser);
-        setUser(guestUser);
+        await commitLoggedInUser(queryClient, guestUser, response.data.session);
         return guestUser;
     };
 
@@ -74,6 +72,7 @@ export const useAuth = () => {
             }
         },
         onSuccess: () => {
+            clearPersistedSession();
             useAuthStore.getState().logout();
             queryClient.clear();
             navigate('/', { replace: true });

@@ -24,7 +24,11 @@ export const loginWithCode = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ success: false, error: 'Invalid username or code' });
         }
         res.setHeader('Set-Cookie', buildSessionCookie(String(user._id)));
-        return res.json({ success: true, user: serializeUser(user) });
+        return res.json({
+            success: true,
+            user: serializeUser(user),
+            session: createSessionToken(String(user._id)),
+        });
     }
     catch (error: any) {
         return res.status(500).json({ success: false, error: error.message || 'Login failed' });
@@ -56,7 +60,12 @@ export const registerWithCode = async (req: AuthRequest, res: Response) => {
             onboardingComplete: true,
         });
         res.setHeader('Set-Cookie', buildSessionCookie(String(user._id)));
-        return res.status(201).json({ success: true, user: serializeUser(user), authCode: code });
+        return res.status(201).json({
+            success: true,
+            user: serializeUser(user),
+            authCode: code,
+            session: createSessionToken(String(user._id)),
+        });
     }
     catch (error: any) {
         return res.status(500).json({ success: false, error: error.message || 'Registration failed' });
@@ -91,7 +100,11 @@ export const exchangeSession = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ success: false, error: 'User not found' });
         }
         res.setHeader('Set-Cookie', buildSessionCookie(String(user._id)));
-        return res.json({ success: true, user: serializeUser(user) });
+        return res.json({
+            success: true,
+            user: serializeUser(user),
+            session: createSessionToken(String(user._id)),
+        });
     }
     catch (error: any) {
         return res.status(500).json({ success: false, error: error.message || 'Session exchange failed' });
@@ -119,7 +132,11 @@ export const loginAsGuest = async (_req: AuthRequest, res: Response) => {
     try {
         const user = await ensureDemoData();
         res.setHeader('Set-Cookie', buildSessionCookie(String(user._id)));
-        return res.json({ success: true, user: serializeUser(user) });
+        return res.json({
+            success: true,
+            user: serializeUser(user),
+            session: createSessionToken(String(user._id)),
+        });
     }
     catch (error: any) {
         return res.status(500).json({ success: false, error: error.message || 'Guest login failed' });

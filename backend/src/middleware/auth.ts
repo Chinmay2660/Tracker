@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-import { getSessionUserIdFromRequest } from '../lib/session';
+import { getSessionUserIdFromAuthHeader, getSessionUserIdFromRequest } from '../lib/session';
 
 export interface AuthRequest extends Request {
     user?: any;
@@ -13,7 +13,8 @@ export interface AuthRequest extends Request {
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const sessionUserId = getSessionUserIdFromRequest(req.headers.cookie);
+        const sessionUserId = getSessionUserIdFromRequest(req.headers.cookie)
+            || getSessionUserIdFromAuthHeader(req.headers.authorization);
         if (sessionUserId) {
             const user = await User.findById(sessionUserId);
             if (!user) {
@@ -23,21 +24,26 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
             return next();
         }
 
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (token && process.env.JWT_SECRET) {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId?: string };
-            if (decoded.userId) {
-                const user = await User.findById(decoded.userId);
-                if (user) {
-                    req.user = user;
-                    return next();
+        const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+        if (bearer && process.env.JWT_SECRET) {
+            try {
+                const decoded = jwt.verify(bearer, process.env.JWT_SECRET) as { userId?: string };
+                if (decoded.userId) {
+                    const user = await User.findById(decoded.userId);
+                    if (user) {
+                        req.user = user;
+                        return next();
+                    }
                 }
+            }
+            catch {
+                // ponytail: Bearer may be a platform session token, not a JWT — ignore malformed JWT
             }
         }
 
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     catch {
-        return res.status(401).json({ success: false, error: 'Invalid token' });
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 };

@@ -93,6 +93,8 @@ export function clearSessionCookie(): string {
         'HttpOnly',
         `SameSite=${opts.sameSite}`,
     ];
+    if (opts.secure)
+        parts.push('Secure');
     if (opts.domain)
         parts.push(`Domain=${opts.domain}`);
     return parts.join('; ');
@@ -101,4 +103,10 @@ export function clearSessionCookie(): string {
 export function getSessionUserIdFromRequest(cookieHeader: string | undefined): string | null {
     const cookies = parseCookies(cookieHeader);
     return verifySessionToken(cookies[SESSION_COOKIE]);
+}
+
+export function getSessionUserIdFromAuthHeader(authorization: string | undefined): string | null {
+    if (!authorization?.startsWith('Bearer '))
+        return null;
+    return verifySessionToken(authorization.slice(7).trim());
 }

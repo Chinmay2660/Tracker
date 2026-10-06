@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { commitLoggedInUser } from '../lib/sessionStorage';
 
 export default function AuthCallback() {
     const [searchParams] = useSearchParams();
@@ -16,8 +17,12 @@ export default function AuthCallback() {
         }
 
         api.post('/auth/exchange', { session })
-            .then((response) => {
-                queryClient.setQueryData(['auth', 'me'], response.data.user);
+            .then(async (response) => {
+                await commitLoggedInUser(
+                    queryClient,
+                    response.data.user,
+                    response.data.session ?? session,
+                );
                 navigate('/dashboard', { replace: true });
             })
             .catch(() => {
