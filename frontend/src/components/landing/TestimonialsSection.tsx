@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { TestimonialCarousel, Testimonial } from '../effects';
 const testimonials: Testimonial[] = [
-    { id: 1, content: "Job Tracker transformed my job search. I went from losing track of applications to landing my dream job in 3 months!", author: "Tanmay Patil", role: "Software Engineer", company: "Google", rating: 5 },
+    { id: 1, content: "CareerFlow transformed my job search. I went from losing track of applications to landing my dream job in 3 months!", author: "Tanmay Patil", role: "Software Engineer", company: "Google", rating: 5 },
     { id: 2, content: "As someone who applied to 100+ jobs, this tool was a lifesaver. The Kanban board helped me visualize my entire pipeline.", author: "Chinmay Bhoir", role: "Full Stack Developer", company: "Microsoft", rating: 5 },
     { id: 3, content: "Finally, a job tracker that doesn't feel like another spreadsheet! The UI is beautiful and interview scheduling is so easy.", author: "Manas Shettigar", role: "UX Designer", company: "Swiggy", rating: 5 },
-    { id: 4, content: "I landed 3 offers and Job Tracker helped me keep them all straight. The stage-wise progress tracking is brilliant!", author: "Manvi Morye", role: "Data Scientist", company: "Flipkart", rating: 5 },
+    { id: 4, content: "I landed 3 offers and CareerFlow helped me keep them all straight. The stage-wise progress tracking is brilliant!", author: "Manvi Morye", role: "Data Scientist", company: "Flipkart", rating: 5 },
     { id: 5, content: "The analytics feature helped me understand my funnel. Seeing my interview progress across stages was a game changer!", author: "Rakshanda Madan", role: "Engineering Manager", company: "Razorpay", rating: 5 },
     { id: 6, content: "Perfect for career transitions. Multiple resumes and custom interview stages are incredibly helpful.", author: "Sayali Bangale", role: "Frontend Developer", company: "Zerodha", rating: 5 },
     { id: 7, content: "The reschedule feature saved me so many times. Managing interviews across companies has never been easier.", author: "Shubh Agrawal", role: "Backend Developer", company: "PhonePe", rating: 5 },

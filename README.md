@@ -1,4 +1,4 @@
-# Job Tracker Application
+# CareerFlow Application
 
 A full-stack job application tracking system with Kanban board, calendar view, and resume management.
 

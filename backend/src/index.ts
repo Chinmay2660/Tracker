@@ -39,12 +39,15 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sanitizeInput);
 app.use(csrfProtection);
+app.get("/health", (_req, res) => {
+    res.json({ status: "ok" });
+});
 app.use(apiLimiter);
 app.use(passport.initialize());
 if (process.env.VERCEL !== '1') {
@@ -59,13 +62,10 @@ app.use("/hr-contacts", hrContactRoutes);
 app.use("/public", publicRoutes);
 app.get("/", (req, res) => {
     res.json({
-        message: "Job Tracker API",
+        message: "CareerFlow API",
         status: "running",
         version: "1.0.0"
     });
-});
-app.get("/health", (req, res) => {
-    res.json({ status: "ok" });
 });
 app.get("/auth/test", (req, res) => {
     res.json({

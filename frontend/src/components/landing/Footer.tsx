@@ -8,9 +8,9 @@ function Footer() {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
             <Briefcase className="w-3.5 h-3.5 text-white"/>
           </div>
-          <span className="font-semibold text-slate-900 dark:text-white text-sm">Job Tracker</span>
+          <span className="font-semibold text-slate-900 dark:text-white text-sm">CareerFlow</span>
         </Link>
-        <p className="text-xs text-slate-500 dark:text-slate-400">© 2025 Job Tracker. Built with ❤️</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">© 2025 CareerFlow. Built with ❤️</p>
       </div>
     </footer>);
 }

@@ -2,8 +2,8 @@ import { memo } from 'react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../ui/accordion';
 const faqs = [
     {
-        question: 'Is Job Tracker really free?',
-        answer: 'Yes! Job Tracker is completely free forever. No credit card required, no hidden fees, no premium plans. We believe everyone should have access to great job search tools.',
+        question: 'Is CareerFlow really free?',
+        answer: 'Yes! CareerFlow is completely free forever. No credit card required, no hidden fees, no premium plans. We believe everyone should have access to great job search tools.',
     },
     {
         question: 'How do I get started?',
@@ -15,7 +15,7 @@ const faqs = [
     },
     {
         question: 'Can I use it on mobile?',
-        answer: 'Yes! Job Tracker is fully responsive and works great on desktop, tablet, and mobile devices. Manage your interviews and applications from anywhere.',
+        answer: 'Yes! CareerFlow is fully responsive and works great on desktop, tablet, and mobile devices. Manage your interviews and applications from anywhere.',
     },
     {
         question: 'What features are included?',

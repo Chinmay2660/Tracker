@@ -1,8 +1,7 @@
-import { lazy, Suspense, useEffect, memo } from 'react';
+import { lazy, Suspense, memo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-import { useAuthStore } from './store/useAuthStore';
 import DashboardSkeleton from './components/DashboardSkeleton';
 import { Skeleton } from './components/ui/skeleton';
 import OfflinePage from './pages/OfflinePage';
@@ -14,6 +13,7 @@ const InterviewsPage = lazy(() => import('./pages/InterviewsPage'));
 const HrContactsPage = lazy(() => import('./pages/HrContactsPage'));
 const PublicHrContactsPage = lazy(() => import('./pages/PublicHrContactsPage'));
 const ResumeManagerPage = lazy(() => import('./pages/ResumeManagerPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const Layout = lazy(() => import('./components/Layout'));
 const MinimalSkeleton = memo(() => (<div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4">
@@ -115,12 +115,8 @@ const InterviewsSkeleton = memo(() => (<div className="min-h-screen bg-slate-50 
 function AuthenticatedRedirect({ children }: {
     children: React.ReactNode;
 }) {
-    const token = useAuthStore((s) => s.token);
-    const { user, isLoading } = useAuth();
-    if (!token) {
-        return <>{children}</>;
-    }
-    if (isLoading) {
+    const { user, isLoading, isFetched } = useAuth();
+    if (!isFetched && isLoading) {
         return (<div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Skeleton className="h-10 w-48 rounded-lg"/>
@@ -166,23 +162,6 @@ function ProtectedRoute({ children }: {
 }
 function App() {
     const isOnline = useOnlineStatus();
-    const { checkSessionExpiry, refreshSession } = useAuthStore();
-    useEffect(() => {
-        checkSessionExpiry();
-        const interval = setInterval(() => {
-            checkSessionExpiry();
-        }, 60 * 1000);
-        const handleActivity = () => {
-            refreshSession();
-        };
-        window.addEventListener('click', handleActivity);
-        window.addEventListener('keydown', handleActivity);
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('click', handleActivity);
-            window.removeEventListener('keydown', handleActivity);
-        };
-    }, [checkSessionExpiry, refreshSession]);
     if (!isOnline) {
         return <OfflinePage />;
     }
@@ -229,6 +208,16 @@ function App() {
                     </div>
                   </div>}>
                   <LoginPage />
+                </Suspense>
+              </AuthenticatedRedirect>}/>
+          <Route path="/register" element={<AuthenticatedRedirect>
+                <Suspense fallback={<div className="min-h-screen bg-background">
+                    <div className="grid grid-cols-1 md:grid-cols-2 h-screen">
+                      <Skeleton className="h-full w-full"/>
+                      <Skeleton className="h-full w-full"/>
+                    </div>
+                  </div>}>
+                  <RegisterPage />
                 </Suspense>
               </AuthenticatedRedirect>}/>
           <Route path="/auth/callback" element={<Suspense fallback={<MinimalSkeleton />}>

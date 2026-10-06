@@ -7,9 +7,9 @@ import { resumesQueryOptions } from './useResumes';
 
 export const usePrefetchDashboard = () => {
     const queryClient = useQueryClient();
-    const { token } = useAuthStore();
+    const user = useAuthStore((s) => s.user);
     useEffect(() => {
-        if (!token) {
+        if (!user) {
             return;
         }
         const columnsState = queryClient.getQueryState(columnsQueryOptions.queryKey);
@@ -24,5 +24,5 @@ export const usePrefetchDashboard = () => {
         if (resumesState?.fetchStatus !== 'fetching' && resumesState?.data === undefined) {
             void queryClient.prefetchQuery(resumesQueryOptions);
         }
-    }, [token, queryClient]);
+    }, [user, queryClient]);
 };

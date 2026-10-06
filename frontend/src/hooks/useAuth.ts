@@ -6,53 +6,70 @@ import api from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { User } from '../types';
 import { getApiBaseUrl } from '../lib/apiBase';
+
 export const useAuth = () => {
-    const { setUser, token } = useAuthStore();
+    const { setUser } = useAuthStore();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { data: user, isLoading } = useQuery<User>({
+
+    const { data: user, isPending, isFetched, isError } = useQuery<User | null>({
         queryKey: ['auth', 'me'],
         queryFn: async () => {
             try {
                 const response = await api.get('/auth/me');
-                return response?.data?.user;
-            }
-            catch (error: any) {
-                if (error?.response?.status !== 401) {
-                    const errorMessage = error?.response?.data?.message ?? error?.message ?? 'Failed to fetch user';
-                    toast.error('Error loading user', {
-                        description: errorMessage,
-                    });
-                }
+                return response?.data?.user ?? null;
+            } catch (error: any) {
+                if (error?.response?.status === 401) return null;
                 throw error;
             }
         },
-        enabled: !!token,
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
-        refetchOnMount: false,
+        retry: false,
     });
+
     useEffect(() => {
-        if (user) {
-            setUser(user);
-        }
+        setUser(user ?? null);
     }, [user, setUser]);
-    const loginMutation = useMutation({
-        mutationFn: async () => {
-            window.location.href = `${getApiBaseUrl()}/auth/google`;
-        },
-    });
+
+    const loginWithGoogle = (returnTo?: string) => {
+        const base = `${getApiBaseUrl()}/auth/google`;
+        window.location.href = returnTo ? `${base}?returnTo=${encodeURIComponent(returnTo)}` : base;
+    };
+
+    const loginWithCode = async (username: string, code: string) => {
+        const response = await api.post('/auth/login', { username, code });
+        const loggedInUser = response.data.user as User;
+        queryClient.setQueryData(['auth', 'me'], loggedInUser);
+        setUser(loggedInUser);
+        return loggedInUser;
+    };
+
+    const registerWithCode = async (payload: { username: string; name: string; code: string }) => {
+        const response = await api.post('/auth/register', payload);
+        const registeredUser = response.data.user as User;
+        queryClient.setQueryData(['auth', 'me'], registeredUser);
+        setUser(registeredUser);
+        return registeredUser;
+    };
+
+    const loginAsGuest = async () => {
+        const response = await api.post('/auth/guest');
+        const guestUser = response.data.user as User;
+        queryClient.setQueryData(['auth', 'me'], guestUser);
+        setUser(guestUser);
+        return guestUser;
+    };
+
     const logoutMutation = useMutation({
         mutationFn: async () => {
             try {
                 await api.post('/auth/logout');
             }
             catch (error: any) {
-                const errorMessage = error?.response?.data?.message ?? error?.message;
+                const errorMessage = error?.response?.data?.error ?? error?.message;
                 if (errorMessage) {
-                    toast.error('Logout error', {
-                        description: errorMessage,
-                    });
+                    toast.error('Logout error', { description: errorMessage });
                 }
             }
         },
@@ -62,10 +79,15 @@ export const useAuth = () => {
             navigate('/', { replace: true });
         },
     });
+
     return {
-        user,
-        isLoading,
-        login: loginMutation.mutate,
+        user: user ?? null,
+        isLoading: isPending,
+        isFetched: isFetched || isError,
+        loginWithGoogle,
+        loginWithCode,
+        registerWithCode,
+        loginAsGuest,
         logout: logoutMutation.mutate,
     };
 };

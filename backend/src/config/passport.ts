@@ -2,6 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import dotenv from 'dotenv';
 import User from '../models/User';
+import { uniqueUsername } from '../lib/auth';
 dotenv.config();
 const clientID = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -58,22 +59,32 @@ if (clientID && clientSecret && clientID !== 'your-google-client-id-here.apps.go
                 }
                 return done(null, user);
             }
-            user = await User.findOne({ email: profile.emails?.[0]?.value });
-            if (user) {
-                console.log('✅ Found existing user by email, linking Google ID:', user.email);
-                user.googleId = profile.id;
+            const existingByEmail = await User.findOne({ email: profile.emails?.[0]?.value });
+            if (existingByEmail) {
+                console.log('✅ Found existing user by email, linking Google ID:', existingByEmail.email);
+                existingByEmail.googleId = profile.id;
                 if (profile.photos?.[0]?.value) {
-                    user.avatar = profile.photos[0].value;
+                    existingByEmail.avatar = profile.photos[0].value;
                 }
-                await user.save();
-                return done(null, user);
+                if (!existingByEmail.username && existingByEmail.email) {
+                    const userId = existingByEmail._id;
+                    existingByEmail.username = await uniqueUsername(existingByEmail.email.split('@')[0], async (candidate) => !!(await User.findOne({ username: candidate, _id: { $ne: userId } })));
+                }
+                await existingByEmail.save();
+                return done(null, existingByEmail);
             }
-            console.log('📝 Creating new user:', profile.emails?.[0]?.value);
+            const email = profile.emails?.[0]?.value || '';
+            const username = email
+                ? await uniqueUsername(email.split('@')[0], async (candidate) => !!(await User.findOne({ username: candidate })))
+                : await uniqueUsername(profile.displayName || 'user', async (candidate) => !!(await User.findOne({ username: candidate })));
+            console.log('📝 Creating new user:', email || username);
             user = await User.create({
                 googleId: profile.id,
+                username,
                 name: profile.displayName,
-                email: profile.emails?.[0]?.value || '',
+                email: email || undefined,
                 avatar: profile.photos?.[0]?.value || '',
+                onboardingComplete: true,
             });
             console.log('✅ Created new user:', user.email);
             return done(null, user);

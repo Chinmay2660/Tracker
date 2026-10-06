@@ -1,8 +1,10 @@
 export interface User {
     _id: string;
+    username?: string;
     name: string;
-    email: string;
+    email?: string;
     avatar?: string;
+    isGuest?: boolean;
 }
 export interface Column {
     _id: string;

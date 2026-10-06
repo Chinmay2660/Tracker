@@ -30,7 +30,7 @@ function CTASection() {
                     <LayoutDashboard className="w-4 h-4 mr-2 inline"/>
                     Open Job Board
                   </>) : (<>
-                    Get Started Free <ArrowRight className="w-4 h-4 ml-2"/>
+                    Sign In <ArrowRight className="w-4 h-4 ml-2"/>
                   </>)}
               </ShimmerButton>
             </Link>

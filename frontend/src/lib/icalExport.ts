@@ -13,7 +13,7 @@ export function generateIcalFeed(interviews: InterviewRound[], jobs: Job[]): str
     const lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//Job Tracker//Interviews//EN',
+        'PRODID:-//CareerFlow//Interviews//EN',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
     ];

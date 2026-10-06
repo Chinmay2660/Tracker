@@ -10,14 +10,10 @@ export class ResumeFileError extends Error {
     }
 }
 export async function fetchResumeBlob(resumeId: string): Promise<Blob> {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        throw new ResumeFileError('Sign in required', 'SIGN_IN_REQUIRED');
-    }
     let res: Response;
     try {
         res = await fetch(resumeFileUrl(resumeId), {
-            headers: { Authorization: `Bearer ${token}` },
+            credentials: 'include',
             priority: 'high',
         } as RequestInit);
     }
@@ -28,7 +24,6 @@ export async function fetchResumeBlob(resumeId: string): Promise<Blob> {
         throw e;
     }
     if (res.status === 401) {
-        localStorage.removeItem('token');
         window.location.href = '/login';
         throw new ResumeFileError('Session expired', 'UNAUTHORIZED');
     }

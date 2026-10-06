@@ -30,7 +30,7 @@ function LandingPage() {
         return () => { document.body.style.overflow = ''; };
     }, [mobileMenuOpen]);
     return (<>
-      <SEO title="Job Tracker - Track Your Job Applications & Interviews | Free Forever" description="Organize and track your job applications with Job Tracker. Manage interview stages, schedule rounds, reschedule easily, filter by status, and visualize progress with analytics. Beautiful Kanban board, resume manager, and more. Free forever." keywords="job tracker, job application tracker, interview scheduler, interview stages, resume manager, job search, application management, career tracker, job board, kanban board, job hunting, interview calendar"/>
+      <SEO title="CareerFlow - Track Your Job Applications & Interviews | Free Forever" description="Organize and track your job applications with CareerFlow. Manage interview stages, schedule rounds, reschedule easily, filter by status, and visualize progress with analytics. Beautiful Kanban board, resume manager, and more. Free forever." keywords="job tracker, job application tracker, interview scheduler, interview stages, resume manager, job search, application management, career tracker, job board, kanban board, job hunting, interview calendar"/>
       <div className="min-h-screen bg-white dark:bg-[#0B0F17] relative overflow-x-hidden transition-colors duration-0">
         
         <AnimatedGradientBackground />

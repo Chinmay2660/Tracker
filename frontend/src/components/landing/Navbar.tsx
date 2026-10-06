@@ -19,7 +19,7 @@ function Navbar({ scrolled, mobileMenuOpen, setMobileMenuOpen }: NavbarProps) {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
               <Briefcase className="w-4 h-4 text-white"/>
             </div>
-            <span className="font-bold text-slate-900 dark:text-white">Job Tracker</span>
+            <span className="font-bold text-slate-900 dark:text-white">CareerFlow</span>
           </Link>
 
           <div className="hidden sm:flex items-center gap-3">
@@ -31,12 +31,12 @@ function Navbar({ scrolled, mobileMenuOpen, setMobileMenuOpen }: NavbarProps) {
                 </Button>
               </Link>) : (<>
                 <Link to="/login">
-                  <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-300">Sign In</Button>
-                </Link>
-                <Link to="/login">
                   <ShimmerButton className="h-9 px-4 text-white text-sm font-medium">
-                    Get Started <ChevronRight className="w-4 h-4 ml-1"/>
+                    Sign In <ChevronRight className="w-4 h-4 ml-1"/>
                   </ShimmerButton>
+                </Link>
+                <Link to="/login?tab=signup">
+                  <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-300">Create account</Button>
                 </Link>
               </>)}
           </div>
@@ -55,10 +55,10 @@ function Navbar({ scrolled, mobileMenuOpen, setMobileMenuOpen }: NavbarProps) {
               <LayoutDashboard className="w-5 h-5"/>
               Job Board
             </Link>) : (<>
-              <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-700 dark:text-slate-200 font-medium">Sign In</Link>
               <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                <ShimmerButton className="w-full h-11 text-white">Get Started Free</ShimmerButton>
+                <ShimmerButton className="w-full h-11 text-white">Sign In</ShimmerButton>
               </Link>
+              <Link to="/login?tab=signup" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-center text-slate-700 dark:text-slate-200 font-medium">Create account</Link>
             </>)}
         </div>)}
     </nav>);

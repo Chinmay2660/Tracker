@@ -12,7 +12,6 @@ import { fetchPublicHrContacts } from '../hooks/useHrContactShare';
 import { getHrContactsDataColumns } from '../lib/hrContactsDataColumns';
 import { HR_TH_BASE } from '../lib/hrContactsClasses';
 import { HR_TABLE_COL_WIDTH_PERCENT } from '../lib/hrContactsTable';
-import { useAuthStore } from '../store/useAuthStore';
 import { HrContactRecord, PublicHrContactRecord } from '../types';
 
 function toDisplayRow(contact: PublicHrContactRecord, index: number): HrContactRecord {
@@ -153,9 +152,8 @@ export default function PublicHrContactsPage() {
 }
 
 function PublicShell({ children }: { children: React.ReactNode }) {
-    const token = useAuthStore((s) => s.token);
     const { user } = useAuth();
-    const isSignedIn = !!token && !!user;
+    const isSignedIn = !!user;
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -165,7 +163,7 @@ function PublicShell({ children }: { children: React.ReactNode }) {
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 shadow-sm shadow-teal-500/20">
                             <Briefcase className="h-3.5 w-3.5 text-white" />
                         </div>
-                        <span className="truncate text-sm font-bold text-slate-900 dark:text-white">Job Tracker</span>
+                        <span className="truncate text-sm font-bold text-slate-900 dark:text-white">CareerFlow</span>
                     </Link>
                     <div className="flex shrink-0 items-center gap-1">
                         <ThemeToggle />

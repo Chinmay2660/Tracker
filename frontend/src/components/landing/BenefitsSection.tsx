@@ -12,7 +12,7 @@ function BenefitsSection() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8 scroll-reveal">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">
-            Why <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-500">Job Tracker</span>?
+            Why <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-500">CareerFlow</span>?
           </h2>
         </div>
 

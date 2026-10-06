@@ -1,11 +1,29 @@
-import { memo } from 'react';
-import { Link } from 'react-router-dom';
+import { memo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles, Check, LayoutDashboard } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { BorderBeam, AnimatedText, ShimmerButton } from '../effects';
 import { useAuth } from '../../hooks/useAuth';
 function HeroSection() {
-    const { user } = useAuth();
+    const navigate = useNavigate();
+    const { user, loginAsGuest } = useAuth();
+    const [guestLoading, setGuestLoading] = useState(false);
+
+    const handleGuestLogin = async () => {
+        setGuestLoading(true);
+        try {
+            await loginAsGuest();
+            toast.success('Welcome to the demo!');
+            navigate('/dashboard', { replace: true });
+        }
+        catch (error: any) {
+            toast.error(error?.response?.data?.error || 'Demo login failed');
+        }
+        finally {
+            setGuestLoading(false);
+        }
+    };
     return (<section className="relative pt-28 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -32,12 +50,27 @@ function HeroSection() {
                       <LayoutDashboard className="w-4 h-4 mr-2 inline"/>
                       Open Job Board
                     </>) : (<>
-                      Start Free Today <ArrowRight className="w-4 h-4 ml-2"/>
+                      Sign In <ArrowRight className="w-4 h-4 ml-2"/>
                     </>)}
                 </ShimmerButton>
               </Link>
-              <Button variant="outline" className="w-full sm:w-auto h-12 px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md transition-all duration-300 rounded-full text-base">
-                Watch Demo
+              {user ? null : (
+                <Link to="/login?tab=signup">
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto h-12 px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md transition-all duration-300 rounded-full text-base"
+                  >
+                    Create account
+                  </Button>
+                </Link>
+              )}
+              <Button
+                variant="ghost"
+                className="w-full sm:w-auto h-12 px-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-base"
+                onClick={handleGuestLogin}
+                disabled={guestLoading}
+              >
+                {guestLoading ? 'Loading demo...' : 'Try demo'}
               </Button>
             </div>
 

@@ -1,6 +1,6 @@
 {
-  "name": "Job Tracker",
-  "short_name": "Job Tracker",
+  "name": "CareerFlow",
+  "short_name": "CareerFlow",
   "description": "Track job applications, interviews, and resumes.",
   "start_url": "/dashboard",
   "scope": "/",

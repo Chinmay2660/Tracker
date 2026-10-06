@@ -9,8 +9,8 @@ interface SEOProps {
     noindex?: boolean;
 }
 const defaultSEO = {
-    title: 'Job Tracker - Track Your Job Applications & Interviews | Free Forever',
-    description: 'Organize and track your job applications across different stages with Job Tracker. Manage interviews, resumes, and application progress with a beautiful Kanban board. Free forever, no credit card required.',
+    title: 'CareerFlow - Track Your Job Applications & Interviews | Free Forever',
+    description: 'Organize and track your job applications across different stages with CareerFlow. Manage interviews, resumes, and application progress with a beautiful Kanban board. Free forever, no credit card required.',
     keywords: 'job tracker, job application tracker, interview scheduler, resume manager, job search, application management, career tracker, job board, kanban board, job hunting',
     image: 'https://ui-tracker.vercel.app/og-image.png',
     type: 'website',
