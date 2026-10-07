@@ -84,7 +84,7 @@ if (clientID && clientSecret && clientID !== 'your-google-client-id-here.apps.go
                 name: profile.displayName,
                 email: email || undefined,
                 avatar: profile.photos?.[0]?.value || '',
-                onboardingComplete: true,
+                onboardingComplete: false,
             });
             console.log('✅ Created new user:', user.email);
             return done(null, user);

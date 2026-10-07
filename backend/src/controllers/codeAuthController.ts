@@ -57,7 +57,7 @@ export const registerWithCode = async (req: AuthRequest, res: Response) => {
             username,
             authCodeHash: hashAuthCode(code),
             name,
-            onboardingComplete: true,
+            onboardingComplete: false,
         });
         res.setHeader('Set-Cookie', buildSessionCookie(String(user._id)));
         return res.status(201).json({

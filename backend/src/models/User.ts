@@ -20,7 +20,7 @@ const UserSchema = new Schema<IUser>({
     email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     avatar: { type: String },
     googleId: { type: String, unique: true, sparse: true },
-    onboardingComplete: { type: Boolean, default: true },
+    onboardingComplete: { type: Boolean, default: false },
     isGuest: { type: Boolean, default: false },
 }, { timestamps: true });
 
